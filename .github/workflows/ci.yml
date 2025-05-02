@@ -20,6 +20,9 @@ jobs:
     - name: Install deps
       run: pip install -r requirements-lock.txt
 
+    - name: Run tests
+      run: pytest -q
+
     # Add other steps like linting, testing, etc.
     # - name: Lint with Ruff (example)
     #   run: |
