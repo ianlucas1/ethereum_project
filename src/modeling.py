@@ -484,7 +484,9 @@ def run_vecm_analysis(df_monthly: pd.DataFrame, endog_cols: list[str], exog_cols
             deterministic="ci" if det_order == 0 else ("li" if det_order == -1 else "co") # Match deterministic term
         )
         vecm_fit = vecm.fit()
-        vecm_results["summary"] = vecm_fit.summary().as_text()
+        # Log the summary instead of printing
+        logging.info("\n--- VECM Fit Summary ---\n%s\n------------------------", vecm_fit.summary().as_text())
+        vecm_results["summary"] = vecm_fit.summary().as_text() # Keep summary in results dict
 
         # Extract key parameters (assuming rank=1 and specific variable order)
         if coint_rank == 1 and len(endog_cols) >= 2:
@@ -574,7 +576,9 @@ def run_ardl_analysis(df_monthly: pd.DataFrame, endog_col: str, exog_cols: list[
             trend=trend,
         )
         res_ardl = model_ardl.fit()
-        ardl_results["summary"] = res_ardl.summary().as_text()
+        # Log the summary instead of printing
+        logging.info("\n--- ARDL Fit Summary ---\n%s\n------------------------", res_ardl.summary().as_text())
+        ardl_results["summary"] = res_ardl.summary().as_text() # Keep summary in results dict
 
         # Extract ECT coefficient (coefficient of endog.L1)
         try:
@@ -621,7 +625,10 @@ def run_ardl_analysis(df_monthly: pd.DataFrame, endog_col: str, exog_cols: list[
             ardl_results["bounds_stat"] = stat
             ardl_results["bounds_p_upper"] = p_upper
             ardl_results["bounds_p_lower"] = p_lower
-            ardl_results["bounds_test_summary"] = str(bounds_test_result)
+            # Log the bounds test summary instead of just storing it
+            bounds_summary_text = str(bounds_test_result)
+            logging.info("\n--- ARDL Bounds Test Summary ---\n%s\n-----------------------------", bounds_summary_text)
+            ardl_results["bounds_test_summary"] = bounds_summary_text # Keep summary in results dict
 
             cointegrated_5pct = p_lower < 0.05 if pd.notna(p_lower) else False
             ardl_results["cointegrated_5pct"] = cointegrated_5pct

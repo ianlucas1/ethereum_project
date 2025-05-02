@@ -171,15 +171,15 @@ def main():
     logging.info("--- Script Finished ---")
 
 
-# if __name__ == "__main__":
-#     # Ensure API keys are loaded from environment variables if needed
-#     # Example: Check for RAPIDAPI_KEY (can add CM_API_KEY check too)
-#     if not os.getenv("RAPIDAPI_KEY"):
-#          # Making this an error and exiting, as fetching is required if data is missing
-#          logging.error("RAPIDAPI_KEY environment variable not set. This is required for data fetching.")
-#          sys.exit("Error: RAPIDAPI_KEY environment variable is required.")
-#          # Alternatively, warn and continue if cached data might exist:
-#          # logging.warning("RAPIDAPI_KEY environment variable not set. Data fetching might fail if cache is old/missing.")
+if __name__ == "__main__":
+    # Ensure API keys are loaded from environment variables if needed
+    # Example: Check for RAPIDAPI_KEY (can add CM_API_KEY check too)
+    if not os.getenv("RAPIDAPI_KEY"):
+         # Making this an error and exiting, as fetching is required if data is missing
+         logging.error("RAPIDAPI_KEY environment variable not set. This is required for data fetching.")
+         sys.exit("Error: RAPIDAPI_KEY environment variable is required.")
+         # Alternatively, warn and continue if cached data might exist:
+         # logging.warning("RAPIDAPI_KEY environment variable not set. Data fetching might fail if cache is old/missing.")
 
-#     # Run the main analysis pipeline
-#     main()
+    # Run the main analysis pipeline
+    main()
