@@ -6,8 +6,6 @@ import logging
 import json
 import random
 import shutil
-import subprocess
-import sys
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from typing import Callable, Any # Or just Callable if Any isn't used directly here
@@ -15,20 +13,14 @@ import requests
 import pandas as pd
 import numpy as np # Added numpy as it might be needed indirectly or later
 
-# Safe import for filelock
+# Safe import for filelock - raise error if missing
 try:
     from filelock import FileLock
-except ModuleNotFoundError:
-    # If run outside of an env where requirements are installed, this will fail.
-    logging.error("filelock not found. Please install dependencies from requirements.txt")
-    # Attempt install (less ideal in a library file, but follows original logic somewhat)
-    try:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "filelock"])
-        from filelock import FileLock
-        logging.info("Installed filelock.")
-    except Exception as e:
-        logging.error(f"Failed to install filelock: {e}")
-        sys.exit("Missing dependency: filelock")
+except ModuleNotFoundError as e:
+    raise ImportError(
+        "'filelock' is missing. Activate your venv and run "
+        "'pip install -r requirements-lock.txt'"
+    ) from e
 
 
 # --- Logging Setup ---

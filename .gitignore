@@ -134,10 +134,10 @@ cython_debug/
 .idx/
 
 # Data files (Optional - uncomment if you DON'T want data in Git)
-# data/*.parquet
-# data/*.csv
-# final_results.json
-# raw_core_data_plot.png
+data/*.parquet
+data/*.csv
+final_results.json
+raw_core_data_plot.png
 
 # Cache lock files
 data/*.lock
