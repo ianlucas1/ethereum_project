@@ -8,7 +8,8 @@ from statsmodels.tools.sm_exceptions import SpecificationWarning, InterpolationW
 import warnings
 
 # Re-export for backward compatibility
-from src.ts_models import fit_ols_hac
+# from src.ts_models import fit_ols_hac
+from src.ols_models import fit_ols_hac
 
 __all__ = ["fit_ols_hac"]
 
