@@ -79,7 +79,8 @@ ethereum_project/
 
 3.  **Install Dependencies:**
     ```bash
-    pip install -r requirements.txt
+    python -m venv .venv && source .venv/bin/activate
+    pip install -r requirements-lock.txt
     ```
 
 4.  **Set Environment Variables:**

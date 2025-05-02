@@ -7,10 +7,10 @@ import seaborn as sns # For the optional plot
 import logging
 import pandas as pd
 import numpy as np
-from pathlib import Path
 
-# Import helpers from utils and data_fetching
-from .utils import load_parquet, DATA_DIR
+# Import settings, helpers from utils and data_fetching
+from src.config import settings
+from .utils import load_parquet # Removed DATA_DIR import
 from .data_fetching import fetch_nasdaq # We need fetch_nasdaq here
 
 # --- Raw Data Creation ---
@@ -20,7 +20,8 @@ def _plot_core_data(df: pd.DataFrame, filename: str):
     logging.info("Plotting raw core data diagnostics...")
     try:
         fig, axes = plt.subplots(3, 1, figsize=(12, 9), sharex=True)
-        plot_path = DATA_DIR.parent / filename # Save plot in project root
+        # Save plot in project root using settings for consistency (though not data dir)
+        plot_path = settings.BASE_DIR / filename
 
         # Add checks for empty data before plotting
         if not df['price_usd'].dropna().empty:
@@ -63,9 +64,9 @@ def ensure_raw_data_exists(plot_diagnostics: bool = True, filename: str = "raw_c
         True if data exists or was successfully created, False otherwise.
     """
     logging.info("Ensuring raw data files exist...")
-    core_path = DATA_DIR / "eth_core.parquet"
-    tx_path = DATA_DIR / "eth_tx.parquet"
-    fee_path = DATA_DIR / "eth_fee.parquet"
+    core_path = settings.DATA_DIR / "eth_core.parquet"
+    tx_path = settings.DATA_DIR / "eth_tx.parquet"
+    fee_path = settings.DATA_DIR / "eth_fee.parquet"
 
     # Check if ALL essential files exist
     if core_path.exists() and tx_path.exists() and fee_path.exists():
@@ -138,9 +139,9 @@ def load_raw_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Loads the raw core, fee, and transaction parquet files."""
     logging.info("Loading raw parquet files...")
     try:
-        core_path = DATA_DIR / "eth_core.parquet"
-        fee_path = DATA_DIR / "eth_fee.parquet"
-        tx_path = DATA_DIR / "eth_tx.parquet"
+        core_path = settings.DATA_DIR / "eth_core.parquet"
+        fee_path = settings.DATA_DIR / "eth_fee.parquet"
+        tx_path = settings.DATA_DIR / "eth_tx.parquet"
 
         core_df = load_parquet(core_path, ["price_usd", "active_addr", "supply"])
         logging.info("Loaded core data: %s rows", core_df.shape[0])
@@ -344,8 +345,8 @@ def process_all_data() -> tuple[pd.DataFrame, pd.DataFrame]:
 
         # 7. Save Processed DataFrames
         logging.info("Saving processed DataFrames...")
-        daily_clean_path = DATA_DIR / "daily_clean.parquet"
-        monthly_clean_path = DATA_DIR / "monthly_clean.parquet"
+        daily_clean_path = settings.DATA_DIR / "daily_clean.parquet"
+        monthly_clean_path = settings.DATA_DIR / "monthly_clean.parquet"
 
         daily_clean.to_parquet(daily_clean_path)
         monthly_clean.to_parquet(monthly_clean_path)

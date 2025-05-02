@@ -1,6 +1,5 @@
 # src/data_fetching.py
 
-import os
 import logging
 import json
 import random
@@ -10,22 +9,26 @@ import requests
 import pandas as pd
 import shutil # Added for disk_cache move operation
 
-# Import helpers from the utils module
-from .utils import disk_cache, robust_get, DATA_DIR # Use relative import
+# Import settings and helpers
+from src.config import settings
+from .utils import disk_cache, robust_get # Remove DATA_DIR import
 
 # --- Data Fetching Functions ---
 
+# Note: The disk_cache decorator needs to be aware of settings.DATA_DIR
+# We assume the implementation of disk_cache uses settings.DATA_DIR
+# For simplicity, the cache filename passed here remains relative
 @disk_cache("eth_price_yf.parquet", max_age_hr=24)
 def fetch_eth_price_rapidapi() -> pd.DataFrame:
     """Fetches daily ETH-USD close from Yahoo via RapidAPI (chunked).
 
-    Uses disk caching defined in utils.py.
+    Uses disk caching defined in utils.py (assumed to use settings.DATA_DIR).
     Returns a DataFrame with a single 'price_usd' column.
     """
-    key = os.getenv("RAPIDAPI_KEY")
+    key = settings.RAPIDAPI_KEY
     if not key:
-        logging.error("RAPIDAPI_KEY environment variable not set.")
-        raise EnvironmentError("RAPIDAPI_KEY env-var not set")
+        logging.error("RAPIDAPI_KEY not found in settings.")
+        raise ValueError("RAPIDAPI_KEY not configured in settings")
 
     host = "apidojo-yahoo-finance-v1.p.rapidapi.com"
     url = f"https://{host}/stock/v2/get-chart"
@@ -144,33 +147,32 @@ def fetch_eth_price_rapidapi() -> pd.DataFrame:
     if pd.api.types.is_datetime64_any_dtype(eth_df.index) and eth_df.index.tz is not None:
         eth_df.index = eth_df.index.tz_localize(None)
 
+    # Ensure cache path is correct in the disk_cache decorator logic
+    # Example: The decorator should internally use settings.DATA_DIR / cache_filename
+    # Here, we return the DataFrame. The decorator handles saving to settings.DATA_DIR / "eth_price_yf.parquet"
     return eth_df.to_frame() # Ensure return is DataFrame
 
 
-@disk_cache("cm_{asset}_{metric}.parquet", max_age_hr=24) # Note: cache path now dynamic
+@disk_cache("cm_{asset}_{metric}.parquet", max_age_hr=24) # Dynamic name passed to decorator
 def cm_fetch(metric: str, asset="eth", start="2015-08-01", freq="1d") -> pd.Series:
     """Fetches a specific metric from CoinMetrics Community API.
 
-    Uses disk caching defined in utils.py. Cache filename includes asset and metric.
+    Uses disk caching defined in utils.py (assumed to use settings.DATA_DIR).
+    Cache filename includes asset and metric dynamically handled by the decorator.
     Returns a pandas Series.
     """
-    # Update cache path based on function arguments for the decorator logic (won't change filename post-hoc)
-    # The decorator needs modification to handle dynamic filenames based on args,
-    # or we create separate cached functions for each metric.
-    # For simplicity here, we'll assume the decorator was adapted or we use specific caches per metric call.
-    # Let's redefine the cache path here for clarity, although the decorator handles it.
-    # cache_filename = f"cm_{asset}_{metric}.parquet" # Example dynamic name
-    # This function will actually use "cm_{asset}_{metric}.parquet" as the cache filename literally.
-    # A more robust disk_cache would inspect args.
+    # The cache filename is handled dynamically by the decorator based on args.
+    # The decorator should construct the full path using settings.DATA_DIR.
 
-    base = ("https://community-api.coinmetrics.io/v4/timeseries/asset-metrics"
-            f"?assets={asset}&metrics={metric}&frequency={freq}"
-            f"&start_time={start}&page_size=10000")
-    # Use CM_API_KEY if available in environment
+    base = (
+        f"https://community-api.coinmetrics.io/v4/timeseries/asset-metrics"
+        f"?assets={asset}&metrics={metric}&frequency={freq}"
+        f"&start_time={start}&page_size=10000"
+    )
     hdr = {}
-    api_key = os.getenv("CM_API_KEY")
+    api_key = settings.CM_API_KEY # Use settings
     if api_key:
-        hdr["Authorization"] = f"Bearer {api_key}" # Or "X-API-KEY": api_key depending on API
+        hdr["Authorization"] = f"Bearer {api_key}"
         logging.info(f"Using CoinMetrics API Key for metric: {metric}")
     else:
         logging.info(f"Fetching CoinMetrics data without API key for metric: {metric}")
@@ -226,13 +228,13 @@ def cm_fetch(metric: str, asset="eth", start="2015-08-01", freq="1d") -> pd.Seri
 def fetch_nasdaq() -> pd.Series:
     """Fetches true-daily ^NDX close from Yahoo via RapidAPI (chunked).
 
-    Uses disk caching defined in utils.py.
+    Uses disk caching defined in utils.py (assumed to use settings.DATA_DIR).
     Returns a pandas Series named 'nasdaq'.
     """
-    key = os.getenv("RAPIDAPI_KEY")
+    key = settings.RAPIDAPI_KEY # Use settings
     if not key:
-        logging.error("RAPIDAPI_KEY environment variable not set.")
-        raise EnvironmentError("RAPIDAPI_KEY env-var not set")
+        logging.error("RAPIDAPI_KEY not found in settings.")
+        raise ValueError("RAPIDAPI_KEY not configured in settings")
 
     host = "apidojo-yahoo-finance-v1.p.rapidapi.com"
     url = f"https://{host}/stock/v2/get-chart"

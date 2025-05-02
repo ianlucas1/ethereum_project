@@ -6,29 +6,23 @@ import logging
 import json
 import random
 import shutil
-import subprocess
-import sys
-from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from typing import Callable, Any # Or just Callable if Any isn't used directly here
 import requests
 import pandas as pd
 import numpy as np # Added numpy as it might be needed indirectly or later
 
-# Safe import for filelock
+# Import settings from config
+from src.config import settings
+
+# Safe import for filelock - raise error if missing
 try:
     from filelock import FileLock
-except ModuleNotFoundError:
-    # If run outside of an env where requirements are installed, this will fail.
-    logging.error("filelock not found. Please install dependencies from requirements.txt")
-    # Attempt install (less ideal in a library file, but follows original logic somewhat)
-    try:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "filelock"])
-        from filelock import FileLock
-        logging.info("Installed filelock.")
-    except Exception as e:
-        logging.error(f"Failed to install filelock: {e}")
-        sys.exit("Missing dependency: filelock")
+except ModuleNotFoundError as e:
+    raise ImportError(
+        "'filelock' is missing. Activate your venv and run "
+        "'pip install -r requirements-lock.txt'"
+    ) from e
 
 
 # --- Logging Setup ---
@@ -38,16 +32,13 @@ logging.basicConfig(level=logging.INFO,
 
 
 # --- Constants ---
-# Define the data directory relative to the project root
-# Assumes utils.py is in src/ and data/ is at the project root
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DATA_DIR = PROJECT_ROOT / "data"
+# DATA_DIR is now sourced from settings
 # Ensure data dir exists when this module is imported
 # Use try-except for robustness if permissions are an issue
 try:
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    settings.DATA_DIR.mkdir(parents=True, exist_ok=True)
 except OSError as e:
-    logging.error(f"Could not create data directory {DATA_DIR}: {e}")
+    logging.error(f"Could not create data directory {settings.DATA_DIR}: {e}")
     # Depending on the use case, you might want to exit or just warn
     # sys.exit(f"Failed to create data directory: {e}")
 
@@ -56,7 +47,8 @@ except OSError as e:
 
 def disk_cache(path_arg: str, max_age_hr: int = 24) -> Callable:
     """Decorator to cache pandas DataFrame/Series to disk (Parquet)."""
-    cache_path = DATA_DIR / path_arg
+    # Use DATA_DIR from settings
+    cache_path = settings.DATA_DIR / path_arg
     lock_path  = cache_path.with_suffix(".lock")
 
     # Determine if the decorated function returns Series or DataFrame for saving
