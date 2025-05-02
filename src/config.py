@@ -9,7 +9,10 @@ from pydantic import BaseSettings
 class Settings(BaseSettings):
     RAPIDAPI_KEY: str
     CM_API_KEY: str | None = None
-    DATA_DIR: Path = Path(__file__).resolve().parent.parent / "data"
+    # Project root directory
+    BASE_DIR: Path = Path(__file__).resolve().parent.parent
+    # Data directory derived from BASE_DIR
+    DATA_DIR: Path = BASE_DIR / "data"
 
     class Config:
         env_file = ".env"
