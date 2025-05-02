@@ -23,8 +23,8 @@ _orig_fit_ols_hac = fit_ols_hac  # imported from ols_models above
 def fit_ols_hac(df, y: str, X: list[str], *args: Any, **kwargs: Any):
     """Call the underlying function but keep the (df, y, X, …) signature
     and guarantee the returned object has a `.params` attribute."""
-    # The core function now expects y_data, X_data, df, ...
-    res = _orig_fit_ols_hac(df[y], df[X], df, *args, **kwargs)
+    # The core function now expects y_data, X_data, df, ... - > NO LONGER expects df
+    res = _orig_fit_ols_hac(df[y], df[X], *args, **kwargs)
 
     # If the core impl already returns something with `.params`, forward it.
     if hasattr(res, "params"):
