@@ -9,7 +9,7 @@ import sys # Added for sys.exit on critical errors
 
 # Import functions from our source modules
 # Assuming Python can find the 'src' directory (it should if run from project root)
-from src.utils import logging, DATA_DIR # Import logging configured in utils and DATA_DIR
+from src.utils import logging # Import logging configured in utils
 # Import both processing functions now
 from src.data_processing import process_all_data, ensure_raw_data_exists
 from src.eda import winsorize_data, run_stationarity_tests
@@ -24,25 +24,26 @@ from src.modeling import (
 # Import reporting functions
 from src.reporting import generate_summary, NpEncoder
 
-# --- Configuration ---
-# Define parameters here instead of hardcoding in functions
-WINSORIZE_COLS = ["active_addr", "burn", "tx_count"] # Use 'burn' as defined in processing
-WINSORIZE_QUANTILE = 0.995
-STATIONARITY_COLS = ["log_marketcap", "log_active", "log_gas"] # After winsorizing
-OLS_EXT_COLS = ["log_active", "log_nasdaq", "log_gas"]
-BREAK_DATES = {
-    "EIP1559": "2021-08-31",
-    "Merge": "2022-09-30"
-}
-VECM_ENDOG_COLS = ["log_marketcap", "log_active"]
-VECM_EXOG_COLS = ["log_nasdaq", "log_gas"]
-ARDL_ENDOG_COL = "log_marketcap"
-ARDL_EXOG_COLS = ["log_active", "log_nasdaq", "log_gas"]
-OOS_WINDOW = 24
-OOS_ENDOG_COL = "log_marketcap"
-OOS_EXOG_COLS = ["log_active", "log_nasdaq", "log_gas"]
-RESULTS_JSON_PATH = DATA_DIR.parent / "final_results.json" # Save JSON in project root
-
+# --- Configuration Imports ---
+# Import configuration variables directly from src.config
+from src.config import (
+    DATA_DIR,
+    WINSORIZE_COLS,
+    WINSORIZE_QUANTILE,
+    STATIONARITY_COLS,
+    OLS_EXT_COLS, # Note: OLS_HAC_LAGS, OLS_CONSTR_BETA not used directly in main.py
+    BREAK_DATES,
+    VECM_ENDOG_COLS,
+    VECM_EXOG_COLS, # Note: VECM_MAX_LAGS, VECM_COINT_RANK, VECM_DET_ORDER not used directly
+    ARDL_ENDOG_COL,
+    ARDL_EXOG_COLS, # Note: ARDL_MAX_LAGS, ARDL_TREND, ARDL_FIXED_P, ARDL_FIXED_Q_ORDER not used directly
+    OOS_WINDOW,
+    OOS_ENDOG_COL,
+    OOS_EXOG_COLS,
+    RESULTS_JSON_FILENAME,
+    RAW_PLOT_FILENAME,
+    RAPIDAPI_KEY # Import key for check later
+)
 
 # --- Main Execution ---
 def main():
@@ -52,8 +53,8 @@ def main():
     # --- ADDED BLOCK ---
     # 0. Ensure Raw Data Exists (Fetches if necessary)
     logging.info("--- Checking/Fetching Raw Data ---")
-    # Set plot_diagnostics=False if you don't want the plot generated during fetch
-    raw_data_ready = ensure_raw_data_exists(plot_diagnostics=True)
+    # Pass the plot filename from config
+    raw_data_ready = ensure_raw_data_exists(plot_diagnostics=True, filename=RAW_PLOT_FILENAME)
     if not raw_data_ready:
         logging.error("Could not ensure raw data is available. Exiting.")
         sys.exit(1) # Exit script if raw data cannot be obtained
@@ -160,10 +161,12 @@ def main():
     print("="*80 + "\n")
 
     # Save final results dictionary to JSON
+    # Use imported config variable for filename, construct path relative to project root
+    results_path = DATA_DIR.parent / RESULTS_JSON_FILENAME
     try:
-        with open(RESULTS_JSON_PATH, 'w') as f:
+        with open(results_path, 'w') as f:
             json.dump(final_results_dict, f, indent=4, cls=NpEncoder)
-        logging.info(f"Final results dictionary saved to: {RESULTS_JSON_PATH}")
+        logging.info(f"Final results dictionary saved to: {results_path}")
     except Exception as e:
         logging.error(f"Failed to save final results JSON: {e}", exc_info=True)
 
@@ -173,8 +176,8 @@ def main():
 
 if __name__ == "__main__":
     # Ensure API keys are loaded from environment variables if needed
-    # Example: Check for RAPIDAPI_KEY (can add CM_API_KEY check too)
-    if not os.getenv("RAPIDAPI_KEY"):
+    # Check the imported key directly
+    if not RAPIDAPI_KEY:
          # Making this an error and exiting, as fetching is required if data is missing
          logging.error("RAPIDAPI_KEY environment variable not set. This is required for data fetching.")
          sys.exit("Error: RAPIDAPI_KEY environment variable is required.")
