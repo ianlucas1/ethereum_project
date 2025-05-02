@@ -64,7 +64,9 @@ setuptools==80.1.0
 setuptools-scm==8.3.1
 six==1.17.0
 stack-data==0.6.3
-statsmodels @ git+https://github.com/statsmodels/statsmodels.git@6ae4bae9a259dc1ae7b998477987e18c3c5ecdd0
+statsmodels==0.14.1 \
+    --hash=sha256:4d0c1d9af1196d204ce20ad6cea5e1ad94c075f70a92c60cef887518e22e8695 \
+    --hash=sha256:499fb7d500ab8eddfda7e9c49be765c325263746ecd5393797b8aa3a14b5b7bb
 threadpoolctl==3.6.0
 tornado==6.4.2
 traitlets==5.14.3
