@@ -15,8 +15,8 @@ from .data_fetching import fetch_nasdaq # We need fetch_nasdaq here
 
 # --- Raw Data Creation ---
 
-def _plot_core_data(df: pd.DataFrame, filename: Path | str = "raw_core_data_plot.png"):
-    """Helper to plot raw core data."""
+def _plot_core_data(df: pd.DataFrame, filename: str):
+    """Helper to plot raw core data, saving with the specified filename."""
     logging.info("Plotting raw core data diagnostics...")
     try:
         fig, axes = plt.subplots(3, 1, figsize=(12, 9), sharex=True)
@@ -50,13 +50,14 @@ def _plot_core_data(df: pd.DataFrame, filename: Path | str = "raw_core_data_plot
         logging.error(f"Failed to generate raw core data plot: {e}", exc_info=True)
 
 
-def ensure_raw_data_exists(plot_diagnostics: bool = True) -> bool:
+def ensure_raw_data_exists(plot_diagnostics: bool = True, filename: str = "raw_core_data_plot.png") -> bool:
     """
     Checks if raw parquet files exist. If not, fetches data and creates them.
     Mirrors the logic of the original Cell 1.
 
     Args:
         plot_diagnostics: Whether to generate the diagnostic plot.
+        filename: The filename to use for the diagnostic plot if generated.
 
     Returns:
         True if data exists or was successfully created, False otherwise.
@@ -108,7 +109,7 @@ def ensure_raw_data_exists(plot_diagnostics: bool = True) -> bool:
         logging.info(f"Saved raw core data to {core_path} ({core_df.shape})")
 
         if plot_diagnostics:
-            _plot_core_data(core_df)
+            _plot_core_data(core_df, filename=filename)
 
         # Fetch and save extra metrics
         logging.info("Fetching ETH transaction count...")
