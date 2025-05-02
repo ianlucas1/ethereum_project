@@ -14,13 +14,13 @@ The core analysis involves:
 
 The project is structured to support both a full pipeline execution via `main.py` and interactive research/exploration using `research.py`.
 
-## Collaboration & GitHub Workflow 🚀
+## Collaboration & GitHub Workflow
 
 | What | How |
 |------|-----|
 | **Default branch** | `main` (protected by ruleset) |
 | **Branching** | Work on short-lived branches (`feature/<topic>`). **Never** push directly to `main`. |
-| **Pull requests** | Required for every change; CI must pass; at least **1** approving review. |
+| **Pull requests** | Required for every change; CI must pass |
 | **Required check** | `Python CI` (runs unit tests & lint on Py 3.10 → 3.12). |
 | **Merge methods** | Merge, Squash, or Rebase (choose what makes sense). |
 | **Force pushes** | Disabled on `main`; allowed on your own branches with `--force-with-lease`. |
