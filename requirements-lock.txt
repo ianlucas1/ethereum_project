@@ -1,6 +1,4 @@
-appnope==0.1.4 \
-    --hash=sha256:5027525e11cd72a80e2573f975b25feeeba99d161b7c964670864014ed7213c \
-    --hash=sha256:9c72105060416a9694bb2f2296e73aaf2853f2f496e07cf44a3c59faa9f91bfe
+appnope==0.1.4
 asttokens==3.0.0
 certifi==2025.4.26
 charset-normalizer==3.4.1
@@ -16,16 +14,12 @@ fonttools==4.57.0
 formulaic==1.1.1
 idna==3.10
 interface-meta==1.3.0
-ipykernel==6.29.5 \
-    --hash=sha256:73a16520d195e4f918efc148e15a967a274b33806056136948a32b2874a7c723 \
-    --hash=sha256:f9d138396469df5333106084215ee1a36d86c75a0664a0e84bebf62b8517c175
-ipython==8.18.1 \
+ipykernel==6.29.5
+ipython==8.18.1
     # last 8-series release (supports Py 3.10)
     # via
     #   -r requirements-dev.txt
     #   ipykernel
-    --hash=sha256:00c4ec3a0db2e4e6ed6c1b8dcc1971b79d52b93c4860352993f4d6c3b8e30971 \
-    --hash=sha256:04378d8dd34193e89a2544ee20fc3c14461975743a9d662e81782a5758d6f95d
 ipython_pygments_lexers==1.1.1
 jedi==0.19.2
 joblib==1.4.2
@@ -66,9 +60,7 @@ setuptools==80.1.0
 setuptools-scm==8.3.1
 six==1.17.0
 stack-data==0.6.3
-statsmodels==0.14.1 \
-    --hash=sha256:4d0c1d9af1196d204ce20ad6cea5e1ad94c075f70a92c60cef887518e22e8695 \
-    --hash=sha256:499fb7d500ab8eddfda7e9c49be765c325263746ecd5393797b8aa3a14b5b7bb
+statsmodels==0.14.1
 threadpoolctl==3.6.0
 tornado==6.4.2
 traitlets==5.14.3
