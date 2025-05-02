@@ -94,6 +94,10 @@ ethereum_project/
     # export CM_API_KEY="your_coinmetrics_key_here" # Optional
     ```
 
+    **Note on Specific Dependencies:**
+    *   `statsmodels`: This project currently uses the development version (0.15.dev) directly from the GitHub main branch (`pip install git+https://github.com/statsmodels/statsmodels.git`). This is because the latest stable release (0.14.x) might have compatibility issues or lack necessary features. This requirement might be removed once `statsmodels` version 0.15 is officially released with pre-built wheels.
+    *   `pyarrow`: Installation might pull pre-releases (nightlies) if necessary. This is facilitated by the inclusion of the Arrow nightlies package index (`https://pypi.fury.io/arrow-nightlies/`) in the `pip.conf` file, which allows `pip` to find these versions automatically.
+
 ## Usage
 
 ### Full Pipeline Execution
