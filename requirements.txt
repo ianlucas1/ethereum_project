@@ -1,0 +1,24 @@
+# Core data handling and analysis
+pandas
+numpy
+scipy
+scikit-learn
+
+# Data fetching
+requests
+filelock # For caching mechanism
+
+# Plotting
+matplotlib
+seaborn
+
+# Econometrics and Stats
+statsmodels==0.14.4 # Specific version used in original script
+linearmodels # Used in original script install, might be needed for specific tests
+# pyarrow or fastparquet is needed by pandas for parquet files,
+# but often best installed directly if needed, rather than listed here.
+# We'll rely on pandas' optional dependency handling for now.
+pyarrow
+
+# Optional: If you were using IPython/Jupyter specific features beyond display()
+# ipython
