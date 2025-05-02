@@ -13,14 +13,11 @@ from src.utils import logging # Import logging configured in utils
 # Import both processing functions now
 from src.data_processing import process_all_data, ensure_raw_data_exists
 from src.eda import winsorize_data, run_stationarity_tests
-from src.modeling import (
-    run_ols_benchmarks,
-    run_residual_diagnostics,
-    run_structural_break_tests,
-    run_vecm_analysis,
-    run_ardl_analysis,
-    run_oos_validation
-)
+# NEW Imports reflecting refactoring:
+from src.ols_models import run_ols_benchmarks
+from src.ts_models import run_vecm_analysis, run_ardl_analysis
+from src.diagnostics import run_residual_diagnostics, run_structural_break_tests
+from src.validation import run_oos_validation
 # Import reporting functions
 from src.reporting import generate_summary, NpEncoder
 
