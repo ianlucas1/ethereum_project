@@ -1,4 +1,6 @@
-appnope==0.1.4
+appnope==0.1.4 \
+    --hash=sha256:5027525e11cd72a80e2573f975b25feeeba99d161b7c964670864014ed7213c \
+    --hash=sha256:9c72105060416a9694bb2f2296e73aaf2853f2f496e07cf44a3c59faa9f91bfe
 asttokens==3.0.0
 certifi==2025.4.26
 charset-normalizer==3.4.1
