@@ -14,6 +14,22 @@ The core analysis involves:
 
 The project is structured to support both a full pipeline execution via `main.py` and interactive research/exploration using `research.py`.
 
+## Collaboration & GitHub Workflow 🚀
+
+| What | How |
+|------|-----|
+| **Default branch** | `main` (protected by ruleset) |
+| **Branching** | Work on short-lived branches (`feature/<topic>`). **Never** push directly to `main`. |
+| **Pull requests** | Required for every change; CI must pass; at least **1** approving review. |
+| **Required check** | `Python CI` (runs unit tests & lint on Py 3.10 → 3.12). |
+| **Merge methods** | Merge, Squash, or Rebase (choose what makes sense). |
+| **Force pushes** | Disabled on `main`; allowed on your own branches with `--force-with-lease`. |
+| **Dependencies** | Locked in `requirements-lock.txt`; update via `pip-compile` + PR. |
+| **Local dev** | `python -m venv .venv && pip install -r requirements-lock.txt && pytest -q`. |
+| **LLM etiquette** | Keep diffs minimal, commit messages clear (`feat:`, `fix:`, `docs:`), cite tools/sources. |
+
+> **Tip**  Run `pre-commit run --all-files` before pushing to catch lint/format issues locally.
+
 ## Repository Structure
 
 ```
