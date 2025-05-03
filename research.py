@@ -6,7 +6,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
-from src.utils import DATA_DIR # Assuming DATA_DIR is correctly defined in utils
+from src.config import settings # Import settings object
+DATA_DIR = settings.DATA_DIR # Get DATA_DIR from settings
 
 logging.info("--- Interactive Session: Loading Data ---")
 
