@@ -56,10 +56,11 @@ def run_oos_validation(df_monthly: pd.DataFrame, endog_col: str, exog_cols: list
         if add_const:
             X_train = sm.add_constant(X_train, has_constant='add')
 
-        # Check for sufficient data and NaNs in window (redundant due to initial dropna?)
-        if y_train.isnull().any() or X_train.isnull().any().any() or len(y_train) < X_train.shape[1] + 2:
-             logging.warning(f"Skipping OOS window ending {train_data.index[-1].date()}: Insufficient data or NaNs in window.")
-             continue
+        # Basic check for sufficient data points
+        # Updated: Removed isnull checks (assuming NaNs handled before call or by model)
+        if len(y_train) < X_train.shape[1] + 2:
+            logging.warning(f"Skipping OOS step at index {end_idx} ({train_data.index[-1].date()}): Insufficient data points ({len(y_train)}) after split.")
+            continue
 
         try:
             # Fit OLS on window data (plain OLS for prediction coefficients)
@@ -72,7 +73,6 @@ def run_oos_validation(df_monthly: pd.DataFrame, endog_col: str, exog_cols: list
                 # Ensure columns match train columns (order and presence)
                 X_test = X_test[X_train.columns]
 
-
             # Check if test point has NaNs in regressors
             if X_test.isnull().any().any():
                 logging.warning(f"Skipping OOS prediction for {test_data_point.index[0].date()}: NaN in regressors.")
@@ -80,26 +80,54 @@ def run_oos_validation(df_monthly: pd.DataFrame, endog_col: str, exog_cols: list
 
             # Predict log market cap for the next month
             pred_log = model_win.predict(X_test).iloc[0] # Use .iloc[0]
-            actual_log = test_data_point[endog_col].iloc[0]
-            actual_price = test_data_point['price_usd'].iloc[0]
-            supply_oos = test_data_point['supply'].iloc[0]
-
-            # Check if actual log/price/supply values are valid
-            if pd.isna(actual_log) or pd.isna(actual_price) or pd.isna(supply_oos) or supply_oos == 0:
-                logging.warning(f"Skipping OOS prediction for {test_data_point.index[0].date()}: NaN/invalid value in actuals/supply.")
+            
+            # Get the actual date for logging/indexing
+            predict_date = test_data_point.index[0]
+            
+            # Get actual values for the prediction date, more robustly handling potential Series returns
+            try:
+                actual_log_series = model_df.loc[predict_date, endog_col]
+                actual_price_series = model_df.loc[predict_date, 'price_usd'] # Assuming price_usd is always needed
+                supply_oos_series = model_df.loc[predict_date, 'supply']     # Assuming supply is always needed
+            
+                # Check if any series returned is empty (no data for the date)
+                if (isinstance(actual_log_series, pd.Series) and actual_log_series.empty) or \
+                   (isinstance(actual_price_series, pd.Series) and actual_price_series.empty) or \
+                   (isinstance(supply_oos_series, pd.Series) and supply_oos_series.empty):
+                     logging.warning(f"Skipping OOS metrics for {predict_date}: No actual data found.")
+                     continue
+            
+                # Extract the first value if it's a Series, otherwise use the scalar directly
+                actual_log_val = actual_log_series.iloc[0] if isinstance(actual_log_series, pd.Series) else actual_log_series
+                actual_price_val = actual_price_series.iloc[0] if isinstance(actual_price_series, pd.Series) else actual_price_series
+                supply_oos_val = supply_oos_series.iloc[0] if isinstance(supply_oos_series, pd.Series) else supply_oos_series
+            
+                # Check if the extracted scalar values are NA or invalid
+                if pd.isna(actual_log_val) or pd.isna(actual_price_val) or pd.isna(supply_oos_val) or supply_oos_val == 0:
+                    logging.warning(f"Skipping OOS metrics for {predict_date}: Actual data missing or invalid scalar value.")
+                    continue
+            
+            except KeyError as e:
+                logging.warning(f"Skipping OOS metrics for {predict_date}: Missing column in actual data - {e}")
+                continue
+            except Exception as e:
+                # Catch any other unexpected errors during data retrieval/check
+                logging.warning(f"Skipping OOS metrics for {predict_date}: Unexpected error processing actual data - {e}")
                 continue
 
             # Convert prediction back to price space
             # Handle potential overflow during exp()
             with np.errstate(over='ignore'):
-                 pred_price = np.exp(pred_log) / supply_oos
-                 if not np.isfinite(pred_price):
-                      logging.warning(f"Overflow encountered calculating predicted price for {test_data_point.index[0].date()}. pred_log={pred_log}")
-                      pred_price = np.nan # Set to NaN if overflow occurs
+                 pred_price = np.exp(pred_log) / supply_oos_val # Use validated scalar supply
+                 # Ensure pred_price is scalar before checking finiteness
+                 pred_price_val = pred_price.iloc[0] if isinstance(pred_price, (pd.Series, pd.DataFrame)) else pred_price
+                 if not np.isfinite(pred_price_val):
+                      logging.warning(f"Overflow encountered calculating predicted price for {predict_date}. pred_log={pred_log}")
+                      pred_price_val = np.nan # Set scalar value to NaN if overflow occurs
 
-            pred_vals_price.append(pred_price)
-            actual_vals_price.append(actual_price)
-            oos_dates.append(test_data_point.index[0])
+            pred_vals_price.append(pred_price_val) # Append the validated scalar prediction
+            actual_vals_price.append(actual_price_val) # Use validated scalar actual price
+            oos_dates.append(predict_date) # Use the stored predict_date
 
         except Exception as e:
             logging.error(f"ERROR during OOS window ending {train_data.index[-1].date()}: {e}", exc_info=True)
