@@ -48,16 +48,16 @@ except OSError as e:
 
 def disk_cache(path_arg: str, max_age_hr: int = 24) -> Callable:
     """Decorator to cache pandas DataFrame/Series to disk (Parquet)."""
-    # Use DATA_DIR from settings
-    cache_path = settings.DATA_DIR / path_arg
-    lock_path  = cache_path.with_suffix(".lock")
-
-    # Determine if the decorated function returns Series or DataFrame for saving
-    # This is a bit tricky without inspecting the function signature more deeply
-    # We'll assume DataFrame by default for saving, Series can be saved via to_frame()
+    # Note: cache_path and lock_path are now defined inside the wrapper
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         def wrapper(*args, **kwargs) -> Any:
+            # --- MOVED INSIDE WRAPPER ---
+            # Construct paths using the potentially patched settings.DATA_DIR
+            cache_path = settings.DATA_DIR / path_arg
+            lock_path  = cache_path.with_suffix(".lock")
+            # --- END OF MOVE ---
+
             # Check cache existence and age
             if cache_path.exists():
                 try:
@@ -75,12 +75,16 @@ def disk_cache(path_arg: str, max_age_hr: int = 24) -> Callable:
                             loaded_data.index = loaded_data.index.tz_localize(None)
 
                         # If original function returned Series, try returning the first column
-                        # This is heuristic - might need adjustment based on actual usage
                         if isinstance(loaded_data, pd.DataFrame) and len(loaded_data.columns) == 1:
-                             # Check if the original function likely returned a Series
-                             # This check isn't perfect. A better way might be needed if issues arise.
-                             # For now, assume if saved df has 1 col, Series was intended.
-                             return loaded_data.iloc[:, 0]
+                             # Heuristic: Assume Series was intended if saved df has 1 col.
+                             # Check function signature in future if needed.
+                             # Example: inspect.signature(func).return_annotation == pd.Series
+                             try:
+                                 # Attempt to return the single column as a Series
+                                 return loaded_data.iloc[:, 0].rename(loaded_data.columns[0])
+                             except Exception:
+                                 # Fallback if conversion fails
+                                 return loaded_data
                         return loaded_data # Return DataFrame
                 except Exception as e:
                     logging.warning(f"Failed to load or check cache {cache_path}: {e}. Re-fetching.")
@@ -93,16 +97,20 @@ def disk_cache(path_arg: str, max_age_hr: int = 24) -> Callable:
 
                 # Ensure data index is timezone-naive BEFORE saving
                 if hasattr(result, 'index') and pd.api.types.is_datetime64_any_dtype(result.index) and result.index.tz is not None:
-                    result.index = result.index.tz_localize(None)
+                    # Create a copy to avoid modifying the original result if it's used elsewhere
+                    result_to_save = result.copy()
+                    result_to_save.index = result_to_save.index.tz_localize(None)
+                else:
+                    result_to_save = result # No modification needed
 
                 try:
                     # Save result to temporary file
-                    if isinstance(result, pd.Series):
-                        result.to_frame().to_parquet(tmp_path, index=True) # Save Series as one-column DataFrame
-                    elif isinstance(result, pd.DataFrame):
-                        result.to_parquet(tmp_path, index=True)
+                    if isinstance(result_to_save, pd.Series):
+                        result_to_save.to_frame().to_parquet(tmp_path, index=True) # Save Series as one-column DataFrame
+                    elif isinstance(result_to_save, pd.DataFrame):
+                        result_to_save.to_parquet(tmp_path, index=True)
                     else:
-                        logging.error(f"Cannot cache result of type {type(result)} from {func.__name__}.")
+                        logging.error(f"Cannot cache result of type {type(result_to_save)} from {func.__name__}.")
                         return result # Return uncached result if not DataFrame/Series
 
                     # Move temporary file to final cache path
@@ -117,6 +125,7 @@ def disk_cache(path_arg: str, max_age_hr: int = 24) -> Callable:
                             tmp_path.unlink()
                         except OSError as unlink_e:
                             logging.error(f"Failed to remove temporary cache file {tmp_path}: {unlink_e}")
+            # Return the original result (potentially with tz-aware index if it started that way)
             return result
         return wrapper
     return decorator
