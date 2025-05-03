@@ -103,21 +103,20 @@ ethereum_project/
     pip install -r requirements-lock.txt
     ```
 
-5.  **Set Environment Variables:**
-    The data fetching scripts require API keys. The configuration (`src/config.py`) loads these from environment variables or a `.env` file.
-    *   `RAPIDAPI_KEY`: **Required** for fetching certain datasets via RapidAPI (ensure you have an account and key).
-    *   `CM_API_KEY`: *Optional*. A CoinMetrics Pro API key can be used for fetching data directly. If not provided, the script might fall back to other sources or cached data where available.
+5.  **Set Environment Variables (using `.env` file):**
+    The configuration (`src/config.py`) automatically loads API keys and other settings from a `.env` file in the project root directory. Create this file if it doesn't exist.
 
-    You can set these variables in your terminal session:
-    ```bash
-    export RAPIDAPI_KEY="your_rapidapi_key_here"
-    # export CM_API_KEY="your_coinmetrics_key_here" # Optional
-    ```
-    Alternatively, create a file named `.env` in the project root directory (ensure `.env` is in your `.gitignore`!) with the following content:
-    ```dotenv
-    RAPIDAPI_KEY=your_rapidapi_key_here
-    # CM_API_KEY=your_coinmetrics_key_here
-    ```
+    *   **Create/Edit `.env` file:** In the project root, create or edit a file named `.env`.
+    *   **Add Keys:** Add your keys to the file like this:
+        ```dotenv
+        # .env file content
+        RAPIDAPI_KEY=your_rapidapi_key_here
+        CM_API_KEY=your_coinmetrics_key_here # Optional - leave blank or comment out if not using Pro
+        ETHERSCAN_API_KEY=your_etherscan_key_here # Optional - add if needed
+        ```
+    *   **Ensure `.gitignore**:** Double-check that your `.gitignore` file contains a line with just `.env` to prevent accidentally committing your keys.
+
+    *(Alternatively, you can still set these as system environment variables, which will override the `.env` file if both are present, but using the `.env` file is recommended for managing project-specific keys.)*
 
 ## Usage
 
