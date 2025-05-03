@@ -9,4 +9,4 @@ def test_ols_beta_two():
     res = fit_ols_hac(y=y_series, X=X_df, add_const=False, lags=0)
     assert "params" in res, "Result dictionary should contain 'params' key"
     assert "x" in res["params"], "Params dictionary should contain 'x' key"
-    assert abs(res["params"]["x"] - 2) < 1e-6 
+    assert abs(res["params"]["x"] - 2) < 1e-6

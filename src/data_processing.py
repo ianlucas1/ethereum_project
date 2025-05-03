@@ -1,8 +1,7 @@
 # src/data_processing.py
 
-from .data_fetching import fetch_eth_price_rapidapi, cm_fetch # Add cm_fetch
-import matplotlib.pyplot as plt # For the optional plot
-import seaborn as sns # For the optional plot
+from .data_fetching import fetch_eth_price_rapidapi, cm_fetch  # Add cm_fetch
+import matplotlib.pyplot as plt  # For the optional plot
 
 import logging
 import pandas as pd
@@ -10,10 +9,11 @@ import numpy as np
 
 # Import settings, helpers from utils and data_fetching
 from src.config import settings
-from .utils import load_parquet # Removed DATA_DIR import
-from .data_fetching import fetch_nasdaq # We need fetch_nasdaq here
+from .utils import load_parquet  # Removed DATA_DIR import
+from .data_fetching import fetch_nasdaq  # We need fetch_nasdaq here
 
 # --- Raw Data Creation ---
+
 
 def _plot_core_data(df: pd.DataFrame, filename: str):
     """Helper to plot raw core data, saving with the specified filename."""
@@ -24,24 +24,24 @@ def _plot_core_data(df: pd.DataFrame, filename: str):
         plot_path = settings.BASE_DIR / filename
 
         # Add checks for empty data before plotting
-        if not df['price_usd'].dropna().empty:
+        if not df["price_usd"].dropna().empty:
             axes[0].plot(df.index, df["price_usd"])
             axes[0].set_yscale("log")
             axes[0].set_title("ETH Price (USD)")
         else:
             axes[0].set_title("ETH Price (USD) - No Data")
 
-        if not df['active_addr'].dropna().empty:
+        if not df["active_addr"].dropna().empty:
             axes[1].plot(df.index, df["active_addr"])
             axes[1].set_title("Active Addresses")
         else:
-             axes[1].set_title("Active Addresses - No Data")
+            axes[1].set_title("Active Addresses - No Data")
 
-        if not df['supply'].dropna().empty:
+        if not df["supply"].dropna().empty:
             axes[2].plot(df.index, df["supply"])
             axes[2].set_title("Circulating Supply")
         else:
-             axes[2].set_title("Circulating Supply - No Data")
+            axes[2].set_title("Circulating Supply - No Data")
 
         plt.tight_layout()
         plt.savefig(plot_path)
@@ -51,7 +51,9 @@ def _plot_core_data(df: pd.DataFrame, filename: str):
         logging.error(f"Failed to generate raw core data plot: {e}", exc_info=True)
 
 
-def ensure_raw_data_exists(plot_diagnostics: bool = True, filename: str = "raw_core_data_plot.png") -> bool:
+def ensure_raw_data_exists(
+    plot_diagnostics: bool = True, filename: str = "raw_core_data_plot.png"
+) -> bool:
     """
     Checks if raw parquet files exist. If not, fetches data and creates them.
     Mirrors the logic of the original Cell 1.
@@ -73,17 +75,20 @@ def ensure_raw_data_exists(plot_diagnostics: bool = True, filename: str = "raw_c
         logging.info("Raw data files found.")
         return True
 
-    logging.warning("One or more raw data files missing. Attempting to fetch and create...")
+    logging.warning(
+        "One or more raw data files missing. Attempting to fetch and create..."
+    )
 
     try:
         # Fetch core components (uses cache internally if available)
         logging.info("Fetching ETH price...")
-        price_df = fetch_eth_price_rapidapi() # Returns DataFrame
+        price_df = fetch_eth_price_rapidapi()  # Returns DataFrame
         if price_df.empty:
-             logging.warning("ETH price fetch returned empty DataFrame. Core data might be incomplete.")
-             # Create empty df to allow merge to proceed but result might be unusable
-             price_df = pd.DataFrame(columns=['price_usd'], index=pd.to_datetime([]))
-
+            logging.warning(
+                "ETH price fetch returned empty DataFrame. Core data might be incomplete."
+            )
+            # Create empty df to allow merge to proceed but result might be unusable
+            price_df = pd.DataFrame(columns=["price_usd"], index=pd.to_datetime([]))
 
         logging.info("Fetching ETH active addresses...")
         active_series = cm_fetch("AdrActCnt").rename("active_addr")
@@ -93,7 +98,9 @@ def ensure_raw_data_exists(plot_diagnostics: bool = True, filename: str = "raw_c
         # Combine core data
         logging.info("Combining and aligning core data...")
         # Use outer join to keep all dates initially, then align
-        core_df = pd.concat([price_df, active_series, supply_series], axis=1, join='outer')
+        core_df = pd.concat(
+            [price_df, active_series, supply_series], axis=1, join="outer"
+        )
 
         # Forward fill missing values - crucial for daily data alignment
         core_df = core_df.ffill()
@@ -102,8 +109,10 @@ def ensure_raw_data_exists(plot_diagnostics: bool = True, filename: str = "raw_c
         core_df = core_df.dropna(subset=["price_usd"])
 
         if core_df.empty:
-             logging.error("Core DataFrame is empty after fetching and cleaning. Cannot create raw files.")
-             return False
+            logging.error(
+                "Core DataFrame is empty after fetching and cleaning. Cannot create raw files."
+            )
+            return False
 
         # Save core data
         core_df.reset_index(names="time").to_parquet(core_path, index=False)
@@ -120,10 +129,12 @@ def ensure_raw_data_exists(plot_diagnostics: bool = True, filename: str = "raw_c
 
         logging.info("Fetching ETH total native fees...")
         # Determine correct fee metric name (handle potential variations)
-        fee_metric = "FeeTotNtv" # Default
+        fee_metric = "FeeTotNtv"  # Default
         # Add logic here if FeeTotNtv fails, try FeeBurnNtv etc. if needed
-        fee_series = cm_fetch(fee_metric).rename("fee_native") # Keep consistent name
-        fee_series.to_frame().reset_index(names="time").to_parquet(fee_path, index=False)
+        fee_series = cm_fetch(fee_metric).rename("fee_native")  # Keep consistent name
+        fee_series.to_frame().reset_index(names="time").to_parquet(
+            fee_path, index=False
+        )
         logging.info(f"Saved raw fee data to {fee_path} ({fee_series.shape})")
 
         logging.info("Raw data fetching and saving complete.")
@@ -133,7 +144,9 @@ def ensure_raw_data_exists(plot_diagnostics: bool = True, filename: str = "raw_c
         logging.error(f"Failed to fetch or save raw data: {e}", exc_info=True)
         return False
 
+
 # --- Data Loading and Merging ---
+
 
 def load_raw_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Loads the raw core, fee, and transaction parquet files."""
@@ -149,9 +162,13 @@ def load_raw_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         fee_df = load_parquet(fee_path)
         # Find the correct fee/burn column case-insensitively
         fee_col_options = {"feeburnntv", "feetotntv", "fee_native", "burn"}
-        burn_col = next((c for c in fee_df.columns if c.lower() in fee_col_options), None)
+        burn_col = next(
+            (c for c in fee_df.columns if c.lower() in fee_col_options), None
+        )
         if burn_col is None:
-            raise ValueError(f"Could not find a fee/burn column in {fee_path.name}. Found: {fee_df.columns.tolist()}")
+            raise ValueError(
+                f"Could not find a fee/burn column in {fee_path.name}. Found: {fee_df.columns.tolist()}"
+            )
         fee_df = fee_df[[burn_col]].rename(columns={burn_col: "burn"})
         logging.info("Loaded fee data: %s rows", fee_df.shape[0])
 
@@ -171,27 +188,30 @@ def load_raw_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         raise
 
 
-def merge_eth_data(core_df: pd.DataFrame, fee_df: pd.DataFrame, tx_df: pd.DataFrame) -> pd.DataFrame:
+def merge_eth_data(
+    core_df: pd.DataFrame, fee_df: pd.DataFrame, tx_df: pd.DataFrame
+) -> pd.DataFrame:
     """Merges core, fee, and transaction data."""
     logging.info("Joining ETH datasets...")
     # Ensure indices are compatible (should be datetime already)
     # Perform left joins starting from core_df
-    df = (core_df.join(fee_df, how="left")
-               .join(tx_df, how="left"))
+    df = core_df.join(fee_df, how="left").join(tx_df, how="left")
 
     # Fill NaNs introduced by joins (especially for 'burn') before calculating market_cap
-    df['burn'] = df['burn'].fillna(0.0)
+    df["burn"] = df["burn"].fillna(0.0)
     # Calculate market cap
-    df['market_cap'] = df['price_usd'] * df['supply']
+    df["market_cap"] = df["price_usd"] * df["supply"]
 
     logging.info("Initial merged df shape: %s", df.shape)
     # Check for unexpected NaNs in core columns after merge
     core_cols = ["price_usd", "active_addr", "supply", "market_cap"]
     if df[core_cols].isnull().any().any():
-         logging.warning(f"NaNs found in core columns after merge: \n{df[core_cols].isnull().sum()}")
-         # Optional: Decide whether to drop these rows here or let later steps handle it
-         # df = df.dropna(subset=core_cols)
-         # logging.info("Shape after dropping rows with NaNs in core columns: %s", df.shape)
+        logging.warning(
+            f"NaNs found in core columns after merge: \n{df[core_cols].isnull().sum()}"
+        )
+        # Optional: Decide whether to drop these rows here or let later steps handle it
+        # df = df.dropna(subset=core_cols)
+        # logging.info("Shape after dropping rows with NaNs in core columns: %s", df.shape)
 
     return df
 
@@ -200,10 +220,10 @@ def align_nasdaq_data(eth_df: pd.DataFrame) -> pd.DataFrame:
     """Fetches/loads NASDAQ data, aligns it, and joins it to the ETH DataFrame."""
     logging.info("Fetching/Loading NASDAQ data...")
     try:
-        ndx_raw = fetch_nasdaq() # Uses cache via decorator
+        ndx_raw = fetch_nasdaq()  # Uses cache via decorator
         if ndx_raw.empty:
             logging.warning("Fetched NASDAQ data is empty. Proceeding without NASDAQ.")
-            eth_df['nasdaq'] = np.nan # Add an empty column
+            eth_df["nasdaq"] = np.nan  # Add an empty column
             return eth_df
         logging.info("Raw NASDAQ data shape: %s", ndx_raw.shape)
 
@@ -213,60 +233,74 @@ def align_nasdaq_data(eth_df: pd.DataFrame) -> pd.DataFrame:
         logging.info("Aligning NASDAQ data from %s to %s", min_eth_date, max_eth_date)
 
         # Forward-fill on a daily frequency *before* slicing
-        ndx_raw = ndx_raw.sort_index() # Ensure sorted
+        ndx_raw = ndx_raw.sort_index()  # Ensure sorted
         ndx_daily = ndx_raw.resample("D").ffill()
 
         # Slice *after* forward filling
-        ndx_daily_aligned = ndx_daily.loc[min_eth_date : max_eth_date]
-        logging.info("Daily NASDAQ data shape after alignment: %s", ndx_daily_aligned.shape)
+        ndx_daily_aligned = ndx_daily.loc[min_eth_date:max_eth_date]
+        logging.info(
+            "Daily NASDAQ data shape after alignment: %s", ndx_daily_aligned.shape
+        )
 
         logging.info("Joining NASDAQ data into main DataFrame...")
-        df_with_nasdaq = eth_df.join(ndx_daily_aligned.rename('nasdaq')) # Ensure name is 'nasdaq'
+        df_with_nasdaq = eth_df.join(
+            ndx_daily_aligned.rename("nasdaq")
+        )  # Ensure name is 'nasdaq'
 
         # Check for NaNs introduced by NASDAQ join within the ETH range
-        nasdaq_nan_count = df_with_nasdaq["nasdaq"].loc[min_eth_date : max_eth_date].isnull().sum()
+        nasdaq_nan_count = (
+            df_with_nasdaq["nasdaq"].loc[min_eth_date:max_eth_date].isnull().sum()
+        )
         if nasdaq_nan_count > 0:
-            logging.warning("NASDAQ column has %s NaNs after join and ffill within the ETH data range.", nasdaq_nan_count)
+            logging.warning(
+                "NASDAQ column has %s NaNs after join and ffill within the ETH data range.",
+                nasdaq_nan_count,
+            )
             # Optional: Backfill remaining NaNs if desired
             # df_with_nasdaq['nasdaq'] = df_with_nasdaq['nasdaq'].bfill()
             # logging.info("Backfilled remaining NASDAQ NaNs.")
 
         # Check if all NASDAQ values are NaN (e.g., if date ranges didn't overlap)
         if df_with_nasdaq["nasdaq"].isnull().all():
-             logging.warning("All NASDAQ values are NaN after alignment. Check date ranges.")
+            logging.warning(
+                "All NASDAQ values are NaN after alignment. Check date ranges."
+            )
 
         return df_with_nasdaq
 
     except Exception as e:
         logging.error(f"Failed to fetch or align NASDAQ data: {e}", exc_info=True)
         # Return the original dataframe with an empty nasdaq column on error
-        eth_df['nasdaq'] = np.nan
+        eth_df["nasdaq"] = np.nan
         return eth_df
 
 
 # --- Feature Engineering and Cleaning ---
 
+
 def engineer_log_features(df: pd.DataFrame) -> pd.DataFrame:
     """Calculates log-transformed features."""
     logging.info("Calculating log-scale features...")
-    df_out = df.copy() # Avoid modifying original df
+    df_out = df.copy()  # Avoid modifying original df
 
     # Use np.log1p for columns that can be zero (like burn)
     # Use np.log for columns that should be strictly positive (handle errors)
-    with np.errstate(divide='ignore', invalid='ignore'): # Suppress log(0) warnings
-        df_out['log_marketcap'] = np.log(df_out['market_cap'].replace(0, np.nan))
-        df_out['log_active'] = np.log(df_out['active_addr'].replace(0, np.nan))
-        df_out['log_gas'] = np.log1p(df_out['burn']) # log1p handles burn=0
-        df_out['log_nasdaq'] = np.log(df_out['nasdaq'].replace(0, np.nan))
+    with np.errstate(divide="ignore", invalid="ignore"):  # Suppress log(0) warnings
+        df_out["log_marketcap"] = np.log(df_out["market_cap"].replace(0, np.nan))
+        df_out["log_active"] = np.log(df_out["active_addr"].replace(0, np.nan))
+        df_out["log_gas"] = np.log1p(df_out["burn"])  # log1p handles burn=0
+        df_out["log_nasdaq"] = np.log(df_out["nasdaq"].replace(0, np.nan))
 
     # Replace any -inf/inf resulting from logs of non-positive numbers with NaN
     df_out.replace([np.inf, -np.inf], np.nan, inplace=True)
 
     # Log how many NaNs were introduced or already present in log columns
-    log_cols = ['log_marketcap', 'log_active', 'log_gas', 'log_nasdaq']
+    log_cols = ["log_marketcap", "log_active", "log_gas", "log_nasdaq"]
     nan_counts = df_out[log_cols].isnull().sum()
     if nan_counts.any():
-        logging.warning(f"NaNs found in log columns after calculation: \n{nan_counts[nan_counts > 0]}")
+        logging.warning(
+            f"NaNs found in log columns after calculation: \n{nan_counts[nan_counts > 0]}"
+        )
 
     return df_out
 
@@ -279,7 +313,10 @@ def create_daily_clean(df_with_logs: pd.DataFrame) -> pd.DataFrame:
     essential_log_cols = ["log_marketcap", "log_active"]
     daily_clean = df_with_logs.dropna(subset=essential_log_cols)
 
-    logging.info("daily_clean shape after dropping NaNs in essential columns: %s", daily_clean.shape)
+    logging.info(
+        "daily_clean shape after dropping NaNs in essential columns: %s",
+        daily_clean.shape,
+    )
     if daily_clean.empty:
         logging.warning("daily_clean DataFrame is empty after dropping NaNs.")
 
@@ -290,17 +327,19 @@ def create_monthly_clean(df_with_logs: pd.DataFrame) -> pd.DataFrame:
     """Resamples to month-end, recalculates log features, and cleans."""
     logging.info("Resampling to month-end frequency...")
     if df_with_logs.empty:
-        logging.warning("Input DataFrame for monthly resampling is empty. Returning empty DataFrame.")
+        logging.warning(
+            "Input DataFrame for monthly resampling is empty. Returning empty DataFrame."
+        )
         return pd.DataFrame()
 
     # Resample using mean. Note: resampling before log transform differs from resampling after.
     # Original script resampled originals then took logs. Let's follow that.
     # Ensure only numeric columns are used in mean calculation
     numeric_cols = df_with_logs.select_dtypes(include=np.number).columns
-    monthly = df_with_logs[numeric_cols].resample("ME").mean() # 'ME' for Month End
+    monthly = df_with_logs[numeric_cols].resample("ME").mean()  # 'ME' for Month End
 
     # Recalculate logs based on monthly averages
-    monthly_with_logs = engineer_log_features(monthly) # Reuse log feature engineering
+    monthly_with_logs = engineer_log_features(monthly)  # Reuse log feature engineering
 
     # Define core log columns required for monthly analysis
     core_monthly_log_cols = ["log_marketcap", "log_active", "log_gas", "log_nasdaq"]
@@ -310,14 +349,20 @@ def create_monthly_clean(df_with_logs: pd.DataFrame) -> pd.DataFrame:
     logging.info("monthly_clean shape after dropna: %s", monthly_clean.shape)
 
     if monthly_clean.empty:
-        logging.warning("monthly_clean DataFrame is empty after resampling and cleaning.")
+        logging.warning(
+            "monthly_clean DataFrame is empty after resampling and cleaning."
+        )
     elif len(monthly_clean) < 24:
-         logging.warning("Monthly data has only %s rows, may be insufficient for some analyses.", len(monthly_clean))
+        logging.warning(
+            "Monthly data has only %s rows, may be insufficient for some analyses.",
+            len(monthly_clean),
+        )
 
     return monthly_clean
 
 
 # --- Orchestration Function ---
+
 
 def process_all_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     """Loads raw data, merges, adds features, cleans, and saves processed files."""
@@ -328,8 +373,8 @@ def process_all_data() -> tuple[pd.DataFrame, pd.DataFrame]:
         # 2. Merge ETH Data
         merged_df = merge_eth_data(core_df, fee_df, tx_df)
         if merged_df.empty:
-             logging.error("Merged ETH DataFrame is empty. Cannot proceed.")
-             return pd.DataFrame(), pd.DataFrame() # Return empty frames
+            logging.error("Merged ETH DataFrame is empty. Cannot proceed.")
+            return pd.DataFrame(), pd.DataFrame()  # Return empty frames
 
         # 3. Add NASDAQ
         df_with_nasdaq = align_nasdaq_data(merged_df)
@@ -351,7 +396,9 @@ def process_all_data() -> tuple[pd.DataFrame, pd.DataFrame]:
         daily_clean.to_parquet(daily_clean_path)
         monthly_clean.to_parquet(monthly_clean_path)
         logging.info(f"Saved daily_clean to {daily_clean_path} ({daily_clean.shape})")
-        logging.info(f"Saved monthly_clean to {monthly_clean_path} ({monthly_clean.shape})")
+        logging.info(
+            f"Saved monthly_clean to {monthly_clean_path} ({monthly_clean.shape})"
+        )
 
         return daily_clean, monthly_clean
 

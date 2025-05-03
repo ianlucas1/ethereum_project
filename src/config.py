@@ -20,7 +20,7 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
-        extra = 'ignore' # Ignore extra fields from environment variables
+        extra = "ignore"  # Ignore extra fields from environment variables
 
 
 settings = Settings()
