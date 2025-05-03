@@ -21,6 +21,8 @@ jobs:
       run: pip install -r requirements-lock.txt
 
     - name: Run tests
+      env:
+        RAPIDAPI_KEY: "dummy_key_for_testing"
       run: pytest -q
 
     # Add other steps like linting, testing, etc.
