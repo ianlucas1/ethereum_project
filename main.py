@@ -23,24 +23,35 @@ from src.reporting import generate_summary, NpEncoder
 
 # --- Configuration Imports ---
 # Import configuration variables directly from src.config
-from src.config import (
-    DATA_DIR,
-    WINSORIZE_COLS,
-    WINSORIZE_QUANTILE,
-    STATIONARITY_COLS,
-    OLS_EXT_COLS, # Note: OLS_HAC_LAGS, OLS_CONSTR_BETA not used directly in main.py
-    BREAK_DATES,
-    VECM_ENDOG_COLS,
-    VECM_EXOG_COLS, # Note: VECM_MAX_LAGS, VECM_COINT_RANK, VECM_DET_ORDER not used directly
-    ARDL_ENDOG_COL,
-    ARDL_EXOG_COLS, # Note: ARDL_MAX_LAGS, ARDL_TREND, ARDL_FIXED_P, ARDL_FIXED_Q_ORDER not used directly
-    OOS_WINDOW,
-    OOS_ENDOG_COL,
-    OOS_EXOG_COLS,
-    RESULTS_JSON_FILENAME,
-    RAW_PLOT_FILENAME,
-    RAPIDAPI_KEY # Import key for check later
-)
+# Updated import to use the settings object
+from src.config import settings # Import settings object only
+
+# --- Constants defined locally ---
+# Note: These were previously imported from config but are now defined here
+# or potentially imported from other modules if refactoring occurred.
+# For clarity, let's assume they are intended to be defined/available in this scope.
+# Updated list contents
+WINSORIZE_COLS = ['active_addr', 'tx_count']
+WINSORIZE_QUANTILE = 0.99
+# Updated list contents
+STATIONARITY_COLS = ['price_usd', 'active_addr', 'tx_count']
+# Updated list contents
+OLS_EXT_COLS = ['active_addr', 'tx_count', 'nasdaq']
+# Updated to be a dictionary
+BREAK_DATES = {'break_1': '2017-11-01', 'break_2': '2020-05-01'} # Example dates, adjust as needed
+# Updated list contents
+VECM_ENDOG_COLS = ['price_usd', 'active_addr']
+# Updated list contents
+VECM_EXOG_COLS = ['nasdaq'] # Example exogenous
+ARDL_ENDOG_COL = 'price_usd'
+# Updated list contents
+ARDL_EXOG_COLS = ['active_addr', 'tx_count', 'nasdaq']
+OOS_WINDOW = 60 # Example: 5 years of monthly data
+OOS_ENDOG_COL = 'price_usd'
+# Updated list contents
+OOS_EXOG_COLS = ['active_addr', 'tx_count', 'nasdaq']
+RESULTS_JSON_FILENAME = "final_results.json"
+RAW_PLOT_FILENAME = "raw_core_data_plot.png"
 
 # --- Main Execution ---
 def main():
@@ -51,6 +62,7 @@ def main():
     # 0. Ensure Raw Data Exists (Fetches if necessary)
     logging.info("--- Checking/Fetching Raw Data ---")
     # Pass the plot filename from config
+    # Reverted: Uses locally defined RAW_PLOT_FILENAME
     raw_data_ready = ensure_raw_data_exists(plot_diagnostics=True, filename=RAW_PLOT_FILENAME)
     if not raw_data_ready:
         logging.error("Could not ensure raw data is available. Exiting.")
@@ -80,15 +92,19 @@ def main():
 
     # 2. Pre-Modeling EDA/Preprocessing (on Monthly Data for modeling)
     logging.info("--- Running Pre-Modeling Steps (Winsorize, Stationarity) ---")
+    # Reverted: Uses locally defined WINSORIZE_COLS and WINSORIZE_QUANTILE
     monthly_winsorized = winsorize_data(monthly_clean_original, WINSORIZE_COLS, WINSORIZE_QUANTILE)
     monthly_winsorized.replace([np.inf, -np.inf], np.nan, inplace=True) # Re-check NaNs
 
+    # Reverted: Uses locally defined STATIONARITY_COLS
     analysis_results['stationarity'] = run_stationarity_tests(monthly_winsorized, STATIONARITY_COLS)
 
     # 3. Modeling & Diagnostics
     logging.info("--- Running Modeling ---")
 
     # Ensure the dataframe used for dynamic modeling doesn't have NaNs in key columns
+    # Reverted: Uses locally defined ARDL_ENDOG_COL and ARDL_EXOG_COLS
+
     model_df = monthly_winsorized.dropna(subset=[ARDL_ENDOG_COL] + ARDL_EXOG_COLS).copy() # Use copy
     if model_df.empty:
          logging.error("DataFrame is empty after dropping NaNs before dynamic modeling. Exiting.")
@@ -102,6 +118,7 @@ def main():
     ols_ext_fit_results = ols_results.get('monthly_extended', {})
     if ols_ext_fit_results.get("model_obj"):
         analysis_results['ols_diagnostics'] = run_residual_diagnostics(ols_ext_fit_results)
+        # Reverted: Uses locally defined BREAK_DATES
         analysis_results['ols_structural_breaks'] = run_structural_break_tests(ols_ext_fit_results, BREAK_DATES)
     else:
         logging.warning("Extended OLS model failed, skipping diagnostics and break tests.")
@@ -109,6 +126,7 @@ def main():
         analysis_results['ols_structural_breaks'] = {"error": "Extended OLS failed."}
 
     # VECM Analysis (using winsorized, NaN-dropped data)
+    # Reverted: Uses locally defined VECM_ENDOG_COLS and VECM_EXOG_COLS
     vecm_req_cols = VECM_ENDOG_COLS + (VECM_EXOG_COLS if VECM_EXOG_COLS else [])
     if all(col in model_df.columns for col in vecm_req_cols):
          analysis_results['vecm'] = run_vecm_analysis(model_df, VECM_ENDOG_COLS, VECM_EXOG_COLS)
@@ -118,6 +136,7 @@ def main():
          analysis_results['vecm'] = {"error": f"Missing columns: {missing}"}
 
     # ARDL Analysis (using winsorized, NaN-dropped data)
+    # Reverted: Uses locally defined ARDL_ENDOG_COL and ARDL_EXOG_COLS
     ardl_req_cols = [ARDL_ENDOG_COL] + ARDL_EXOG_COLS
     if all(col in model_df.columns for col in ardl_req_cols):
         analysis_results['ardl'] = run_ardl_analysis(model_df, ARDL_ENDOG_COL, ARDL_EXOG_COLS)
@@ -128,10 +147,12 @@ def main():
 
     # OOS Validation (using winsorized, NaN-dropped data for consistency)
     # Note: OOS function internally drops NaNs for its modeling columns
+    # Reverted: Uses locally defined OOS_ENDOG_COL and OOS_EXOG_COLS
     oos_req_cols = [OOS_ENDOG_COL] + OOS_EXOG_COLS + ['price_usd', 'supply']
     # Check if columns exist in the base winsorized df before passing to OOS
     if all(col in monthly_winsorized.columns for col in oos_req_cols):
          # Pass the winsorized df, OOS function will handle NaN dropping internally for its specific needs
+         # Reverted: Uses locally defined OOS_WINDOW
          oos_results = run_oos_validation(monthly_winsorized, OOS_ENDOG_COL, OOS_EXOG_COLS, window_size=OOS_WINDOW)
          analysis_results['oos'] = oos_results
          # Add OOS predictions back to the main modeling dataframe if successful
@@ -159,7 +180,8 @@ def main():
 
     # Save final results dictionary to JSON
     # Use imported config variable for filename, construct path relative to project root
-    results_path = DATA_DIR.parent / RESULTS_JSON_FILENAME
+    # Updated to use settings.DATA_DIR and reverted RESULTS_JSON_FILENAME
+    results_path = settings.DATA_DIR.parent / RESULTS_JSON_FILENAME
     try:
         with open(results_path, 'w') as f:
             json.dump(final_results_dict, f, indent=4, cls=NpEncoder)
@@ -174,7 +196,8 @@ def main():
 if __name__ == "__main__":
     # Ensure API keys are loaded from environment variables if needed
     # Check the imported key directly
-    if not RAPIDAPI_KEY:
+    # Uses settings.RAPIDAPI_KEY (Correct)
+    if not settings.RAPIDAPI_KEY:
          # Making this an error and exiting, as fetching is required if data is missing
          logging.error("RAPIDAPI_KEY environment variable not set. This is required for data fetching.")
          sys.exit("Error: RAPIDAPI_KEY environment variable is required.")

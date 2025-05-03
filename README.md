@@ -78,11 +78,15 @@ ethereum_project/
     cd ethereum_project
     ```
 
-2.  **Create and Activate Virtual Environment:**
+2.  **Ensure Correct Python Version:**
+    *   This project is currently **verified to work with Python 3.12**. The dependencies in `requirements-lock.txt` were generated and tested in this environment.
+    *   Make sure you have Python 3.12 installed and accessible (e.g., via `pyenv`, Homebrew, or direct download). You can check with `python3.12 --version`.
+
+3.  **Create and Activate Virtual Environment (using Python 3.12):**
     It's highly recommended to use a virtual environment.
     ```bash
-    # Create the virtual environment (using python3)
-    python3 -m venv .venv
+    # Create the virtual environment using python3.12
+    python3.12 -m venv .venv
 
     # Activate the virtual environment
     # On macOS/Linux:
@@ -93,27 +97,27 @@ ethereum_project/
     # .venv\Scripts\activate.bat
     ```
 
-3.  **Install Dependencies:**
+4.  **Install Locked Dependencies:**
+    Install the exact dependencies that the project was last verified with:
     ```bash
-    python -m venv .venv && source .venv/bin/activate
     pip install -r requirements-lock.txt
     ```
 
-4.  **Set Environment Variables:**
-    The data fetching scripts require API keys. Set these as environment variables:
+5.  **Set Environment Variables:**
+    The data fetching scripts require API keys. The configuration (`src/config.py`) loads these from environment variables or a `.env` file.
     *   `RAPIDAPI_KEY`: **Required** for fetching certain datasets via RapidAPI (ensure you have an account and key).
     *   `CM_API_KEY`: *Optional*. A CoinMetrics Pro API key can be used for fetching data directly. If not provided, the script might fall back to other sources or cached data where available.
 
-    You can set these variables in your terminal session or use a `.env` file (make sure `.env` is added to `.gitignore`).
-    Example (macOS/Linux):
+    You can set these variables in your terminal session:
     ```bash
     export RAPIDAPI_KEY="your_rapidapi_key_here"
     # export CM_API_KEY="your_coinmetrics_key_here" # Optional
     ```
-
-    **Note on Specific Dependencies:**
-    *   `statsmodels`: This project currently uses the development version (0.15.dev) directly from the GitHub main branch (`pip install git+https://github.com/statsmodels/statsmodels.git`). This is because the latest stable release (0.14.x) might have compatibility issues or lack necessary features. This requirement might be removed once `statsmodels` version 0.15 is officially released with pre-built wheels.
-    *   `pyarrow`: Installation might pull pre-releases (nightlies) if necessary. This is facilitated by the inclusion of the Arrow nightlies package index (`https://pypi.fury.io/arrow-nightlies/`) in the `pip.conf` file, which allows `pip` to find these versions automatically.
+    Alternatively, create a file named `.env` in the project root directory (ensure `.env` is in your `.gitignore`!) with the following content:
+    ```dotenv
+    RAPIDAPI_KEY=your_rapidapi_key_here
+    # CM_API_KEY=your_coinmetrics_key_here
+    ```
 
 ## Usage
 
@@ -141,24 +145,31 @@ This script will:
 For exploring data, visualizing results, or developing specific analysis components interactively:
 
 1.  Open the `ethereum_project` folder in an IDE that supports interactive Python execution (like VS Code with the Python extension, Cursor, PyCharm, or Jupyter environments).
-2.  Ensure the IDE's Python interpreter is set to the project's virtual environment (`.venv`).
+2.  Ensure the IDE's Python interpreter is set to the project's virtual environment (`.venv` - which should be Python 3.12).
 3.  Open `research.py`. This file contains `#%%` delimited cells.
 4.  Run the cells sequentially using the IDE's "Run Cell" or similar commands.
     *   The first cell loads necessary libraries and the processed `daily_clean` and `monthly_clean` dataframes (assuming `main.py` has been run at least once to generate them).
     *   Subsequent cells contain example code (like plotting) that can be modified or extended for research purposes.
 
-## Key Dependencies
+## Notes on Dependencies and Python Versions
 
-The project relies on several key Python libraries:
+*   **Current Setup (Python 3.12):** The project currently runs reliably using **Python 3.12** and the specific package versions pinned in `requirements-lock.txt`. This includes `numpy==1.26.4` and `statsmodels==0.14.1`. This configuration was established to resolve compatibility issues encountered with newer versions.
+*   **Target Setup (Python 3.13+, Future):** The `requirements-dev.txt` file specifies broader version ranges (e.g., `numpy>=2.1`, `statsmodels@git+...`) targeting **Python 3.13+** and newer library features (like the statsmodels development version). **This target setup is NOT currently guaranteed to work.** Future work is required to update the code in `src/` to be compatible with these newer dependencies (addressing potential API changes or runtime issues) and then regenerate `requirements-lock.txt` based on `requirements-dev.txt` in the newer Python environment.
+*   **`pyarrow`:** Installation might pull pre-releases (nightlies) if necessary for compatibility, especially with newer Python versions. This was previously facilitated by an explicit index URL but may now rely on `--pre` flags or package availability.
 
-*   `pandas`: Data manipulation and analysis.
-*   `numpy`: Numerical operations.
-*   `scipy`: Scientific and technical computing (used for stats functions).
-*   `statsmodels`: Statistical models, econometric tests.
-*   `linearmodels`: Panel data and IV regression models.
-*   `scikit-learn`: Machine learning utilities (e.g., for potential preprocessing or validation metrics, though primary modeling is statsmodels/linearmodels).
+## Key Dependencies (Current Working Set)
+
+The project relies on several key Python libraries (versions as per `requirements-lock.txt`):
+
+*   `pandas`: Data manipulation and analysis (e.g., 2.2.3).
+*   `numpy`: Numerical operations (e.g., 1.26.4).
+*   `scipy`: Scientific and technical computing (e.g., 1.15.2).
+*   `statsmodels`: Statistical models, econometric tests (e.g., 0.14.1).
+*   `linearmodels`: Panel data and IV regression models (e.g., 6.1).
+*   `scikit-learn`: Machine learning utilities (e.g., 1.5.2).
 *   `matplotlib`: Plotting library.
 *   `seaborn`: High-level interface for drawing attractive statistical graphics.
 *   `requests`: HTTP requests for data fetching.
 *   `filelock`: Platform-independent file locking for caching.
-*   `pyarrow`: Efficient backend for reading/writing Parquet files with pandas. 
+*   `pyarrow`: Efficient backend for reading/writing Parquet files with pandas.
+*   `pydantic`: Data validation and settings management (e.g., 1.10.22). 
