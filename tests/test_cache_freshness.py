@@ -84,6 +84,8 @@ def test_cache_refresh_after_max_age(manage_cache_dir):
     )  # Make it 1 minute older than max age
     os.utime(cache_file, (past_mtime, past_mtime))  # Set both atime and mtime
 
+    time.sleep(2)  # Add a 2-second delay to ensure mtime difference is noticeable on CI
+
     # Call 2: Should miss cache due to age, logic should run again
     result2 = _dummy_cached_function(run_id=10)  # Use same run_id
     _logic_marker.assert_called_once_with(10)  # Logic should have been called again
