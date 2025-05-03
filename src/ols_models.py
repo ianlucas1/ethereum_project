@@ -19,7 +19,18 @@ def fit_ols_hac(y: pd.Series, X: pd.DataFrame, add_const: bool = True, lags: int
         lags: Maximum lags for Newey-West estimator.
 
     Returns:
-        A dictionary containing model results (fit object, params, pvals, etc.).
+        A dictionary containing model results. Keys include:
+            - 'model_obj': The fitted statsmodels result object (HAC adjusted). None on error.
+            - 'params': Dictionary of coefficient estimates.
+            - 'pvals_hac': Dictionary of HAC p-values.
+            - 'se_hac': Dictionary of HAC standard errors.
+            - 'r2': R-squared.
+            - 'r2_adj': Adjusted R-squared.
+            - 'n_obs': Number of observations used.
+            - 'resid': Residuals (Pandas Series).
+            - 'fittedvalues': Fitted values (Pandas Series).
+            - 'model_formula': String representation of the model formula.
+            - 'error': String description if fitting failed, else None.
     """
     if y is None or X is None:
         logging.error("OLS input y or X is None.")
