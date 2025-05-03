@@ -1,11 +1,8 @@
 # main.py
-import os # Make sure os is imported
-import pandas as pd
 import numpy as np
 import logging
-from pathlib import Path
-import json # Added for JSON output
-import sys # Added for sys.exit on critical errors
+import json  # Added for JSON output
+import sys  # Added for sys.exit on critical errors
 
 # Import functions from our source modules
 # Assuming Python can find the 'src' directory (it should if run from project root)
@@ -13,45 +10,51 @@ import sys # Added for sys.exit on critical errors
 # Import both processing functions now
 from src.data_processing import process_all_data, ensure_raw_data_exists
 from src.eda import winsorize_data, run_stationarity_tests
+
 # NEW Imports reflecting refactoring:
 from src.ols_models import run_ols_benchmarks
 from src.ts_models import run_vecm_analysis, run_ardl_analysis
 from src.diagnostics import run_residual_diagnostics, run_structural_break_tests
 from src.validation import run_oos_validation
+
 # Import reporting functions
 from src.reporting import generate_summary, NpEncoder
 
 # --- Configuration Imports ---
 # Import configuration variables directly from src.config
 # Updated import to use the settings object
-from src.config import settings # Import settings object only
+from src.config import settings  # Import settings object only
 
 # --- Constants defined locally ---
 # Note: These were previously imported from config but are now defined here
 # or potentially imported from other modules if refactoring occurred.
 # For clarity, let's assume they are intended to be defined/available in this scope.
 # Updated list contents
-WINSORIZE_COLS = ['active_addr', 'tx_count']
+WINSORIZE_COLS = ["active_addr", "tx_count"]
 WINSORIZE_QUANTILE = 0.99
 # Updated list contents
-STATIONARITY_COLS = ['price_usd', 'active_addr', 'tx_count']
+STATIONARITY_COLS = ["price_usd", "active_addr", "tx_count"]
 # Updated list contents
-OLS_EXT_COLS = ['active_addr', 'tx_count', 'nasdaq']
+OLS_EXT_COLS = ["active_addr", "tx_count", "nasdaq"]
 # Updated to be a dictionary
-BREAK_DATES = {'break_1': '2017-11-01', 'break_2': '2020-05-01'} # Example dates, adjust as needed
+BREAK_DATES = {
+    "break_1": "2017-11-01",
+    "break_2": "2020-05-01",
+}  # Example dates, adjust as needed
 # Updated list contents
-VECM_ENDOG_COLS = ['price_usd', 'active_addr']
+VECM_ENDOG_COLS = ["price_usd", "active_addr"]
 # Updated list contents
-VECM_EXOG_COLS = ['nasdaq'] # Example exogenous
-ARDL_ENDOG_COL = 'price_usd'
+VECM_EXOG_COLS = ["nasdaq"]  # Example exogenous
+ARDL_ENDOG_COL = "price_usd"
 # Updated list contents
-ARDL_EXOG_COLS = ['active_addr', 'tx_count', 'nasdaq']
-OOS_WINDOW = 60 # Example: 5 years of monthly data
-OOS_ENDOG_COL = 'price_usd'
+ARDL_EXOG_COLS = ["active_addr", "tx_count", "nasdaq"]
+OOS_WINDOW = 60  # Example: 5 years of monthly data
+OOS_ENDOG_COL = "price_usd"
 # Updated list contents
-OOS_EXOG_COLS = ['active_addr', 'tx_count', 'nasdaq']
+OOS_EXOG_COLS = ["active_addr", "tx_count", "nasdaq"]
 RESULTS_JSON_FILENAME = "final_results.json"
 RAW_PLOT_FILENAME = "raw_core_data_plot.png"
+
 
 # --- Main Execution ---
 def main():
@@ -63,10 +66,12 @@ def main():
     logging.info("--- Checking/Fetching Raw Data ---")
     # Pass the plot filename from config
     # Reverted: Uses locally defined RAW_PLOT_FILENAME
-    raw_data_ready = ensure_raw_data_exists(plot_diagnostics=True, filename=RAW_PLOT_FILENAME)
+    raw_data_ready = ensure_raw_data_exists(
+        plot_diagnostics=True, filename=RAW_PLOT_FILENAME
+    )
     if not raw_data_ready:
         logging.error("Could not ensure raw data is available. Exiting.")
-        sys.exit(1) # Exit script if raw data cannot be obtained
+        sys.exit(1)  # Exit script if raw data cannot be obtained
     # --- END OF ADDED BLOCK ---
 
     # Dictionary to store all results
@@ -78,26 +83,32 @@ def main():
 
     if daily_clean.empty or monthly_clean.empty:
         logging.error("Data processing failed or returned empty dataframes. Exiting.")
-        sys.exit(1) # Exit script if processing fails
+        sys.exit(1)  # Exit script if processing fails
 
-    analysis_results['data_summary'] = {
-        'daily_shape': daily_clean.shape,
-        'monthly_shape': monthly_clean.shape,
-        'monthly_start': monthly_clean.index.min(),
-        'monthly_end': monthly_clean.index.max(),
+    analysis_results["data_summary"] = {
+        "daily_shape": daily_clean.shape,
+        "monthly_shape": monthly_clean.shape,
+        "monthly_start": monthly_clean.index.min(),
+        "monthly_end": monthly_clean.index.max(),
     }
     # Keep copies for different stages
-    monthly_clean_original = monthly_clean.copy() # Before any modifications by analysis steps
-    monthly_clean_for_ols = monthly_clean.copy() # OLS benchmarks will modify this one
+    monthly_clean_original = (
+        monthly_clean.copy()
+    )  # Before any modifications by analysis steps
+    monthly_clean_for_ols = monthly_clean.copy()  # OLS benchmarks will modify this one
 
     # 2. Pre-Modeling EDA/Preprocessing (on Monthly Data for modeling)
     logging.info("--- Running Pre-Modeling Steps (Winsorize, Stationarity) ---")
     # Reverted: Uses locally defined WINSORIZE_COLS and WINSORIZE_QUANTILE
-    monthly_winsorized = winsorize_data(monthly_clean_original, WINSORIZE_COLS, WINSORIZE_QUANTILE)
-    monthly_winsorized.replace([np.inf, -np.inf], np.nan, inplace=True) # Re-check NaNs
+    monthly_winsorized = winsorize_data(
+        monthly_clean_original, WINSORIZE_COLS, WINSORIZE_QUANTILE
+    )
+    monthly_winsorized.replace([np.inf, -np.inf], np.nan, inplace=True)  # Re-check NaNs
 
     # Reverted: Uses locally defined STATIONARITY_COLS
-    analysis_results['stationarity'] = run_stationarity_tests(monthly_winsorized, STATIONARITY_COLS)
+    analysis_results["stationarity"] = run_stationarity_tests(
+        monthly_winsorized, STATIONARITY_COLS
+    )
 
     # 3. Modeling & Diagnostics
     logging.info("--- Running Modeling ---")
@@ -105,98 +116,118 @@ def main():
     # Ensure the dataframe used for dynamic modeling doesn't have NaNs in key columns
     # Reverted: Uses locally defined ARDL_ENDOG_COL and ARDL_EXOG_COLS
 
-    model_df = monthly_winsorized.dropna(subset=[ARDL_ENDOG_COL] + ARDL_EXOG_COLS).copy() # Use copy
+    model_df = monthly_winsorized.dropna(
+        subset=[ARDL_ENDOG_COL] + ARDL_EXOG_COLS
+    ).copy()  # Use copy
     if model_df.empty:
-         logging.error("DataFrame is empty after dropping NaNs before dynamic modeling. Exiting.")
-         sys.exit(1) # Exit script if no data for dynamic models
+        logging.error(
+            "DataFrame is empty after dropping NaNs before dynamic modeling. Exiting."
+        )
+        sys.exit(1)  # Exit script if no data for dynamic models
 
     # OLS Benchmarks (uses non-winsorized data, modifies monthly_clean_for_ols)
     ols_results = run_ols_benchmarks(daily_clean, monthly_clean_for_ols)
-    analysis_results['ols'] = ols_results
+    analysis_results["ols"] = ols_results
 
     # Diagnostics on Extended OLS
-    ols_ext_fit_results = ols_results.get('monthly_extended', {})
+    ols_ext_fit_results = ols_results.get("monthly_extended", {})
     if ols_ext_fit_results.get("model_obj"):
-        analysis_results['ols_diagnostics'] = run_residual_diagnostics(ols_ext_fit_results)
+        analysis_results["ols_diagnostics"] = run_residual_diagnostics(
+            ols_ext_fit_results
+        )
         # Reverted: Uses locally defined BREAK_DATES
-        analysis_results['ols_structural_breaks'] = run_structural_break_tests(ols_ext_fit_results, BREAK_DATES)
+        analysis_results["ols_structural_breaks"] = run_structural_break_tests(
+            ols_ext_fit_results, BREAK_DATES
+        )
     else:
-        logging.warning("Extended OLS model failed, skipping diagnostics and break tests.")
-        analysis_results['ols_diagnostics'] = {"error": "Extended OLS failed."}
-        analysis_results['ols_structural_breaks'] = {"error": "Extended OLS failed."}
+        logging.warning(
+            "Extended OLS model failed, skipping diagnostics and break tests."
+        )
+        analysis_results["ols_diagnostics"] = {"error": "Extended OLS failed."}
+        analysis_results["ols_structural_breaks"] = {"error": "Extended OLS failed."}
 
     # VECM Analysis (using winsorized, NaN-dropped data)
     # Reverted: Uses locally defined VECM_ENDOG_COLS and VECM_EXOG_COLS
     vecm_req_cols = VECM_ENDOG_COLS + (VECM_EXOG_COLS if VECM_EXOG_COLS else [])
     if all(col in model_df.columns for col in vecm_req_cols):
-         analysis_results['vecm'] = run_vecm_analysis(model_df, VECM_ENDOG_COLS, VECM_EXOG_COLS)
+        analysis_results["vecm"] = run_vecm_analysis(
+            model_df, VECM_ENDOG_COLS, VECM_EXOG_COLS
+        )
     else:
-         missing = set(vecm_req_cols) - set(model_df.columns)
-         logging.warning(f"Skipping VECM: Missing required columns {missing} in modeling dataframe.")
-         analysis_results['vecm'] = {"error": f"Missing columns: {missing}"}
+        missing = set(vecm_req_cols) - set(model_df.columns)
+        logging.warning(
+            f"Skipping VECM: Missing required columns {missing} in modeling dataframe."
+        )
+        analysis_results["vecm"] = {"error": f"Missing columns: {missing}"}
 
     # ARDL Analysis (using winsorized, NaN-dropped data)
     # Reverted: Uses locally defined ARDL_ENDOG_COL and ARDL_EXOG_COLS
     ardl_req_cols = [ARDL_ENDOG_COL] + ARDL_EXOG_COLS
     if all(col in model_df.columns for col in ardl_req_cols):
-        analysis_results['ardl'] = run_ardl_analysis(model_df, ARDL_ENDOG_COL, ARDL_EXOG_COLS)
+        analysis_results["ardl"] = run_ardl_analysis(
+            model_df, ARDL_ENDOG_COL, ARDL_EXOG_COLS
+        )
     else:
-         missing = set(ardl_req_cols) - set(model_df.columns)
-         logging.warning(f"Skipping ARDL: Missing required columns {missing} in modeling dataframe.")
-         analysis_results['ardl'] = {"error": f"Missing columns: {missing}"}
+        missing = set(ardl_req_cols) - set(model_df.columns)
+        logging.warning(
+            f"Skipping ARDL: Missing required columns {missing} in modeling dataframe."
+        )
+        analysis_results["ardl"] = {"error": f"Missing columns: {missing}"}
 
     # OOS Validation (using winsorized, NaN-dropped data for consistency)
     # Note: OOS function internally drops NaNs for its modeling columns
     # Reverted: Uses locally defined OOS_ENDOG_COL and OOS_EXOG_COLS
-    oos_req_cols = [OOS_ENDOG_COL] + OOS_EXOG_COLS + ['price_usd', 'supply']
+    oos_req_cols = [OOS_ENDOG_COL] + OOS_EXOG_COLS + ["price_usd", "supply"]
     # Check if columns exist in the base winsorized df before passing to OOS
     if all(col in monthly_winsorized.columns for col in oos_req_cols):
-         # Pass the winsorized df, OOS function will handle NaN dropping internally for its specific needs
-         # Reverted: Uses locally defined OOS_WINDOW
-         oos_results = run_oos_validation(
+        # Pass the winsorized df, OOS function will handle NaN dropping internally for its specific needs
+        # Reverted: Uses locally defined OOS_WINDOW
+        oos_results = run_oos_validation(
             df_monthly=monthly_winsorized,
             endog_col=OOS_ENDOG_COL,
             exog_cols=OOS_EXOG_COLS,
             winsorize_cols=WINSORIZE_COLS,
             winsorize_quantile=WINSORIZE_QUANTILE,
             stationarity_cols=STATIONARITY_COLS,
-            window_size=OOS_WINDOW
+            window_size=OOS_WINDOW,
         )
-         analysis_results['oos'] = oos_results
-         # Add OOS predictions back to the main modeling dataframe if successful
-         if 'predictions_df' in oos_results:
-              preds_df = oos_results['predictions_df']
-              # Add to model_df (which is based on monthly_winsorized but NaN-dropped for dynamic models)
-              model_df['predicted_price_oos'] = preds_df['predicted_price_oos'].reindex(model_df.index)
+        analysis_results["oos"] = oos_results
+        # Add OOS predictions back to the main modeling dataframe if successful
+        if "predictions_df" in oos_results:
+            preds_df = oos_results["predictions_df"]
+            # Add to model_df (which is based on monthly_winsorized but NaN-dropped for dynamic models)
+            model_df["predicted_price_oos"] = preds_df["predicted_price_oos"].reindex(
+                model_df.index
+            )
     else:
-         missing = set(oos_req_cols) - set(monthly_winsorized.columns)
-         logging.warning(f"Skipping OOS Validation: Missing required columns {missing} in monthly_winsorized dataframe.")
-         analysis_results['oos'] = {"error": f"Missing columns: {missing}"}
-
+        missing = set(oos_req_cols) - set(monthly_winsorized.columns)
+        logging.warning(
+            f"Skipping OOS Validation: Missing required columns {missing} in monthly_winsorized dataframe."
+        )
+        analysis_results["oos"] = {"error": f"Missing columns: {missing}"}
 
     # 4. Reporting
     logging.info("--- Generating Report ---")
     # Pass the OLS-modified df for fair value, and the model_df (which might contain OOS preds)
     summary_output = generate_summary(analysis_results, monthly_clean_for_ols, model_df)
-    final_results_dict = summary_output['final_dict']
-    interpretation_text = summary_output['interpretation_text']
+    final_results_dict = summary_output["final_dict"]
+    interpretation_text = summary_output["interpretation_text"]
 
     # Print interpretation to console
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print(interpretation_text)
-    print("="*80 + "\n")
+    print("=" * 80 + "\n")
 
     # Save final results dictionary to JSON
     # Use imported config variable for filename, construct path relative to project root
     # Updated to use settings.DATA_DIR and reverted RESULTS_JSON_FILENAME
     results_path = settings.DATA_DIR.parent / RESULTS_JSON_FILENAME
     try:
-        with open(results_path, 'w') as f:
+        with open(results_path, "w") as f:
             json.dump(final_results_dict, f, indent=4, cls=NpEncoder)
         logging.info(f"Final results dictionary saved to: {results_path}")
     except Exception as e:
         logging.error(f"Failed to save final results JSON: {e}", exc_info=True)
-
 
     logging.info("--- Script Finished ---")
 
@@ -206,11 +237,13 @@ if __name__ == "__main__":
     # Check the imported key directly
     # Uses settings.RAPIDAPI_KEY (Correct)
     if not settings.RAPIDAPI_KEY:
-         # Making this an error and exiting, as fetching is required if data is missing
-         logging.error("RAPIDAPI_KEY environment variable not set. This is required for data fetching.")
-         sys.exit("Error: RAPIDAPI_KEY environment variable is required.")
-         # Alternatively, warn and continue if cached data might exist:
-         # logging.warning("RAPIDAPI_KEY environment variable not set. Data fetching might fail if cache is old/missing.")
+        # Making this an error and exiting, as fetching is required if data is missing
+        logging.error(
+            "RAPIDAPI_KEY environment variable not set. This is required for data fetching."
+        )
+        sys.exit("Error: RAPIDAPI_KEY environment variable is required.")
+        # Alternatively, warn and continue if cached data might exist:
+        # logging.warning("RAPIDAPI_KEY environment variable not set. Data fetching might fail if cache is old/missing.")
 
     # Run the main analysis pipeline
     main()
