@@ -122,7 +122,24 @@ def disk_cache(path_arg: str, max_age_hr: int = 24) -> Callable:
     return decorator
 
 
-def robust_get(url: str, headers=None, params=None, retries=4, base_delay=4):
+def _save_api_snapshot(directory: Path, filename_prefix: str, data: Any):
+    """Saves the given data as a timestamped JSON snapshot."""
+    try:
+        # Ensure the snapshot directory exists
+        directory.mkdir(parents=True, exist_ok=True)
+        # Create timestamped filename
+        ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
+        filepath = directory / f"{filename_prefix}_{ts}.json"
+        # Write data to JSON file
+        with open(filepath, 'w') as f:
+            json.dump(data, f, indent=4)
+        logging.debug(f"Saved API snapshot to: {filepath.name}")
+    except Exception as e:
+        # Log error but don't interrupt the main flow
+        logging.error(f"Failed to save API snapshot {filename_prefix}: {e}", exc_info=False)
+
+
+def robust_get(url: str, headers=None, params=None, snapshot_prefix: str | None = None, retries=4, base_delay=4):
     """Robustly performs a GET request with retries and exponential backoff."""
     for n in range(retries):
         response = None # Initialize response
@@ -134,7 +151,16 @@ def robust_get(url: str, headers=None, params=None, retries=4, base_delay=4):
                  logging.warning(f"Empty response received from {url}. Status: {response.status_code}.")
                  # Decide how to handle empty: retry or return None/raise? Let's retry.
                  raise requests.exceptions.RequestException("Empty response content")
-            return response.json()
+
+            # Decode JSON once here
+            json_data = response.json()
+
+            # Save snapshot if requested
+            if snapshot_prefix:
+                # Assuming settings.RAW_SNAPSHOT_DIR is accessible
+                _save_api_snapshot(settings.RAW_SNAPSHOT_DIR, snapshot_prefix, json_data)
+
+            return json_data # Return the decoded data
         except requests.exceptions.RequestException as e:
             status_code = e.response.status_code if e.response is not None else "N/A"
             logging.warning("Request failed: %s (Status: %s) — retrying in %.1fs (%d/%d)",
