@@ -30,17 +30,28 @@ jobs:
         ruff check .
         ruff format --check .
 
-    - name: Test with pytest
+    - name: Test with pytest and generate coverage report
       env:
         RAPIDAPI_KEY: "dummy_key_for_ci"
         CM_API_KEY: ""
         ETHERSCAN_API_KEY: ""
+      if: matrix.os != 'macos-latest' || matrix.python-version == '3.10'
+      run: |
+        pytest --cov=src --cov-report=xml
+
+    - name: Test with pytest (no coverage)
+      env:
+        RAPIDAPI_KEY: "dummy_key_for_ci"
+        CM_API_KEY: ""
+        ETHERSCAN_API_KEY: ""
+      if: matrix.os == 'macos-latest' && matrix.python-version != '3.10'
       run: |
         pytest -q
 
     - name: Upload coverage reports to Codecov
+      if: matrix.os != 'macos-latest' || matrix.python-version == '3.10'
       uses: codecov/codecov-action@v4.0.1
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         slug: ${{ github.repository }}
-        fail_ci_if_error: true 
+        fail_ci_if_error: true
