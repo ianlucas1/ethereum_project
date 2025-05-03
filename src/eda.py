@@ -72,13 +72,15 @@ def winsorize_data(df: pd.DataFrame, cols_to_cap: list[str], quantile: float = 0
 
 # --- Diagnostic Functions ---
 
-def run_stationarity_tests(df: pd.DataFrame, cols_to_test: list[str]) -> pd.DataFrame:
+def run_stationarity_tests(df: pd.DataFrame, cols_to_test: list[str], window_mask: pd.Index | None = None) -> pd.DataFrame:
     """
     Performs ADF and KPSS stationarity tests on specified columns.
 
     Args:
         df: Input DataFrame.
         cols_to_test: List of column names to test.
+            window_mask: Optional index slice to select data for testing. If None,
+                         uses the full DataFrame. Defaults to None.
 
     Returns:
         A DataFrame summarizing the test results.
@@ -126,7 +128,12 @@ def run_stationarity_tests(df: pd.DataFrame, cols_to_test: list[str]) -> pd.Data
     for col in valid_cols_to_test:
         # Use df here, not df_out
         if col in df.columns:
-            s = df[col].dropna()
+            # Select data based on mask if provided
+            df_to_use = df.loc[window_mask] if window_mask is not None else df
+
+            # Now use df_to_use to get the series 's'
+            s = df_to_use[col].dropna()
+
             if s.empty:
                 logging.warning(f"Skipping stationarity tests for {col}: Series is empty after dropna.")
                 adf_stat, adf_p = np.nan, np.nan
