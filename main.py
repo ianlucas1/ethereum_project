@@ -1,15 +1,15 @@
 # main.py
 import os # Make sure os is imported
-import logging
 import pandas as pd
 import numpy as np
+import logging
 from pathlib import Path
 import json # Added for JSON output
 import sys # Added for sys.exit on critical errors
 
 # Import functions from our source modules
 # Assuming Python can find the 'src' directory (it should if run from project root)
-from src.utils import logging # Import logging configured in utils
+
 # Import both processing functions now
 from src.data_processing import process_all_data, ensure_raw_data_exists
 from src.eda import winsorize_data, run_stationarity_tests
