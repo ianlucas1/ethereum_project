@@ -13,6 +13,8 @@ env/
 */ENV/
 */env/
 
+snapshots/
+
 # Distribution / packaging
 .Python
 build/

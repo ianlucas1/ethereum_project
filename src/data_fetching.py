@@ -60,7 +60,8 @@ def fetch_eth_price_rapidapi() -> pd.DataFrame:
         response_json = None
         try:
             # Use robust_get imported from utils
-            response_json = robust_get(url, headers=hdrs, params=params)
+            prefix = f"yf_eth_{start.strftime('%Y%m%d')}_{end.strftime('%Y%m%d')}"
+            response_json = robust_get(url, headers=hdrs, params=params, snapshot_prefix=prefix)
 
             # Defensive parsing checks (ensure structure is as expected)
             chart_data = response_json.get("chart", {})
@@ -184,7 +185,8 @@ def cm_fetch(metric: str, asset="eth", start="2015-08-01", freq="1d") -> pd.Seri
         logging.debug(f"Fetching CM page {page_count}: {url.split('?')[0]}...")
         try:
             # Use robust_get imported from utils
-            j = robust_get(url, headers=hdr)
+            prefix = f"cm_{asset}_{metric}_p{page_count}"
+            j = robust_get(url, headers=hdr, snapshot_prefix=prefix)
             page_data = j.get("data", [])
             data.extend(page_data)
             url = j.get("next_page_url")
@@ -265,7 +267,8 @@ def fetch_nasdaq() -> pd.Series:
         response_json = None
         try:
             # Use robust_get imported from utils
-            response_json = robust_get(url, headers=hdrs, params=params)
+            prefix = f"yf_ndx_{start.strftime('%Y%m%d')}_{end.strftime('%Y%m%d')}"
+            response_json = robust_get(url, headers=hdrs, params=params, snapshot_prefix=prefix)
 
             # Defensive parsing checks
             chart_data = response_json.get("chart", {})
