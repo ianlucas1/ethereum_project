@@ -159,6 +159,7 @@ def main():
             exog_cols=OOS_EXOG_COLS,
             winsorize_cols=WINSORIZE_COLS,
             winsorize_quantile=WINSORIZE_QUANTILE,
+            stationarity_cols=STATIONARITY_COLS,
             window_size=OOS_WINDOW
         )
          analysis_results['oos'] = oos_results

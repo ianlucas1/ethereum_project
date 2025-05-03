@@ -4,7 +4,7 @@ import logging
 import pandas as pd
 import numpy as np
 import statsmodels.api as sm
-from src.eda import winsorize_data
+from src.eda import winsorize_data, run_stationarity_tests
 from statsmodels.tsa.api import Holt
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from typing import Any, Dict, List, Tuple
@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Tuple
 
 def run_oos_validation(df_monthly: pd.DataFrame, endog_col: str, exog_cols: list[str],
                        winsorize_cols: list[str], winsorize_quantile: float,
+                       stationarity_cols: list[str],
                        window_size: int = 24, add_const: bool = True) -> dict:
     """
     Performs rolling out-of-sample (OOS) validation for an OLS model.
@@ -23,6 +24,7 @@ def run_oos_validation(df_monthly: pd.DataFrame, endog_col: str, exog_cols: list
         exog_cols: List of exogenous (feature) variable column names.
         winsorize_cols: List of columns to winsorize within each training window.
         winsorize_quantile: The quantile to use for winsorizing.
+        stationarity_cols: List of columns to test for stationarity within each training window.
         window_size: The size of the rolling window (in months).
         add_const: Whether to add a constant to the exogenous variables.
 
@@ -56,6 +58,21 @@ def run_oos_validation(df_monthly: pd.DataFrame, endog_col: str, exog_cols: list
             quantile=winsorize_quantile,
             window_mask=train_data.index # Use current window's index
         )
+
+        # Run stationarity tests on the winsorized training data for this window
+        if stationarity_cols: # Only run if columns are specified
+            window_end_date = train_data.index[-1].date() # Use original train_data for date
+            logging.debug(f"Running stationarity tests for OOS window ending {window_end_date}")
+            # Run on the already-sliced (and potentially winsorized) data for this window
+            stationarity_results_window = run_stationarity_tests(
+                df=train_data_winsorized,
+                cols_to_test=stationarity_cols,
+                window_mask=None # Test the entire slice passed as df
+            )
+            # Log the results table (or process/store if needed later)
+            logging.debug(f"Stationarity Results (Window {window_end_date}):\n{stationarity_results_window.to_string()}")
+            # Note: Results are not currently stored in the main output dict
+
         # Use winsorized data for fitting
         y_train = train_data_winsorized[endog_col]
         X_train = train_data_winsorized[exog_cols]
