@@ -56,7 +56,8 @@ def run_vecm_analysis(df_monthly: pd.DataFrame, endog_cols: list[str], exog_cols
             logging.warning(f"VAR lag order selection failed: {lag_e}. Defaulting to lag 2.")
             aic_lag = 2
 
-        k_ar_diff = max(aic_lag - 1, 1) # Lag for Johansen/VECM (k-1 convention)
+        # Correct calculation allowing k_ar_diff=0
+        k_ar_diff = max(aic_lag - 1, 0)
         logging.info(f"  VAR lag order selected (AIC): {aic_lag} => k_ar_diff = {k_ar_diff}")
         vecm_results["var_aic_lag"] = aic_lag
         vecm_results["k_ar_diff"] = k_ar_diff
