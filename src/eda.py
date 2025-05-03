@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 # --- Data Preprocessing Functions ---
 
-def winsorize_data(df: pd.DataFrame, cols_to_cap: list[str], quantile: float = 0.995, window_mask: pd.Index | None = None) -> pd.DataFrame:
+def winsorize_data(df: pd.DataFrame, cols_to_cap: list[str], quantile: float = 0.995, window_mask: pd.Series | None = None) -> pd.DataFrame:
     """
     Caps specified columns in a DataFrame at the specified upper quantile.
 
@@ -24,8 +24,9 @@ def winsorize_data(df: pd.DataFrame, cols_to_cap: list[str], quantile: float = 0
         cols_to_cap: List of column names to cap.
         quantile: The upper quantile to cap at (e.g., 0.99 for 99th percentile).
                   Only the upper tail is capped. Defaults to 0.995.
-            window_mask: Optional index slice to calculate the quantile over. If None,
-                         uses the full DataFrame. Defaults to None.
+            window_mask: Optional boolean Series aligned with df's index, specifying
+                         the rows to use for quantile calculation and capping scope.
+                         If None, uses the full DataFrame. Defaults to None.
 
     Returns:
         DataFrame with specified columns capped.
@@ -51,7 +52,8 @@ def winsorize_data(df: pd.DataFrame, cols_to_cap: list[str], quantile: float = 0
 
         if window_mask is not None:
             # If a window is specified, only apply capping *within* that window
-            mask_to_cap = mask_exceeding_cap & window_mask # Intersect exceeding mask with window mask
+            # Intersect the boolean masks directly (window_mask is already boolean)
+            mask_to_cap = mask_exceeding_cap & window_mask
             df_out.loc[mask_to_cap, col] = cap_val
             num_capped = mask_to_cap.sum()
             logger.info(f"Capped column '{col}' at {quantile*100:.1f}th percentile (value: {cap_val:.4f}) within window. {num_capped} values affected.")
