@@ -4,167 +4,144 @@ import logging
 import pandas as pd
 import numpy as np
 import statsmodels.api as sm
-from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error
+from src.eda import winsorize_data
+from statsmodels.tsa.api import Holt
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+from typing import Any, Dict, List, Tuple
 
 # --- Out-of-Sample Rolling Validation ---
 
 def run_oos_validation(df_monthly: pd.DataFrame, endog_col: str, exog_cols: list[str],
+                       winsorize_cols: list[str], winsorize_quantile: float,
                        window_size: int = 24, add_const: bool = True) -> dict:
     """
-    Performs rolling out-of-sample validation using a simple OLS model.
+    Performs rolling out-of-sample (OOS) validation for an OLS model.
 
     Args:
-        df_monthly: Monthly DataFrame with all required columns.
-        endog_col: Name of the endogenous variable (e.g., 'log_marketcap').
-        exog_cols: List of exogenous variable names.
-        window_size: Rolling window size in months.
-        add_const: Whether to include a constant in the rolling OLS.
+        df_monthly: Monthly DataFrame with features and target.
+        endog_col: Name of the endogenous (target) variable column.
+        exog_cols: List of exogenous (feature) variable column names.
+        winsorize_cols: List of columns to winsorize within each training window.
+        winsorize_quantile: The quantile to use for winsorizing.
+        window_size: The size of the rolling window (in months).
+        add_const: Whether to add a constant to the exogenous variables.
 
     Returns:
-        Dictionary containing OOS metrics and predictions.
+        A dictionary containing OOS predictions, actuals, residuals, and metrics.
     """
-    logging.info(f"Starting Out-of-Sample validation ({window_size}-month rolling window)...")
-    oos_results = {}
-    required_cols = [endog_col] + exog_cols + ['price_usd', 'supply'] # Need price/supply for metrics
-    if not all(col in df_monthly.columns for col in required_cols):
-         missing = set(required_cols) - set(df_monthly.columns)
-         logging.error(f"Monthly DataFrame missing required columns for OOS: {missing}")
-         return {"error": f"Missing columns: {missing}"}
+    logging.info(f"Starting OOS validation for '{endog_col}' ~ {' + '.join(exog_cols)} with window size {window_size}.")
+    results: Dict[str, Any] = {
+        "predictions": [],
+        "actuals": [],
+        "residuals": [],
+        "models": [],  # Store fitted model objects if needed later
+        "train_indices": [],
+        "test_indices": []
+    }
+    n_obs = len(df_monthly)
 
-    # Prepare data, drop initial NaNs if any
-    model_df = df_monthly[required_cols].copy()
-    # Drop rows where *any* required modeling variable is NaN
-    model_df.dropna(subset=[endog_col] + exog_cols, inplace=True)
+    # Check if enough data for at least one window + 1 prediction
+    if n_obs < window_size + 1:
+        logging.error(f"Insufficient data ({n_obs} obs) for OOS validation with window size {window_size}. Need at least {window_size + 1}.")
+        return results # Return empty results
 
-    n_months = len(model_df)
-    if n_months < window_size + 1:
-        logging.warning(f"Skipping OOS: Insufficient data ({n_months}) for window size ({window_size}).")
-        return {"error": "Insufficient data."}
+    for i in range(window_size, n_obs):
+        train_data = df_monthly.iloc[i - window_size : i]
+        test_data_point = df_monthly.iloc[[i]] # Select the single row for prediction
 
-    actual_vals_price = []
-    pred_vals_price = []
-    oos_dates = []
+        # Winsorize the training data for this window only
+        train_data_winsorized = winsorize_data(
+            df=train_data,
+            cols_to_cap=winsorize_cols,
+            quantile=winsorize_quantile,
+            window_mask=train_data.index # Use current window's index
+        )
+        # Use winsorized data for fitting
+        y_train = train_data_winsorized[endog_col]
+        X_train = train_data_winsorized[exog_cols]
 
-    for end_idx in range(window_size, n_months):
-        train_start_idx = end_idx - window_size
-        train_data = model_df.iloc[train_start_idx:end_idx]
-        test_data_point = model_df.iloc[end_idx:end_idx + 1] # The single next point to predict
+        # Prepare test data (ensure same columns as training, including constant if added)
+        X_test = test_data_point[exog_cols]
 
-        # Prepare data for window OLS
-        y_train = train_data[endog_col]
-        X_train = train_data[exog_cols]
         if add_const:
             X_train = sm.add_constant(X_train, has_constant='add')
+            X_test = sm.add_constant(X_test, has_constant='add') # Add constant to test set too
 
-        # Basic check for sufficient data points
-        # Updated: Removed isnull checks (assuming NaNs handled before call or by model)
-        if len(y_train) < X_train.shape[1] + 2:
-            logging.warning(f"Skipping OOS step at index {end_idx} ({train_data.index[-1].date()}): Insufficient data points ({len(y_train)}) after split.")
+        # Check for NaNs after adding constant and before fitting
+        if X_train.isnull().any().any() or y_train.isnull().any():
+            logging.warning(f"NaNs found in training data for window ending at index {i}. Skipping this window.")
+            # Append NaNs or handle as appropriate for your metrics later
+            results["predictions"].append(np.nan)
+            results["actuals"].append(test_data_point[endog_col].iloc[0])
+            results["residuals"].append(np.nan)
+            results["models"].append(None)
+            results["train_indices"].append(train_data.index)
+            results["test_indices"].append(test_data_point.index)
             continue
 
         try:
-            # Fit OLS on window data (plain OLS for prediction coefficients)
-            model_win = sm.OLS(y_train, X_train).fit()
+            model = sm.OLS(y_train, X_train)
+            fitted_model = model.fit()
 
-            # Prepare test data point's regressors
-            X_test = test_data_point[exog_cols]
-            if add_const:
-                X_test = sm.add_constant(X_test, has_constant='add')
-                # Ensure columns match train columns (order and presence)
-                X_test = X_test[X_train.columns]
+            # Ensure test data columns match fitted model's exog names
+            if not all(col in X_test.columns for col in fitted_model.params.index):
+                 missing_in_test = set(fitted_model.params.index) - set(X_test.columns)
+                 logging.error(f"Mismatch between fitted model params and test data columns at index {i}. Missing in test: {missing_in_test}")
+                 # Handle error: skip prediction, append NaN, etc.
+                 prediction = np.nan
+            else:
+                # Reorder test data columns to match the model's expectation exactly
+                X_test_ordered = X_test[fitted_model.params.index]
+                prediction = fitted_model.predict(X_test_ordered).iloc[0]
 
-            # Check if test point has NaNs in regressors
-            if X_test.isnull().any().any():
-                logging.warning(f"Skipping OOS prediction for {test_data_point.index[0].date()}: NaN in regressors.")
-                continue
 
-            # Predict log market cap for the next month
-            pred_log = model_win.predict(X_test).iloc[0] # Use .iloc[0]
-            
-            # Get the actual date for logging/indexing
-            predict_date = test_data_point.index[0]
-            
-            # Get actual values for the prediction date, more robustly handling potential Series returns
-            try:
-                actual_log_series = model_df.loc[predict_date, endog_col]
-                actual_price_series = model_df.loc[predict_date, 'price_usd'] # Assuming price_usd is always needed
-                supply_oos_series = model_df.loc[predict_date, 'supply']     # Assuming supply is always needed
-            
-                # Check if any series returned is empty (no data for the date)
-                if (isinstance(actual_log_series, pd.Series) and actual_log_series.empty) or \
-                   (isinstance(actual_price_series, pd.Series) and actual_price_series.empty) or \
-                   (isinstance(supply_oos_series, pd.Series) and supply_oos_series.empty):
-                     logging.warning(f"Skipping OOS metrics for {predict_date}: No actual data found.")
-                     continue
-            
-                # Extract the first value if it's a Series, otherwise use the scalar directly
-                actual_log_val = actual_log_series.iloc[0] if isinstance(actual_log_series, pd.Series) else actual_log_series
-                actual_price_val = actual_price_series.iloc[0] if isinstance(actual_price_series, pd.Series) else actual_price_series
-                supply_oos_val = supply_oos_series.iloc[0] if isinstance(supply_oos_series, pd.Series) else supply_oos_series
-            
-                # Check if the extracted scalar values are NA or invalid
-                if pd.isna(actual_log_val) or pd.isna(actual_price_val) or pd.isna(supply_oos_val) or supply_oos_val == 0:
-                    logging.warning(f"Skipping OOS metrics for {predict_date}: Actual data missing or invalid scalar value.")
-                    continue
-            
-            except KeyError as e:
-                logging.warning(f"Skipping OOS metrics for {predict_date}: Missing column in actual data - {e}")
-                continue
-            except Exception as e:
-                # Catch any other unexpected errors during data retrieval/check
-                logging.warning(f"Skipping OOS metrics for {predict_date}: Unexpected error processing actual data - {e}")
-                continue
+            actual = test_data_point[endog_col].iloc[0]
+            residual = actual - prediction
 
-            # Convert prediction back to price space
-            # Handle potential overflow during exp()
-            with np.errstate(over='ignore'):
-                 pred_price = np.exp(pred_log) / supply_oos_val # Use validated scalar supply
-                 # Ensure pred_price is scalar before checking finiteness
-                 pred_price_val = pred_price.iloc[0] if isinstance(pred_price, (pd.Series, pd.DataFrame)) else pred_price
-                 if not np.isfinite(pred_price_val):
-                      logging.warning(f"Overflow encountered calculating predicted price for {predict_date}. pred_log={pred_log}")
-                      pred_price_val = np.nan # Set scalar value to NaN if overflow occurs
-
-            pred_vals_price.append(pred_price_val) # Append the validated scalar prediction
-            actual_vals_price.append(actual_price_val) # Use validated scalar actual price
-            oos_dates.append(predict_date) # Use the stored predict_date
+            results["predictions"].append(prediction)
+            results["actuals"].append(actual)
+            results["residuals"].append(residual)
+            results["models"].append(fitted_model) # Store the fitted model
+            results["train_indices"].append(train_data.index)
+            results["test_indices"].append(test_data_point.index)
 
         except Exception as e:
-            logging.error(f"ERROR during OOS window ending {train_data.index[-1].date()}: {e}", exc_info=True)
-            continue # Skip to next window
+            logging.error(f"Error during OLS fitting or prediction for window ending at index {i}: {e}")
+            # Append NaNs or handle error case
+            results["predictions"].append(np.nan)
+            results["actuals"].append(test_data_point[endog_col].iloc[0] if endog_col in test_data_point else np.nan)
+            results["residuals"].append(np.nan)
+            results["models"].append(None)
+            results["train_indices"].append(train_data.index)
+            results["test_indices"].append(test_data_point.index)
 
-    if actual_vals_price and pred_vals_price:
-        actual_np = np.array(actual_vals_price)
-        pred_np = np.array(pred_vals_price)
+    # Convert lists to numpy arrays for easier calculation
+    results["predictions"] = np.array(results["predictions"])
+    results["actuals"] = np.array(results["actuals"])
+    results["residuals"] = np.array(results["residuals"])
 
-        # Calculate metrics using Price values
-        # Avoid division by zero or invalid values in MAPE
-        valid_mape_idx = (actual_np > 1e-6) & np.isfinite(actual_np) & np.isfinite(pred_np)
-        if valid_mape_idx.sum() > 0:
-             mape = mean_absolute_percentage_error(actual_np[valid_mape_idx], pred_np[valid_mape_idx]) * 100
+    # Calculate OOS metrics, handling potential NaNs
+    valid_preds = ~np.isnan(results["predictions"])
+    valid_actuals = ~np.isnan(results["actuals"])
+    valid_mask = valid_preds & valid_actuals
+
+    if np.sum(valid_mask) > 0:
+        results["oos_rmse"] = np.sqrt(mean_squared_error(results["actuals"][valid_mask], results["predictions"][valid_mask]))
+        results["oos_mae"] = mean_absolute_error(results["actuals"][valid_mask], results["predictions"][valid_mask])
+        # Simple directional accuracy
+        direction_actual = np.sign(np.diff(results["actuals"][valid_mask]))
+        direction_pred = np.sign(np.diff(results["predictions"][valid_mask]))
+        # Ensure comparison is valid (handle zeros if necessary, here ignoring 0 changes)
+        valid_dir_mask = (direction_actual != 0) & (direction_pred != 0)
+        if np.sum(valid_dir_mask) > 0:
+             results["oos_directional_accuracy"] = np.mean(direction_actual[valid_dir_mask] == direction_pred[valid_dir_mask])
         else:
-             mape = np.nan
-
-        # Calculate RMSE only on valid, finite pairs
-        valid_rmse_idx = np.isfinite(actual_np) & np.isfinite(pred_np)
-        if valid_rmse_idx.sum() > 0:
-            rmse = np.sqrt(mean_squared_error(actual_np[valid_rmse_idx], pred_np[valid_rmse_idx]))
-        else:
-            rmse = np.nan
-
-        oos_results = {
-            'MAPE_percent': mape,
-            'RMSE_Price': rmse,
-            'N_OOS': len(actual_vals_price),
-            'predictions_df': pd.DataFrame({
-                'actual_price': actual_vals_price,
-                'predicted_price_oos': pred_vals_price
-            }, index=pd.to_datetime(oos_dates))
-        }
-        logging.info(f"Out-of-Sample Results: N={oos_results['N_OOS']}, MAPE={mape:.1f}%, RMSE_Price=${rmse:,.2f}")
-
+            results["oos_directional_accuracy"] = np.nan # Not enough non-zero changes to calculate
+        logging.info(f"OOS Validation Complete. RMSE: {results['oos_rmse']:.4f}, MAE: {results['oos_mae']:.4f}, Dir Acc: {results.get('oos_directional_accuracy', 'N/A'):.2%}")
     else:
-        logging.warning("No OOS predictions were generated.")
-        oos_results = {'MAPE_percent': np.nan, 'RMSE_Price': np.nan, 'N_OOS': 0, 'error': 'No predictions generated.'}
+        logging.warning("No valid predictions/actuals available to calculate OOS metrics.")
+        results["oos_rmse"] = np.nan
+        results["oos_mae"] = np.nan
+        results["oos_directional_accuracy"] = np.nan
 
-    return oos_results 
+    return results 

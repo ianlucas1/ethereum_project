@@ -66,8 +66,9 @@ ethereum_project/
 *   `utils.py`: Contains shared utility functions, constants (like `DATA_DIR`), and logging configuration used across the project.
 *   `data_fetching.py`: Handles fetching raw data from external sources (e.g., CoinMetrics API, Yahoo Finance). Includes caching mechanisms to avoid redundant downloads.
 *   `data_processing.py`: Responsible for cleaning, transforming, merging, and resampling the raw data into the `daily_clean.parquet` and `monthly_clean.parquet` datasets used for analysis.
-*   `eda.py`: Provides functions for exploratory data analysis and preprocessing steps necessary before modeling, such as data winsorization and stationarity tests (e.g., ADF).
+*   `eda.py`: Provides functions for exploratory data analysis and preprocessing steps necessary before modeling. This includes *leak-free* data winsorization (calculating quantiles based only on the relevant training window to prevent lookahead bias) and stationarity tests (e.g., ADF).
 *   `modeling.py`: Implements the core econometric models, including Ordinary Least Squares (OLS) benchmarks, Vector Error Correction Models (VECM), Autoregressive Distributed Lag (ARDL) models, residual diagnostics, structural break tests, and out-of-sample validation.
+*   `validation.py`: Handles out-of-sample model validation, specifically implementing rolling window validation. Preprocessing steps like winsorization are applied *within* each training window iteration to prevent lookahead bias / data leakage.
 *   `reporting.py`: Contains functions to generate summaries of the analysis results, format them into a structured dictionary, create interpretation text, and handle JSON serialization (including custom encoders for NumPy types).
 
 ## Setup

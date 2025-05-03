@@ -7,79 +7,65 @@ from statsmodels.tsa.stattools import adfuller, kpss
 from scipy.stats import jarque_bera # Keep JB here if used in EDA/diagnostics
 import warnings # <-- Added import
 from statsmodels.tools.sm_exceptions import InterpolationWarning # <-- Added import
+from scipy.stats.mstats import winsorize
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+logger = logging.getLogger(__name__)
 
 # --- Data Preprocessing Functions ---
 
-def winsorize_data(df: pd.DataFrame, cols_to_cap: list[str], quantile: float = 0.995) -> pd.DataFrame:
+def winsorize_data(df: pd.DataFrame, cols_to_cap: list[str], quantile: float = 0.995, window_mask: pd.Index | None = None) -> pd.DataFrame:
     """
-    Winsorizes specified columns of a DataFrame at a given quantile.
-    Adds an 'outlier_dummy' column flagging rows where capping occurred.
-    Recomputes log_active and log_gas if their inputs were capped.
+    Caps specified columns in a DataFrame at the specified upper quantile.
 
     Args:
         df: Input DataFrame.
-        cols_to_cap: List of column names to winsorize.
-        quantile: The quantile (e.g., 0.995) at which to cap.
+        cols_to_cap: List of column names to cap.
+        quantile: The upper quantile to cap at (e.g., 0.99 for 99th percentile).
+                  Only the upper tail is capped. Defaults to 0.995.
+            window_mask: Optional index slice to calculate the quantile over. If None,
+                         uses the full DataFrame. Defaults to None.
 
     Returns:
-        A new DataFrame with winsorized data and outlier dummy.
+        DataFrame with specified columns capped.
     """
-    logging.info(f"Starting winsorization for columns: {cols_to_cap} at quantile {quantile}")
     df_out = df.copy()
-    outlier_mask = np.zeros(len(df_out), dtype=bool)
+    capped_cols = []
 
-    # Check if columns exist before attempting to winsorize
-    valid_cols_to_cap = [col for col in cols_to_cap if col in df_out.columns]
-    if len(valid_cols_to_cap) < len(cols_to_cap):
-        missing = set(cols_to_cap) - set(valid_cols_to_cap)
-        logging.warning(f"Columns not found for winsorizing, skipping: {missing}")
+    for col in cols_to_cap:
+        if col not in df_out.columns:
+            logger.warning(f"Column '{col}' not found in DataFrame. Skipping capping.")
+            continue
 
-    if not valid_cols_to_cap:
-        logging.warning("No valid columns provided for winsorizing.")
-        df_out["outlier_dummy"] = outlier_mask.astype(int)
-        return df_out
+        if not pd.api.types.is_numeric_dtype(df_out[col]):
+            logger.warning(f"Column '{col}' is not numeric. Skipping capping.")
+            continue
 
-    for col in valid_cols_to_cap:
-        if pd.api.types.is_numeric_dtype(df_out[col]):
-            cap_val = df_out[col].quantile(quantile)
-            # Ensure cap_val is not NaN before comparison
-            if pd.notna(cap_val):
-                mask = df_out[col] > cap_val
-                outlier_mask |= mask            # accumulate spikes across all capped cols
-                df_out.loc[mask, col] = cap_val     # winsorise
-                logging.info(f"  Capped {col} at {cap_val:,.2f}. {mask.sum()} values affected.")
-            else:
-                logging.warning(f"Could not calculate quantile {quantile} for column '{col}', skipping winsorization.")
+        # Calculate the cap value based on the specified quantile
+        data_for_quantile = df_out.loc[window_mask, col] if window_mask is not None else df_out[col]
+        cap_val = data_for_quantile.quantile(quantile)
+
+        # Identify all values exceeding the cap across the DataFrame
+        mask_exceeding_cap = df_out[col] > cap_val
+
+        if window_mask is not None:
+            # If a window is specified, only apply capping *within* that window
+            mask_to_cap = mask_exceeding_cap & window_mask # Intersect exceeding mask with window mask
+            df_out.loc[mask_to_cap, col] = cap_val
+            num_capped = mask_to_cap.sum()
+            logger.info(f"Capped column '{col}' at {quantile*100:.1f}th percentile (value: {cap_val:.4f}) within window. {num_capped} values affected.")
         else:
-            logging.warning(f"Column '{col}' is not numeric, skipping winsorization.")
+            # If no window, apply capping to all values exceeding the cap (original behavior)
+            df_out.loc[mask_exceeding_cap, col] = cap_val
+            num_capped = mask_exceeding_cap.sum()
+            logger.info(f"Capped column '{col}' at {quantile*100:.1f}th percentile (value: {cap_val:.4f}). {num_capped} values affected.")
 
-    df_out["outlier_dummy"] = outlier_mask.astype(int)
-    total_spikes = outlier_mask.sum()
-    logging.info(f"Winsorizing complete. Total spike days flagged: {total_spikes}")
+        if num_capped > 0: # Only append if capping actually occurred
+            capped_cols.append(col)
 
-    # Re-compute dependent log variables if their inputs were changed
-    # Need to check if the base columns exist before recalculating logs
-    if "active_addr" in valid_cols_to_cap and "active_addr" in df_out.columns:
-        if 'log_active' in df_out.columns:
-             logging.info("Recomputing log_active after winsorizing active_addr.")
-             with np.errstate(divide='ignore', invalid='ignore'):
-                 df_out["log_active"] = np.log(df_out["active_addr"].replace(0, np.nan))
-        else:
-             logging.warning("Cannot recompute log_active: column not found.")
-
-    # Determine the correct burn column name used previously
-    burn_col_options = ["burn", "burn_native", "feetotntv", "feeburnntv"]
-    burn_col_actual = next((c for c in valid_cols_to_cap if c.lower() in burn_col_options), None)
-
-    if burn_col_actual and burn_col_actual in df_out.columns:
-         if 'log_gas' in df_out.columns:
-             logging.info(f"Recomputing log_gas after winsorizing {burn_col_actual}.")
-             df_out["log_gas"] = np.log1p(df_out[burn_col_actual]) # log1p handles 0 correctly
-         else:
-              logging.warning("Cannot recompute log_gas: column not found.")
-
-    # Replace inf/-inf that might result from log(0) if replace didn't catch it
-    df_out.replace([np.inf, -np.inf], np.nan, inplace=True)
+    if not capped_cols:
+        logger.warning("No columns were capped.")
 
     return df_out
 
