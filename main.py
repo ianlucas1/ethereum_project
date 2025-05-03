@@ -153,7 +153,14 @@ def main():
     if all(col in monthly_winsorized.columns for col in oos_req_cols):
          # Pass the winsorized df, OOS function will handle NaN dropping internally for its specific needs
          # Reverted: Uses locally defined OOS_WINDOW
-         oos_results = run_oos_validation(monthly_winsorized, OOS_ENDOG_COL, OOS_EXOG_COLS, window_size=OOS_WINDOW)
+         oos_results = run_oos_validation(
+            df_monthly=monthly_winsorized,
+            endog_col=OOS_ENDOG_COL,
+            exog_cols=OOS_EXOG_COLS,
+            winsorize_cols=WINSORIZE_COLS,
+            winsorize_quantile=WINSORIZE_QUANTILE,
+            window_size=OOS_WINDOW
+        )
          analysis_results['oos'] = oos_results
          # Add OOS predictions back to the main modeling dataframe if successful
          if 'predictions_df' in oos_results:
