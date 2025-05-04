@@ -192,7 +192,7 @@ def run_stationarity_tests(
     try:
         from IPython.display import display
 
-        display(stationarity_tbl)
+        display(stationarity_tbl)  # type: ignore[no-untyped-call]
     except ImportError:
         print(stationarity_tbl)
     print("---------------------------------\n")
