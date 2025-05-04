@@ -69,41 +69,31 @@ def disk_cache(path_arg: str, max_age_hr: int = 24) -> Callable:
                     now = datetime.now(tz=timezone.utc)
                     age = now - cache_mtime
                     if age < timedelta(hours=max_age_hr):
-                        logging.info(
-                            "Using cached %s (%.1fhr old)",
-                            cache_path.name,
-                            age.total_seconds() / 3600,
-                        )
-                        # Load data
-                        loaded_data = pd.read_parquet(cache_path)
-                        # Ensure loaded data has timezone-naive index AFTER loading
-                        if (
-                            pd.api.types.is_datetime64_any_dtype(loaded_data.index)
-                            and loaded_data.index.tz is not None
-                        ):
-                            loaded_data.index = loaded_data.index.tz_localize(None)
+                        logging.info(f"Loading cached result from: {cache_path.name}")
 
-                        # If original function returned Series, try returning the first column
-                        if (
-                            isinstance(loaded_data, pd.DataFrame)
-                            and len(loaded_data.columns) == 1
-                        ):
-                            # Heuristic: Assume Series was intended if saved df has 1 col.
-                            # Check function signature in future if needed.
-                            # Example: inspect.signature(func).return_annotation == pd.Series
+                        # --- 3.3.2: read metadata to choose pandas type ---
+                        meta_path = cache_path.with_suffix(".meta.json")
+                        pandas_type: str | None = None
+                        if meta_path.exists():
                             try:
-                                # Attempt to return the single column as a Series
-                                return loaded_data.iloc[:, 0].rename(
-                                    loaded_data.columns[0]
-                                )
-                            except (IndexError, KeyError) as e:
-                                # Fallback if conversion fails: log and return the original DataFrame
+                                with open(meta_path) as f:
+                                    meta = json.load(f)
+                                pandas_type = meta.get("pandas_type")
+                            except (json.JSONDecodeError, OSError) as meta_e:
                                 logging.warning(
-                                    f"Failed to convert single-column DataFrame to Series: {e}",
-                                    exc_info=True,
+                                    f"Could not read cache metadata for {cache_path.name}: {meta_e}"
                                 )
-                                return loaded_data
-                        return loaded_data  # Return DataFrame
+                        # -------------------------------------------------
+
+                        # Fallback: default to DataFrame, but convert to Series
+                        # when there's exactly one column (common for Series saved
+                        # via `to_parquet`) and no explicit meta.
+                        df = pd.read_parquet(cache_path)
+                        if pandas_type == "Series" or (
+                            pandas_type is None and df.shape[1] == 1
+                        ):
+                            return df.iloc[:, 0]
+                        return df
                 except Exception as e:
                     logging.warning(
                         f"Failed to load or check cache {cache_path}: {e}. Re-fetching."
@@ -146,6 +136,24 @@ def disk_cache(path_arg: str, max_age_hr: int = 24) -> Callable:
                     # Move temporary file to final cache path
                     shutil.move(tmp_path, cache_path)
                     logging.info(f"Saved fresh data to cache: {cache_path.name}")
+
+                    # --- 3.3.1: write sibling metadata file ---
+                    try:
+                        meta = {
+                            "pandas_type": "Series"
+                            if isinstance(result_to_save, pd.Series)
+                            else "DataFrame",
+                            "created_at": datetime.now(timezone.utc).isoformat(),
+                        }
+                        meta_path = cache_path.with_suffix(".meta.json")
+                        with open(meta_path, "w") as f:
+                            json.dump(meta, f, indent=4)
+                        logging.debug(f"Wrote cache metadata to: {meta_path.name}")
+                    except Exception as meta_e:
+                        logging.error(
+                            f"Failed to write cache metadata for {cache_path}: {meta_e}"
+                        )
+                    # --- end 3.3.1 ---
 
                 except Exception as e:
                     logging.error(f"Failed to save cache file {cache_path}: {e}")
