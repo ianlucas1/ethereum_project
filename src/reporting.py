@@ -21,7 +21,9 @@ class NpEncoder(json.JSONEncoder):
             return float(obj)
         elif isinstance(obj, np.ndarray):
             # Convert NaN/Inf in arrays too
-            return np.where(np.isnan(obj) | np.isinf(obj), None, obj).tolist()  # type: ignore[call-overload]  # ndarray → JSON helper
+            return np.where(
+                np.isnan(obj) | np.isinf(obj), None, obj
+            ).tolist()  # ndarray → JSON helper
         elif isinstance(obj, (pd.Timestamp, pd.Period)):
             # Format Timestamp/Period to ISO 8601 string
             return obj.isoformat() if hasattr(obj, "isoformat") else str(obj)

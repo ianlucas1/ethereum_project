@@ -6,7 +6,7 @@ import json
 import random
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
-import requests  # type: ignore[import-untyped]
+import requests
 from pathlib import Path
 
 # Import settings relative to the src directory

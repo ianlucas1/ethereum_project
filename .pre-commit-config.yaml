@@ -29,7 +29,7 @@ repos:
         additional_dependencies:
           # runtime-only extras so CI can run without global stubs
           - "mypy==1.15.0"
-          - "pydantic>=1.10"     # plugin runtime
+          - "pydantic>=1.10,<2"   # v1 plugin only
           - "types-requests"     # silence requests import
         args:
           - "--config-file"
