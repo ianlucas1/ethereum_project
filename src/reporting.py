@@ -4,13 +4,14 @@ import logging
 import json
 import pandas as pd
 import numpy as np
+from typing import Any
 
 
 # --- JSON Encoder for NumPy types ---
 class NpEncoder(json.JSONEncoder):
     """Custom JSON encoder to handle NumPy types and NaN/Inf values."""
 
-    def default(self, obj):
+    def default(self, obj: Any) -> Any:
         if isinstance(obj, np.integer):
             return int(obj)
         elif isinstance(obj, np.floating):
@@ -20,7 +21,7 @@ class NpEncoder(json.JSONEncoder):
             return float(obj)
         elif isinstance(obj, np.ndarray):
             # Convert NaN/Inf in arrays too
-            return np.where(np.isnan(obj) | np.isinf(obj), None, obj).tolist()
+            return np.where(np.isnan(obj) | np.isinf(obj), None, obj).tolist()  # type: ignore[call-overload]  # ndarray → JSON helper
         elif isinstance(obj, (pd.Timestamp, pd.Period)):
             # Format Timestamp/Period to ISO 8601 string
             return obj.isoformat() if hasattr(obj, "isoformat") else str(obj)
@@ -40,10 +41,10 @@ class NpEncoder(json.JSONEncoder):
 
 
 def generate_summary(
-    analysis_results: dict,
+    analysis_results: dict[str, Any],
     monthly_df_with_fv: pd.DataFrame,
     monthly_df_oos: pd.DataFrame,
-) -> dict:
+) -> dict[str, Any]:
     """
     Generates the final results dictionary and interpretation text.
 
@@ -60,7 +61,7 @@ def generate_summary(
             - 'interpretation_text': The formatted summary string.
     """
     logging.info("Generating final summary report...")
-    final_dict = {}
+    final_dict: dict[str, Any] = {}
 
     # Helper function to safely get nested dictionary values
     def safe_get(data_dict, key_list, default=None):
