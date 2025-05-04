@@ -6,8 +6,6 @@ scipy           >=1.11,<2.0
 scikit-learn    >=1.5,<1.6
 
 # Econometrics
-statsmodels     @ git+https://github.com/statsmodels/statsmodels.git@main
-linearmodels    >=6.0,<7.0
 
 # Parquet (nightly wheel already has cp313 builds)
 pyarrow         --pre
