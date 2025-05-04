@@ -242,7 +242,7 @@ def generate_summary(
             fmt_str = "{:." + str(precision) + "f}"
             return fmt_str.format(val)
         if isinstance(val, (pd.Timestamp)):  # Format Timestamp
-            return val.strftime("%Y-%m-%d")
+            return str(val.strftime("%Y-%m-%d"))  # cast to str for mypy
         return str(val)  # Fallback for other types
 
     beta_ext_str = format_val(final_dict["ols_ext_beta_active"])
