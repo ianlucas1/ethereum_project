@@ -6,6 +6,7 @@ import numpy as np
 from statsmodels.tsa.vector_ar.var_model import VAR
 from statsmodels.tsa.vector_ar.vecm import VECM, coint_johansen
 from statsmodels.tsa.ardl import ARDL, UECM
+from typing import Any
 
 # --- VECM Analysis ---
 
@@ -17,7 +18,7 @@ def run_vecm_analysis(
     max_lags: int = 6,
     coint_rank: int = 1,
     det_order: int = 0,
-) -> dict:
+) -> dict[str, Any]:
     """
     Performs VECM estimation and Johansen test.
 
@@ -33,7 +34,7 @@ def run_vecm_analysis(
         Dictionary containing VECM results.
     """
     logging.info("Running VECM Analysis...")
-    vecm_results = {}
+    vecm_results: dict[str, Any] = {}
 
     required_cols = endog_cols + (exog_cols if exog_cols else [])
     if not all(col in df_monthly.columns for col in required_cols):
@@ -159,7 +160,7 @@ def run_ardl_analysis(
     exog_cols: list[str],
     max_lags: int = 6,
     trend: str = "c",
-) -> dict:
+) -> dict[str, Any]:
     """
     Performs ARDL estimation and bounds testing.
 
@@ -174,7 +175,7 @@ def run_ardl_analysis(
         Dictionary containing ARDL results.
     """
     logging.info("Running ARDL Analysis...")
-    ardl_results = {}
+    ardl_results: dict[str, Any] = {}
 
     required_cols = [endog_col] + exog_cols
     if not all(col in df_monthly.columns for col in required_cols):
