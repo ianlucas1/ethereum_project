@@ -2,7 +2,6 @@
 # requirements.txt  –  Python 3.13 + macOS ARM
 # --------------------------------------------
 pandas          >=2.2,<3.0
-numpy           >=2.1,<3.0
 scipy           >=1.11,<2.0
 scikit-learn    >=1.5,<1.6
 
