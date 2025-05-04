@@ -23,6 +23,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip               # enables built-in pip cache
+          cache-dependency-path: requirements-dev.txt
 
       - name: Install dependencies
         run: |
