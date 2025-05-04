@@ -5,15 +5,20 @@ import logging
 import json
 import random
 from datetime import datetime, timezone
-from typing import Any
-import requests
+from typing import Any, Dict, Optional
+import requests  # type: ignore[import-not-found]
 from pathlib import Path
 
 # Import settings relative to the src directory
 from src.config import settings
 
 
-def _save_api_snapshot(directory: Path, filename_prefix: str, data: Any):
+def _save_api_snapshot(
+    directory: Path,
+    filename_prefix: str,
+    data: Any,
+    compress: bool = True,
+) -> None:
     """Saves the given data as a timestamped JSON snapshot."""
     try:
         # Ensure the snapshot directory exists
@@ -34,12 +39,12 @@ def _save_api_snapshot(directory: Path, filename_prefix: str, data: Any):
 
 def robust_get(
     url: str,
-    headers=None,
-    params=None,
-    snapshot_prefix: str | None = None,
-    retries=4,
-    base_delay=4,
-):
+    headers: Optional[Dict[str, str]] = None,
+    params: Optional[Dict[str, Any]] = None,
+    snapshot_prefix: Optional[str] = None,
+    retries: int = 4,
+    base_delay: int = 4,
+) -> Any:
     """Robustly performs a GET request with retries and exponential backoff."""
     for n in range(retries):
         response = None  # Initialize response
