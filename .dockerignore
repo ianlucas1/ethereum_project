@@ -1,0 +1,22 @@
+# Python byte-code / caches
+__pycache__/
+*.py[cod]
+
+# Virtual-envs & local tooling
+.venv/
+.mypy_cache/
+.pytest_cache/
+
+# Data & artifacts
+data/
+snapshots/
+*.parquet
+*.csv
+*.feather
+
+# Git & CI metadata
+.git
+.github
+
+# OS / editor noise
+.DS_Store 
