@@ -25,6 +25,7 @@ repos:
     hooks:
       - id: mypy
         name: mypy (strict)
+        pass_filenames: false       # run once, let mypy discover files itself
         additional_dependencies:
           # runtime-only extras so CI can run without global stubs
           - "mypy==1.15.0"
@@ -32,5 +33,4 @@ repos:
           - "types-requests"     # silence requests import
         args:
           - "--config-file"
-          - "mypy.ini"
-          - "src/" 
+          - "mypy.ini" 
