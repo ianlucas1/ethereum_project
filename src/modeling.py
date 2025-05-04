@@ -9,7 +9,7 @@
 # implementation expects (y, X, df, …). -> Now expects (y_data, X_data)
 
 
-__all__ = []
+__all__: list[str] = []
 
 # Other modeling functions (e.g., specific model fits, feature engineering helpers)
 # would go here.
