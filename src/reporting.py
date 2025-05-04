@@ -211,7 +211,13 @@ def generate_summary(
     final_dict["last_date"] = last_date  # Store the determined last date
 
     # --- Format Values for Interpretation Text ---
-    def format_val(val, precision=2, is_p_value=False, is_usd=False, is_bool=False):
+    def format_val(
+        val: Any,
+        precision: int = 2,
+        is_p_value: bool = False,
+        is_usd: bool = False,
+        is_bool: bool = False,  # Reverted parameter name to match existing usage
+    ) -> str:
         # Handle infinity first
         if isinstance(val, (float, np.floating)) and np.isinf(val):
             # Check sign of infinity
