@@ -4,7 +4,7 @@ import logging
 import json
 import pandas as pd
 import numpy as np
-from typing import Any
+from typing import Any, Sequence
 
 
 # --- JSON Encoder for NumPy types ---
@@ -64,7 +64,11 @@ def generate_summary(
     final_dict: dict[str, Any] = {}
 
     # Helper function to safely get nested dictionary values
-    def safe_get(data_dict, key_list, default=None):
+    def safe_get(
+        data_dict: Any,
+        key_list: Sequence[str | int],  # Allow int for tuple indexing
+        default: Any | None = None,
+    ) -> Any:
         current = data_dict
         for key in key_list:
             if isinstance(current, dict) or isinstance(
