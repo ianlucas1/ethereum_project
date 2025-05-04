@@ -1,4 +1,5 @@
 import pandas as pd
+import pytest
 from pathlib import Path
 
 
@@ -38,3 +39,26 @@ def test_load_parquet_index_fallback(tmp_path: Path):
     expected = df.rename_axis("time")
 
     pd.testing.assert_frame_equal(out, expected)
+
+
+# ---------------------------------------------------------------------------
+# Missing column validation
+# ---------------------------------------------------------------------------
+
+
+def test_load_parquet_missing_columns(tmp_path: Path):
+    """If *any* columns requested via ``req_cols`` are absent, a ValueError is raised."""
+
+    path = tmp_path / "mini.parquet"
+
+    # Frame contains the mandatory 'time' plus only one of the required cols.
+    df = pd.DataFrame(
+        {
+            "time": pd.to_datetime(["2024-01-01"]),
+            "x": [1],
+        }
+    )
+    df.to_parquet(path)
+
+    with pytest.raises(ValueError, match=r"missing required columns.*\['y'\]"):
+        load_parquet(path, req_cols=["x", "y"])
