@@ -172,4 +172,23 @@ The project relies on several key Python libraries (versions as per `requirement
 *   `requests`: HTTP requests for data fetching.
 *   `filelock`: Platform-independent file locking for caching.
 *   `pyarrow`: Efficient backend for reading/writing Parquet files with pandas.
-*   `pydantic`: Data validation and settings management (e.g., 1.10.22). 
+*   `pydantic`: Data validation and settings management (e.g., 1.10.22).
+
+## 🚢 Running with Docker
+
+The repository ships with a lightweight image definition (`Dockerfile`) so you can build
+and test the project in an isolated container:
+
+```bash
+# build the image
+docker build -t ethereum_project .
+
+# run the tests inside the image
+docker run --rm ethereum_project pytest -q
+
+# run the main script (override the placeholder key if you need live API calls)
+docker run --rm -e RAPIDAPI_KEY=your_real_key ethereum_project
+```
+
+> The image is based on **python 3.12-slim**, installs dependencies from
+> `requirements-lock.txt`, and sets a dummy `RAPIDAPI_KEY` so tests pass without secrets. 
