@@ -45,8 +45,8 @@ def run_residual_diagnostics(ols_hac_results: dict) -> dict:
         X = underlying_model.exog
         y = underlying_model.endog
         n_obs, k_vars = X.shape
-    except Exception as e:
-        logging.error(f"Could not retrieve exog/endog variables for diagnostics: {e}")
+    except (AttributeError, ValueError):
+        logging.exception("Could not retrieve exog/endog variables for diagnostics")
         return diag_results
 
     if len(resid) < 15 or len(resid) <= k_vars:  # Need enough residuals

@@ -8,4 +8,14 @@ repos:
     -   id: ruff-format
     # Run the linter.
     -   id: ruff
-        args: [--fix, --exit-non-zero-on-fix] # Auto-fix and fail if fixes are made 
+        args: [--fix, --exit-non-zero-on-fix] # Auto-fix and fail if fixes are made
+
+- repo: https://github.com/pycqa/flake8
+  rev: 6.1.0
+  hooks:
+    - id: flake8
+      additional_dependencies:
+        - flake8-bugbear>=23.9.16
+      args:
+        - --max-line-length=88
+        - --ignore=E203,E501,W503 
