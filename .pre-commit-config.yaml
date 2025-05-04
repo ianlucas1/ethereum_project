@@ -33,4 +33,7 @@ repos:
           - "types-requests"     # silence requests import
         args:
           - "--config-file"
-          - "mypy.ini" 
+          - "mypy.ini"
+          - "src"
+
+# ... existing code ... 
