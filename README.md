@@ -119,6 +119,19 @@ ethereum_project/
 
     *(Alternatively, you can still set these as system environment variables, which will override the `.env` file if both are present, but using the `.env` file is recommended for managing project-specific keys.)*
 
+## CI caching tips
+
+- **Bump the cache key whenever you upgrade Python or change `runs-on`**  
+  e.g. include the Python minor version in `venv-${{ runner.os }}-3.11-…`.
+- **Regenerate and commit `requirements-lock.txt` with every dependency change**  
+  A stale lock file causes a stale cache and silent mismatches.
+- **Watch cache storage** (GitHub Actions ▸ *Caches*).  
+  GitHub only keeps the most-recent 10 GB per repo—delete old entries periodically.
+- **Fix nightly full-matrix failures promptly**  
+  The nightly job surfaces OS/Python issues hidden by the slim matrix.
+- **Keep local parity**  
+  Use the `.python-version` file (3.11) or `pyenv`/`asdf` before creating a new venv.
+
 ## Usage
 
 ### Full Pipeline Execution
