@@ -147,4 +147,7 @@ data/*.tmp
 
 # OS generated files
 .DS_Store
-Thumbs.dbdata/
+Thumbs.db
+
+# Ignore local cache directory
+data/
