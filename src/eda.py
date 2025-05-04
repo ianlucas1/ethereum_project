@@ -125,7 +125,7 @@ def run_stationarity_tests(
         return pd.DataFrame()
 
     # Nested helper functions for tests
-    def adf_test(series):
+    def adf_test(series: pd.Series) -> tuple[float, float]:
         try:
             # Ensure series is float type for ADF
             stat, p, *_ = adfuller(series.astype(float), autolag="AIC")
@@ -134,7 +134,7 @@ def run_stationarity_tests(
             logging.error(f"ADF test failed for series {series.name}: {e}")
             return np.nan, np.nan
 
-    def kpss_test(series):
+    def kpss_test(series: pd.Series) -> tuple[float, float]:
         # KPSS test requires minimum observations, handle potential errors
         if len(series) < 10:  # Arbitrary minimum, adjust if needed
             logging.warning(
