@@ -92,8 +92,15 @@ def fit_ols_hac(
             "model_formula": f"{y_name} ~ {' + '.join(X_fit.columns)} (HAC lags={lags})",
         }
     except Exception as e:
-        logging.error(f"OLS fitting failed for {y_name}: {e}", exc_info=True)
-        return {"model_obj": None, "error": str(e)}  # Return model_obj: None
+        # Handle singular matrix or invalid inputs
+        except_types = (np.linalg.LinAlgError, ValueError)
+        if isinstance(e, except_types):
+            logging.exception(
+                f"OLS fit failed for {y_name} due to linear algebra or value error"
+            )
+        else:
+            logging.exception(f"Unexpected error during OLS fit for {y_name}")
+        return {"model_obj": None, "error": str(e)}  # Keep returning the error dict
 
 
 # --- OLS Benchmark Analysis ---
@@ -171,10 +178,8 @@ def run_ols_benchmarks(daily_df: pd.DataFrame, monthly_df: pd.DataFrame) -> dict
                     "Could not calculate RMSE for monthly base OLS (no valid price pairs)."
                 )
 
-        except Exception as e:
-            logging.error(
-                f"Error calculating fair value/RMSE for monthly base OLS: {e}"
-            )
+        except (ValueError, KeyError):
+            logging.exception("Error calculating fair value/RMSE for monthly base OLS")
             ols_results["monthly_base"]["RMSE_USD"] = np.nan
 
     # --- Monthly Extended ---

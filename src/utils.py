@@ -96,8 +96,12 @@ def disk_cache(path_arg: str, max_age_hr: int = 24) -> Callable:
                                 return loaded_data.iloc[:, 0].rename(
                                     loaded_data.columns[0]
                                 )
-                            except Exception:
-                                # Fallback if conversion fails
+                            except (IndexError, KeyError) as e:
+                                # Fallback if conversion fails: log and return the original DataFrame
+                                logging.warning(
+                                    f"Failed to convert single-column DataFrame to Series: {e}",
+                                    exc_info=True,
+                                )
                                 return loaded_data
                         return loaded_data  # Return DataFrame
                 except Exception as e:
