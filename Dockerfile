@@ -9,6 +9,9 @@ RUN addgroup --system app && adduser --system --group app
 
 WORKDIR /app
 
+# placeholder so pytest can import settings without a real secret
+ENV RAPIDAPI_KEY=dummy
+
 # install Python dependencies first (leverages Docker layer caching)
 COPY requirements*.txt ./
 RUN pip install --no-cache-dir --upgrade pip \
