@@ -9,6 +9,9 @@ on:
 jobs:
   test:
     runs-on: ${{ matrix.os }}
+  env:
+    RAPIDAPI_KEY: dummy
+    ETHERSCAN_API_KEY: dummy
 
     strategy:
       matrix:
