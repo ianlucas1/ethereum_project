@@ -1,6 +1,6 @@
 # tests/test_data_processing.py
 
-import numpy as np  # Added
+import numpy as np
 import pandas as pd
 import pytest
 from unittest.mock import patch, MagicMock
@@ -15,6 +15,7 @@ from src.data_processing import (
     engineer_log_features,
     create_daily_clean,
     create_monthly_clean,
+    process_all_data,
 )
 
 # --- Fixtures ---
@@ -430,3 +431,140 @@ def test_create_monthly_clean(sample_df_for_logs: pd.DataFrame):
     assert np.isclose(
         monthly_clean.loc["2023-02-28", "log_nasdaq"], expected_log_nasdaq_feb
     )
+
+
+# --- Tests for process_all_data ---
+
+
+@patch("src.data_processing.load_raw_data")
+@patch("src.data_processing.merge_eth_data")
+@patch("src.data_processing.align_nasdaq_data")
+@patch("src.data_processing.engineer_log_features")
+@patch("src.data_processing.create_daily_clean")
+@patch("src.data_processing.create_monthly_clean")
+@patch("pandas.DataFrame.to_parquet")  # Mock the final saving step
+def test_process_all_data_happy_path(
+    mock_to_parquet: MagicMock,
+    mock_create_monthly: MagicMock,
+    mock_create_daily: MagicMock,
+    mock_engineer_logs: MagicMock,
+    mock_align_nasdaq: MagicMock,
+    mock_merge_eth: MagicMock,
+    mock_load_raw: MagicMock,
+    tmp_path: Path,  # Use tmp_path for dummy settings
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Tests the main data processing pipeline orchestration."""
+    # Patch DATA_DIR setting
+    monkeypatch.setattr(settings, "DATA_DIR", tmp_path)
+
+    # --- Mock return values for each step ---
+    # 1. Load
+    mock_core = pd.DataFrame(
+        {"price_usd": [1], "active_addr": [2], "supply": [3]},
+        index=pd.to_datetime(["2023-01-01"]),
+    )
+    mock_fee = pd.DataFrame({"burn": [4]}, index=pd.to_datetime(["2023-01-01"]))
+    mock_tx = pd.DataFrame({"tx_count": [5]}, index=pd.to_datetime(["2023-01-01"]))
+    mock_load_raw.return_value = (mock_core, mock_fee, mock_tx)
+
+    # 2. Merge
+    mock_merged = pd.DataFrame(
+        {
+            "price_usd": [1],
+            "active_addr": [2],
+            "supply": [3],
+            "burn": [4],
+            "tx_count": [5],
+            "market_cap": [3],
+        },
+        index=pd.to_datetime(["2023-01-01"]),
+    )
+    mock_merge_eth.return_value = mock_merged
+
+    # 3. Align NASDAQ
+    mock_with_nasdaq = mock_merged.copy()
+    mock_with_nasdaq["nasdaq"] = [15000]
+    mock_align_nasdaq.return_value = mock_with_nasdaq
+
+    # 4. Engineer Logs
+    mock_with_logs = mock_with_nasdaq.copy()
+    mock_with_logs["log_marketcap"] = [np.log(3)]
+    mock_with_logs["log_active"] = [np.log(2)]
+    mock_with_logs["log_gas"] = [np.log1p(4)]
+    mock_with_logs["log_nasdaq"] = [np.log(15000)]
+    mock_engineer_logs.return_value = mock_with_logs
+
+    # 5. Create Daily Clean
+    mock_daily = mock_with_logs.copy()  # Assume no rows dropped for simplicity
+    mock_create_daily.return_value = mock_daily
+
+    # 6. Create Monthly Clean
+    mock_monthly = mock_daily.resample("ME").mean()  # Simple mock monthly
+    mock_create_monthly.return_value = mock_monthly
+    # --- End Mock Setup ---
+
+    # Call the orchestrator function
+    daily_result, monthly_result = process_all_data()
+
+    # --- Assertions ---
+    # Check that mocks were called in order
+    mock_load_raw.assert_called_once()
+    mock_merge_eth.assert_called_once_with(mock_core, mock_fee, mock_tx)
+    mock_align_nasdaq.assert_called_once_with(mock_merged)
+    mock_engineer_logs.assert_called_once_with(mock_with_nasdaq)
+    mock_create_daily.assert_called_once_with(mock_with_logs)
+    mock_create_monthly.assert_called_once_with(
+        mock_with_logs
+    )  # Called with pre-daily clean data
+
+    # Check that saving was attempted twice (daily, monthly)
+    assert mock_to_parquet.call_count == 2
+    call_args_list = mock_to_parquet.call_args_list
+    # Check the paths used for saving
+    expected_daily_path = tmp_path / "daily_clean.parquet"
+    expected_monthly_path = tmp_path / "monthly_clean.parquet"
+    saved_paths = [
+        call[0][0] for call in call_args_list
+    ]  # Get the first arg (path) from each call
+    assert expected_daily_path in saved_paths
+    assert expected_monthly_path in saved_paths
+
+    # Check returned dataframes match mocked final steps
+    pd.testing.assert_frame_equal(daily_result, mock_daily)
+    pd.testing.assert_frame_equal(monthly_result, mock_monthly)
+
+
+@patch(
+    "src.data_processing.load_raw_data",
+    return_value=(pd.DataFrame(), pd.DataFrame(), pd.DataFrame()),
+)
+def test_process_all_data_load_fails(mock_load_raw: MagicMock):
+    """Tests that pipeline exits early if loading fails (returns empty)."""
+    # We mock load_raw_data to return empty frames implicitly via the decorator args
+    daily_result, monthly_result = process_all_data()
+    assert daily_result.empty
+    assert monthly_result.empty
+    mock_load_raw.assert_called_once()
+    # Other mocks should not have been called
+
+
+@patch("src.data_processing.load_raw_data")  # Need to mock load to proceed
+@patch(
+    "src.data_processing.merge_eth_data", return_value=pd.DataFrame()
+)  # Mock merge to return empty
+def test_process_all_data_merge_fails(mock_merge: MagicMock, mock_load: MagicMock):
+    """Tests that pipeline exits early if merging fails (returns empty)."""
+    # Setup mock load to return something valid
+    mock_load.return_value = (
+        pd.DataFrame({"a": [1]}),
+        pd.DataFrame({"b": [1]}),
+        pd.DataFrame({"c": [1]}),
+    )
+
+    daily_result, monthly_result = process_all_data()
+    assert daily_result.empty
+    assert monthly_result.empty
+    mock_load.assert_called_once()
+    mock_merge.assert_called_once()
+    # Other mocks should not have been called
