@@ -151,3 +151,5 @@ Thumbs.db
 
 # Ignore local cache directory
 data/
+
+type_ignore_occurrences.txt
