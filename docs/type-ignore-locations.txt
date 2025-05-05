@@ -1,0 +1,3 @@
+./mypy.ini:7:# • Every future   # type: ignore   must be justified inline.
+./scripts/backfill_cache_meta.py:34:    from settings import DATA_DIR  # type: ignore
+./src/eda.py:208:        display = _display_plain  # noqa: F811  # type: ignore[assignment]

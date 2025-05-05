@@ -27,11 +27,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
 
+# re-add pandas import for pd.read_parquet and pd.Series/DateFrame usage
 import pandas as pd
 
+# Attempt to import project settings for default cache location
 try:
-    # Optional import – only present inside project
-    from settings import DATA_DIR  # type: ignore
+    # settings.py is dynamically generated and untyped – ignore no longer needed
+    from settings import DATA_DIR
 except ImportError:  # Fallback when running outside project root
     DATA_DIR = Path.cwd()
 

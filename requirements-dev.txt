@@ -27,4 +27,6 @@ flake8-bugbear>=23.9.16
 pytest>=8.2.0,<9.0
 pytest-xdist
 
+types-requests  >=2.32,<3.0
+
 -r requirements-lock.txt

@@ -1,10 +1,11 @@
 # src/reporting.py
 
-import logging
 import json
-import pandas as pd
+import logging
+
 import numpy as np
-from typing import Any, Sequence, cast
+import pandas as pd
+from typing import Any, Sequence  # cast removed earlier; keep import list tidy
 
 
 # --- JSON Encoder for NumPy types ---
@@ -20,12 +21,23 @@ class NpEncoder(json.JSONEncoder):
                 return None
             return float(obj)
         elif isinstance(obj, np.ndarray):
-            # Convert NaN/Inf to None; stubs dislike None as x-arg so cast.
-            arr: list[Any] = cast(
-                list[Any],
-                np.where(np.isnan(obj) | np.isinf(obj), None, obj).tolist(),
-            )
-            return arr
+            # Convert to object array first to safely handle None replacement
+            try:
+                # Create a mask for NaN/Inf values
+                mask = np.isnan(obj) | np.isinf(obj)
+                # Create an object array copy
+                obj_copy = obj.astype(object)
+                # Replace masked values with None
+                obj_copy[mask] = None
+                # Convert to list
+                return obj_copy.tolist()
+            except (TypeError, ValueError) as e:
+                # Handle cases where astype(object) or masking fails unexpectedly
+                logging.warning(
+                    f"Could not convert ndarray with potential NaNs/Infs due to: {e}. Falling back to string.",
+                    exc_info=True,
+                )
+                return str(obj)  # Fallback
         elif isinstance(obj, (pd.Timestamp, pd.Period)):
             # Format Timestamp/Period to ISO 8601 string
             return obj.isoformat() if hasattr(obj, "isoformat") else str(obj)
@@ -36,7 +48,8 @@ class NpEncoder(json.JSONEncoder):
         except TypeError:
             # Handle non-serializable objects gracefully
             logging.warning(
-                f"Object of type {type(obj)} is not JSON serializable. Representing as string."
+                "Object of type %s is not JSON serializable. Representing as string.",
+                type(obj),
             )
             return str(obj)
 
@@ -75,25 +88,30 @@ def generate_summary(
     ) -> Any:
         current = data_dict
         for key in key_list:
-            if isinstance(current, dict) or isinstance(
-                current, tuple
-            ):  # Allow tuples for shape
-                try:
-                    # Handle integer index for tuples like shape
-                    if isinstance(key, int) and isinstance(current, tuple):
-                        if key < len(current):
-                            current = current[key]
-                        else:
-                            return default
-                    # Handle dictionary keys
-                    elif isinstance(current, dict):
-                        current = current.get(key)
-                    else:  # Cannot index further
-                        return default
-                except (KeyError, IndexError, TypeError):
-                    return default
-            else:
+            # Check if current object is indexable/subscriptable
+            is_dict = isinstance(current, dict)
+            is_tuple = isinstance(current, tuple)
+            is_list = isinstance(current, list)  # Added list check
+
+            if not (is_dict or is_tuple or is_list):
                 return default
+
+            try:
+                # Handle integer index for tuples like shape or lists
+                if isinstance(key, int) and (is_tuple or is_list):
+                    if key < len(current):
+                        current = current[key]
+                    else:
+                        return default
+                # Handle dictionary keys
+                elif is_dict:
+                    # Ensure current is treated as dict for get method
+                    current = current.get(key)
+                else:  # Cannot index further correctly
+                    return default
+            except (KeyError, IndexError, TypeError):
+                return default
+
             if current is None:
                 return default
         # If the final value is NaN or Inf, return the default (None for JSON)
@@ -195,15 +213,18 @@ def generate_summary(
         )
 
     # Use the dataframe that OOS modified to get last predicted price
-    if not monthly_df_oos.empty:
-        last_pred_oos = (
-            monthly_df_oos["predicted_price_oos"].iloc[-1]
-            if "predicted_price_oos" in monthly_df_oos.columns
-            else None
-        )
+    # Check if monthly_df_oos exists and has the column before accessing
+    if not monthly_df_oos.empty and "predicted_price_oos" in monthly_df_oos.columns:
+        # Additional check for empty series/column after OOS processing
+        if not monthly_df_oos["predicted_price_oos"].dropna().empty:
+            last_pred_oos = monthly_df_oos["predicted_price_oos"].iloc[-1]
         # If last_date wasn't set above, try getting it from here
-        if last_date is None and not monthly_df_oos.empty:
+        if last_date is None:
             last_date = monthly_df_oos.index[-1]
+    elif (
+        last_date is None and not monthly_df_oos.empty
+    ):  # Still try to get date if df exists but column doesn't
+        last_date = monthly_df_oos.index[-1]
 
     final_dict["last_actual_price"] = last_actual if pd.notna(last_actual) else None
     final_dict["last_fair_price_ext"] = (
@@ -245,12 +266,14 @@ def generate_summary(
             # Dynamic precision for R2 etc.
             fmt_str = "{:." + str(precision) + "f}"
             return fmt_str.format(val)
-        if isinstance(val, (pd.Timestamp)):  # Format Timestamp
+        if isinstance(val, pd.Timestamp):  # Format Timestamp
             return str(val.strftime("%Y-%m-%d"))  # cast to str for mypy
         return str(val)  # Fallback for other types
 
     beta_ext_str = format_val(final_dict["ols_ext_beta_active"])
-    beta_ext_pval = final_dict["ols_ext_pvals_hac"].get("log_active")
+    beta_ext_pval = safe_get(
+        final_dict, ["ols_ext_pvals_hac", "log_active"]
+    )  # Use safe_get
     beta_ext_sig = (
         "significant"
         if isinstance(beta_ext_pval, (int, float)) and beta_ext_pval < 0.05
@@ -258,7 +281,9 @@ def generate_summary(
     )
     beta_ext_pval_str = format_val(beta_ext_pval, precision=3, is_p_value=True)
 
-    nasdaq_pval = final_dict["ols_ext_pvals_hac"].get("log_nasdaq")
+    nasdaq_pval = safe_get(
+        final_dict, ["ols_ext_pvals_hac", "log_nasdaq"]
+    )  # Use safe_get
     nasdaq_sig = (
         "significant"
         if isinstance(nasdaq_pval, (int, float)) and nasdaq_pval < 0.05
@@ -266,7 +291,7 @@ def generate_summary(
     )
     nasdaq_pval_str = format_val(nasdaq_pval, precision=3, is_p_value=True)
 
-    gas_pval = final_dict["ols_ext_pvals_hac"].get("log_gas")
+    gas_pval = safe_get(final_dict, ["ols_ext_pvals_hac", "log_gas"])  # Use safe_get
     gas_sig = (
         "significant"
         if isinstance(gas_pval, (int, float)) and gas_pval < 0.05
@@ -277,7 +302,7 @@ def generate_summary(
     last_fair_str = format_val(final_dict["last_fair_price_ext"], is_usd=True)
     last_actual_str = format_val(final_dict["last_actual_price"], is_usd=True)
     oos_mape_str = (
-        format_val(final_dict["oos_mape_percent"], precision=1) + "%"
+        f"{format_val(final_dict['oos_mape_percent'], precision=1)}%"
         if final_dict["oos_mape_percent"] not in ["N/A", None]
         else "N/A"
     )
@@ -293,8 +318,10 @@ def generate_summary(
         "ardl_cointegrated_5pct"
     ]  # Get raw value (could be None or False)
 
-    if ardl_cointegrated is None:  # Check if p-value was NaN
-        ardl_bounds_text = f"Inconclusive (F-stat={ardl_f_stat_str}, p-values N/A)"
+    if ardl_cointegrated is None:  # Check if p-value was NaN/result missing
+        ardl_bounds_text = (
+            f"Inconclusive (F-stat={ardl_f_stat_str}, p-values N/A or test failed)"
+        )
     elif ardl_cointegrated:
         ardl_bounds_text = f"Cointegrated (F-stat={ardl_f_stat_str}, p_lower={format_val(ardl_p_lower, is_p_value=True)})"
     else:
@@ -307,25 +334,41 @@ def generate_summary(
     last_fair_val = final_dict["last_fair_price_ext"]
 
     if (
-        isinstance(last_actual_val, (int, float))
-        and isinstance(last_fair_val, (int, float))
+        isinstance(last_actual_val, (int, float, np.number))  # Allow numpy numbers
+        and isinstance(last_fair_val, (int, float, np.number))
         and last_fair_val != 0
+        and not (np.isnan(last_actual_val) or np.isnan(last_fair_val))  # Ensure not NaN
+        and not (np.isinf(last_actual_val) or np.isinf(last_fair_val))  # Ensure not Inf
     ):
-        diff_pct = ((last_actual_val - last_fair_val) / last_fair_val) * 100
-        if abs(diff_pct) < 5:
-            premium_discount_text = f"The actual price ({last_actual_str}) is currently close to the model's fair value ({last_fair_str})."
-        elif diff_pct > 0:
-            premium_discount_text = f"The actual price ({last_actual_str}) is currently trading at a {diff_pct:.1f}% premium to the model's fair value ({last_fair_str})."
-        else:
-            premium_discount_text = f"The actual price ({last_actual_str}) is currently trading at a {abs(diff_pct):.1f}% discount to the model's fair value ({last_fair_str})."
+        try:
+            # Convert potential numpy types to float for calculation
+            last_actual_f = float(last_actual_val)
+            last_fair_f = float(last_fair_val)
+
+            diff_pct = ((last_actual_f - last_fair_f) / last_fair_f) * 100
+            if abs(diff_pct) < 5:
+                premium_discount_text = f"The actual price ({last_actual_str}) is currently close to the model's fair value ({last_fair_str})."
+            elif diff_pct > 0:
+                premium_discount_text = f"The actual price ({last_actual_str}) is currently trading at a {diff_pct:.1f}% premium to the model's fair value ({last_fair_str})."
+            else:  # diff_pct < 0
+                premium_discount_text = f"The actual price ({last_actual_str}) is currently trading at a {abs(diff_pct):.1f}% discount to the model's fair value ({last_fair_str})."
+        except (ValueError, TypeError, ZeroDivisionError) as e:
+            logging.warning(f"Could not calculate premium/discount: {e}")
+            premium_discount_text = f"[Calculation error comparing actual ({last_actual_str}) vs fair value ({last_fair_str}).]"
     else:
-        premium_discount_text = f"[Could not compare actual ({last_actual_str}) vs fair value ({last_fair_str}).]"
+        premium_discount_text = f"[Could not compare actual ({last_actual_str}) vs fair value ({last_fair_str}) due to missing or invalid data.]"
 
     # --- Construct Interpretation Text ---
+    # (Keep interpretation text formatting as is, only data extraction/formatting logic above was changed)
+    data_summary = analysis_results.get("data_summary", {})  # Avoid repeated calls
+    start_date_str = format_val(data_summary.get("monthly_start"))
+    end_date_str = format_val(data_summary.get("monthly_end"))
+    last_date_str = format_val(final_dict["last_date"])  # Use formatted last date
+
     interpretation_text = f"""
 ### Ethereum Valuation Analysis Summary ###
 
-**Date Range:** {format_val(analysis_results.get("data_summary", {}).get("monthly_start"))} to {format_val(analysis_results.get("data_summary", {}).get("monthly_end"))} ({n_months_str} months)
+**Date Range:** {start_date_str} to {end_date_str} ({n_months_str} months)
 
 **Key Findings:**
 
@@ -339,7 +382,7 @@ def generate_summary(
 
 3.  **Model Diagnostics & Stability:**
     *   Residual diagnostics on the extended OLS model indicated some issues (e.g., DW={format_val(final_dict["diag_dw"])}, BG p={format_val(final_dict["diag_bg_p"], is_p_value=True)}) which were addressed using HAC standard errors for inference.
-    *   Normality of residuals was rejected (JB p={format_val(final_dict["diag_jb_p"], is_p_value=True)}).
+    *   Normality of residuals was rejected (JB p={format_val(final_dict["diag_jb_p"], is_p_value=True)}). Heteroskedasticity may be present (White p={format_val(final_dict["diag_white_p"], is_p_value=True)}).
     *   Structural break tests show mixed results: CUSUM p={format_val(final_dict["break_cusum_p"], is_p_value=True)}, Chow EIP1559 p={format_val(final_dict["break_chow_eip_p"], is_p_value=True)}, Chow Merge p={format_val(final_dict["break_chow_merge_p"], is_p_value=True)}. Significant Chow tests suggest parameter shifts around major upgrades.
 
 4.  **Dynamic Relationship & Cointegration:**
@@ -352,7 +395,7 @@ def generate_summary(
     *   The Mean Absolute Percentage Error (MAPE) was approx. **{oos_mape_str}**.
     *   The Root Mean Squared Error (RMSE) in price terms was approx. **{oos_rmse_str}**.
 
-**Valuation Snapshot (as of {format_val(final_dict["last_date"])}):**
+**Valuation Snapshot (as of {last_date_str}):**
 
 *   **Actual Price:** {last_actual_str}
 *   **Model Fair Value (Extended OLS):** {last_fair_str}
@@ -360,7 +403,7 @@ def generate_summary(
 *   *(OOS Predicted Price for last date: {format_val(final_dict["last_predicted_price_oos"], is_usd=True)})*
 
 **Overall Conclusion:**
-Ethereum's valuation appears strongly anchored by network effects (Metcalfe's Law), consistent with its role as a smart contract platform. However, macro factors and on-chain tokenomics (like fee burn captured by log_gas) are also significant drivers. Dynamic models confirm a long-run relationship and error correction (though ARDL bounds test was inconclusive). The model provides a framework for fundamental valuation, though potential structural breaks warrant consideration.
+Ethereum's valuation appears strongly anchored by network effects (Metcalfe's Law), consistent with its role as a smart contract platform. However, macro factors and on-chain tokenomics (like fee burn captured by log_gas) are also significant drivers. Dynamic models suggest a potential long-run relationship and error correction mechanism, though the ARDL bounds test might be inconclusive or indicate no cointegration depending on the specific results. The model provides a framework for fundamental valuation, but potential model misspecifications (diagnostics) and structural breaks warrant careful consideration when interpreting the results. The out-of-sample performance gives an indication of the model's predictive accuracy.
 """
 
     logging.info("Summary report generation complete.")
