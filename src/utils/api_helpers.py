@@ -1,11 +1,14 @@
+# src/utils/api_helpers.py
+
 """
-Utility helpers for robust HTTP API calls and snapshot saving.
+Utility helpers for robust HTTP API calls and snapshot saving using requests.Session.
 
 All functions are typed for mypy --strict and are safe for
 head-less CI (no disk-writes unless a directory is provided).
 
 Dependencies:
     * requests 2.x
+    * urllib3 1.x (comes with requests)
     * python-dotenv (optional) for `.env` loading
 """
 
@@ -13,12 +16,18 @@ from __future__ import annotations
 
 import json
 import logging
-import time
+
+# Removed time import as retries are handled by the session adapter
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Final, Mapping, MutableMapping, Optional
 
-import requests  # mypy.ini handles potential missing stubs
+import requests
+
+# Imports for Session and Retry logic
+from requests.adapters import HTTPAdapter
+from requests.exceptions import RequestException  # Import base RequestException
+from urllib3.util.retry import Retry
 
 # ---------------------------------------------------------------------
 # Constants & types
@@ -29,6 +38,30 @@ _DEFAULT_HEADERS: Final[Mapping[str, str]] = {
 }
 
 Json = Dict[str, Any]
+
+# ---------------------------------------------------------------------
+# Session with Retry Configuration
+# ---------------------------------------------------------------------
+
+# Configure retry strategy
+# Retries on 5xx errors, respects Retry-After header, exponential backoff
+retry_strategy = Retry(
+    total=3,  # Total number of retries to allow (initial + 2 retries)
+    status_forcelist=[429, 500, 502, 503, 504],  # Status codes to retry on
+    allowed_methods=["HEAD", "GET", "OPTIONS"],  # Retry only on idempotent methods
+    backoff_factor=1,  # sleep for {backoff factor} * (2 ** ({number of total retries} - 1))
+    # Note: urllib3 default includes handling of Retry-After header
+)
+
+# Create an adapter with the retry strategy
+adapter = HTTPAdapter(max_retries=retry_strategy)
+
+# Create a global session object
+session = requests.Session()
+
+# Mount the adapter to the session for both HTTP and HTTPS
+session.mount("http://", adapter)
+session.mount("https://", adapter)
 
 # ---------------------------------------------------------------------
 # Snapshot helper
@@ -56,7 +89,7 @@ def _save_api_snapshot(
 
 
 # ---------------------------------------------------------------------
-# Robust GET wrapper
+# Robust GET wrapper (using Session)
 # ---------------------------------------------------------------------
 
 
@@ -65,13 +98,13 @@ def robust_get(
     params: Optional[Mapping[str, Any]] = None,
     *,
     headers: Optional[Mapping[str, str]] = None,
-    max_retries: int = 3,
-    backoff_sec: float = 1.0,
+    # max_retries and backoff_sec are now handled by the session adapter
     timeout: float = 15.0,
     snapshot_dir: Optional[Path] = None,
+    snapshot_prefix: str = "api_snapshot",  # Added prefix parameter
 ) -> Json:
     """
-    GET `url` with exponential-backoff retry.
+    GET `url` using the global session with built-in retry logic.
 
     Args
     ----
@@ -80,16 +113,14 @@ def robust_get(
     params:
         Query-string parameters.
     headers:
-        Additional request headers (merged with `_DEFAULT_HEADERS`).
-    max_retries:
-        Total attempts (initial + retries).
-    backoff_sec:
-        Initial backoff; doubles each retry.
+        Additional request headers (merged with session headers and `_DEFAULT_HEADERS`).
     timeout:
         Per-request timeout in seconds.
     snapshot_dir:
-        If provided, every successful response body is written to
+        If provided, the successful response body is written to
         that directory for offline debugging / golden snapshots.
+    snapshot_prefix:
+        Filename prefix for the snapshot file (defaults to "api_snapshot").
 
     Returns
     -------
@@ -97,51 +128,64 @@ def robust_get(
 
     Raises
     ------
-    requests.HTTPError
-        If the final attempt fails (status >= 400).
-    requests.RequestException
-        For any network error after exhausting retries.
+    requests.exceptions.RequestException
+        If the request fails after exhausting retries (includes HTTPError, Timeout, etc.).
     ValueError
-        If the response body is not JSON.
+        If the response body is not JSON or not a top-level object.
     """
     merged_headers: MutableMapping[str, str] = dict(_DEFAULT_HEADERS)
     if headers:
         merged_headers.update(headers)
 
-    attempt = 0
-    while True:
-        attempt += 1
+    try:
+        # Use the global session object
+        resp = session.get(
+            url,
+            params=None if params is None else dict(params),
+            headers=merged_headers,
+            timeout=timeout,
+        )
+        # raise_for_status() is called implicitly by the adapter/retry logic
+        # for statuses in retry_strategy.status_forcelist.
+        # We still need to check for other 4xx errors if not in the forcelist.
+        resp.raise_for_status()  # Check for any non-retried 4xx/5xx errors
+
+        # Attempt to parse JSON
         try:
-            resp = requests.get(
-                url,
-                params=None if params is None else dict(params),
-                headers=merged_headers,
-                timeout=timeout,
-            )
-            if resp.status_code >= 400:
-                resp.raise_for_status()
-
             data: Any = resp.json()
-            if snapshot_dir:
+        except json.JSONDecodeError as json_err:
+            logging.error(f"Failed to decode JSON response from {url}: {json_err}")
+            logging.debug(f"Response text: {resp.text[:500]}...")  # Log snippet of text
+            raise ValueError(f"Response from {url} is not valid JSON.") from json_err
+
+        # Save snapshot if requested
+        if snapshot_dir:
+            try:
                 _save_api_snapshot(
-                    snapshot_dir, "api_snapshot", data
-                )  # Prefix is hardcoded
-            if not isinstance(data, dict):
-                raise ValueError("Expected top-level JSON object")
+                    snapshot_dir,
+                    snapshot_prefix,
+                    data,  # Use the provided prefix
+                )
+            except Exception as snap_err:
+                # Log error but don't fail the request
+                logging.error(
+                    f"Failed to save API snapshot for {url}: {snap_err}", exc_info=True
+                )
 
-            return data
-
-        except (requests.RequestException, ValueError) as exc:
-            # Note: HTTPError is a subclass of RequestException
-            if attempt >= max_retries:
-                logging.error("robust_get failed after %s attempts: %s", attempt, exc)
-                raise  # Re-raise the caught exception (e.g., HTTPError, Timeout, ValueError)
-            sleep_for = backoff_sec * 2 ** (attempt - 1)
-            logging.warning(
-                "Request failed (%s). Retrying in %.1fs… (%d/%d)",
-                exc,
-                sleep_for,
-                attempt,
-                max_retries,
+        # Ensure the result is a dictionary (top-level JSON object)
+        if not isinstance(data, dict):
+            logging.error(
+                f"Expected top-level JSON object from {url}, got {type(data)}"
             )
-            time.sleep(sleep_for)
+            raise ValueError(
+                f"Expected top-level JSON object from {url}, got {type(data)}"
+            )
+
+        return data
+
+    except RequestException as exc:
+        # This catches errors after retries are exhausted or non-retried errors
+        logging.error(
+            f"robust_get failed for {url} after retries (if applicable): {exc}"
+        )
+        raise  # Re-raise the final exception (e.g., HTTPError, ConnectionError, Timeout)
