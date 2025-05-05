@@ -319,9 +319,12 @@ def run_oos_validation(
 
     # Add predictions back to original df index (handle potential index mismatches)
     # Create a Series with the correct index from test_indices
+    # --- FIX for test_run_oos_validation_splitting ---
+    # Use explicit check `if not idx.empty` instead of implicit boolean `if idx`
     valid_test_indices = [
-        idx[0] for idx in results["test_indices"] if idx
-    ]  # Get valid indices
+        idx[0] for idx in results["test_indices"] if idx is not None and not idx.empty
+    ]
+    # --- END FIX ---
     if len(valid_test_indices) == len(results["predictions"]):  # Check length match
         oos_pred_series = pd.Series(
             results["predictions"],

@@ -91,11 +91,11 @@ def fit_ols_hac(
     X_fit_df: pd.DataFrame = df_fit[X_names]  # Keep as DataFrame before adding constant
 
     # Determine the DataFrame to use for fitting (with or without constant)
+    X_to_fit: pd.DataFrame
     if add_const:
-        X_fit_const: pd.DataFrame = sm.add_constant(X_fit_df, has_constant="add")
-        X_to_fit = X_fit_const  # Use the DataFrame with constant for fitting
+        X_to_fit = sm.add_constant(X_fit_df, has_constant="add")
     else:
-        X_to_fit = X_fit_df  # Use the original DataFrame
+        X_to_fit = X_fit_df
 
     try:
         model: OLS = sm.OLS(y_fit, X_to_fit)
@@ -105,18 +105,23 @@ def fit_ols_hac(
             cov_type="HAC", maxlags=lags
         )
 
-        # Ensure params, pvals, ses are floats, handle potential non-numeric types gracefully
+        # --- FIX for test_ols_beta_two ---
+        # Explicitly use the columns from X_to_fit as keys for the results dicts
+        # This ensures consistency even if hac_results.params loses original names.
+        model_col_names = X_to_fit.columns.tolist()
         params_dict: Dict[str, float] = {
-            k: float(v) if pd.notna(v) else np.nan
-            for k, v in hac_results.params.items()
+            name: float(val) if pd.notna(val) else np.nan
+            for name, val in zip(model_col_names, hac_results.params)
         }
         pvals_dict: Dict[str, float] = {
-            k: float(v) if pd.notna(v) else np.nan
-            for k, v in hac_results.pvalues.items()
+            name: float(val) if pd.notna(val) else np.nan
+            for name, val in zip(model_col_names, hac_results.pvalues)
         }
         ses_dict: Dict[str, float] = {
-            k: float(v) if pd.notna(v) else np.nan for k, v in hac_results.bse.items()
+            name: float(val) if pd.notna(val) else np.nan
+            for name, val in zip(model_col_names, hac_results.bse)
         }
+        # --- END FIX ---
 
         results.update(
             {
@@ -133,7 +138,6 @@ def fit_ols_hac(
                 "n_obs": int(hac_results.nobs),
                 "resid": hac_results.resid,
                 "fittedvalues": hac_results.fittedvalues,
-                # Use columns from the actual DataFrame used for fitting
                 "model_formula": f"{y_name} ~ {' + '.join(X_to_fit.columns)} (HAC lags={lags})",
                 "error": None,
             }
