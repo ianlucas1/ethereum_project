@@ -1,5 +1,6 @@
 # tests/test_data_processing.py
 
+import numpy as np  # Added
 import pandas as pd
 import pytest
 from unittest.mock import patch, MagicMock
@@ -10,13 +11,11 @@ from src.config import settings
 from src.data_processing import (
     load_raw_data,
     merge_eth_data,
-    align_nasdaq_data,  # Added align_nasdaq_data
-    # Keep other imports needed for later tests:
+    align_nasdaq_data,
+    engineer_log_features,
+    create_daily_clean,
+    create_monthly_clean,
 )
-# We don't need to import fetch_nasdaq here, but the patch target is important:
-# @patch("src.data_processing.fetch_nasdaq")
-
-# We might need load_parquet later if testing process_all_data fully
 
 # --- Fixtures ---
 
@@ -311,3 +310,123 @@ def test_align_nasdaq_data_fetch_exception(
         df_with_nasdaq.shape[1] == eth_df.shape[1]
     )  # Shape shouldn't change in this path
     mock_fetch_nasdaq.assert_called_once()
+
+
+# --- Tests for Feature Engineering and Cleaning ---
+
+
+@pytest.fixture
+def sample_df_for_logs() -> pd.DataFrame:
+    """Sample DataFrame before log feature engineering."""
+    dates = pd.to_datetime(["2023-01-01", "2023-01-02", "2023-01-03", "2023-01-04"])
+    df = pd.DataFrame(
+        {
+            "market_cap": [1e11, 1.1e11, 0, 1.2e11],  # Include zero market cap
+            "active_addr": [5e5, 5.1e5, 5.2e5, 0],  # Include zero active_addr
+            "burn": [100.0, 0.0, 150.0, 200.0],  # Include zero burn
+            "nasdaq": [15000.0, 15100.0, np.nan, 15200.0],  # Include NaN nasdaq
+            # Add other necessary columns for downstream cleaning/resampling if needed
+            "price_usd": [1000, 1100, 0, 1200],
+            "supply": [1e8, 1e8, 1e8, 1e8],
+        },
+        index=pd.Index(dates, name="time"),
+    )
+    return df
+
+
+def test_engineer_log_features(sample_df_for_logs: pd.DataFrame):
+    """Tests log feature calculation, including handling of zeros and NaNs."""
+    df_input = sample_df_for_logs
+    df_output = engineer_log_features(df_input)
+
+    # Check new columns exist
+    log_cols = ["log_marketcap", "log_active", "log_gas", "log_nasdaq"]
+    for col in log_cols:
+        assert col in df_output.columns
+
+    # Check calculations (manual check for specific values)
+    assert np.isclose(df_output.loc["2023-01-01", "log_marketcap"], np.log(1e11))
+    assert np.isclose(df_output.loc["2023-01-01", "log_active"], np.log(5e5))
+    assert np.isclose(df_output.loc["2023-01-01", "log_gas"], np.log1p(100.0))
+    assert np.isclose(df_output.loc["2023-01-01", "log_nasdaq"], np.log(15000.0))
+
+    # Check handling of zeros -> NaN after log
+    assert pd.isna(df_output.loc["2023-01-03", "log_marketcap"])  # log(0) -> NaN
+    assert pd.isna(df_output.loc["2023-01-04", "log_active"])  # log(0) -> NaN
+
+    # Check handling of zeros -> log1p(0) = 0
+    assert np.isclose(df_output.loc["2023-01-02", "log_gas"], 0.0)
+
+    # Check handling of NaN -> NaN
+    assert pd.isna(df_output.loc["2023-01-03", "log_nasdaq"])
+
+
+def test_create_daily_clean(sample_df_for_logs: pd.DataFrame):
+    """Tests dropping rows with NaNs in essential log columns."""
+    df_with_logs = engineer_log_features(sample_df_for_logs)
+    daily_clean = create_daily_clean(df_with_logs)
+
+    # Original had 4 rows.
+    # Row 2023-01-03 has NaN log_marketcap -> dropped
+    # Row 2023-01-04 has NaN log_active -> dropped
+    # Expected remaining rows: 2023-01-01, 2023-01-02
+    assert daily_clean.shape[0] == 2
+    assert "2023-01-03" not in daily_clean.index
+    assert "2023-01-04" not in daily_clean.index
+    assert "2023-01-01" in daily_clean.index
+    assert "2023-01-02" in daily_clean.index
+
+
+def test_create_monthly_clean(sample_df_for_logs: pd.DataFrame):
+    """Tests resampling to monthly, recalculating logs, and cleaning."""
+    # Create a slightly longer df for resampling test
+    dates = pd.date_range(start="2023-01-01", periods=65, freq="D")
+    n_obs = len(dates)
+    df_long = pd.DataFrame(
+        {
+            "market_cap": np.linspace(1e11, 1.5e11, n_obs),
+            "active_addr": np.linspace(5e5, 6e5, n_obs),
+            "burn": np.linspace(100, 200, n_obs),
+            "nasdaq": np.linspace(15000, 16000, n_obs),
+            "price_usd": np.linspace(1000, 1500, n_obs),  # Needed for resample
+            "supply": np.linspace(1e8, 1.1e8, n_obs),  # Needed for resample
+        },
+        index=dates,
+    )
+    # Add a NaN that will cause a whole month to be dropped after log recalc
+    df_long.loc["2023-02-15", "nasdaq"] = np.nan
+
+    # Run the function
+    monthly_clean = create_monthly_clean(df_long)
+
+    # Check index is MonthEnd
+    assert isinstance(monthly_clean.index, pd.DatetimeIndex)
+    assert all(idx.is_month_end for idx in monthly_clean.index)
+    assert monthly_clean.index.freqstr == "ME"
+
+    # Check shape - Started with Jan, Feb, Mar data. Feb should be dropped due to NaN in log_nasdaq.
+    assert monthly_clean.shape[0] == 3  # Jan, Feb, Mar should remain
+    assert pd.Timestamp("2023-01-31") in monthly_clean.index
+    assert pd.Timestamp("2023-02-28") in monthly_clean.index  # Feb should be present
+    assert pd.Timestamp("2023-03-31") in monthly_clean.index
+
+    # Check log columns exist
+    log_cols = ["log_marketcap", "log_active", "log_gas", "log_nasdaq"]
+    for col in log_cols:
+        assert col in monthly_clean.columns
+
+    # Check a recalculated log value (e.g., Jan mean nasdaq)
+    jan_mean_nasdaq = df_long.loc["2023-01", "nasdaq"].mean()
+    expected_log_nasdaq_jan = np.log(jan_mean_nasdaq)
+    assert np.isclose(
+        monthly_clean.loc["2023-01-31", "log_nasdaq"], expected_log_nasdaq_jan
+    )
+
+    # Add this assertion at the end of the test:
+    feb_mean_nasdaq = df_long.loc[
+        "2023-02", "nasdaq"
+    ].mean()  # Mean excludes the NaN day
+    expected_log_nasdaq_feb = np.log(feb_mean_nasdaq)
+    assert np.isclose(
+        monthly_clean.loc["2023-02-28", "log_nasdaq"], expected_log_nasdaq_feb
+    )
