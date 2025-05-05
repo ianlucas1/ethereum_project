@@ -377,24 +377,68 @@ def run_ardl_analysis(
                 case=bounds_case
             )
 
-            stat: float = float(bounds_test_result.stat)
-            p_upper: float = float(getattr(bounds_test_result, "pu", np.nan))
-            p_lower: float = float(getattr(bounds_test_result, "pl", np.nan))
+            # --- More Robust p-value extraction ---
+            stat: float = np.nan
+            p_upper: float = np.nan
+            p_lower: float = np.nan
+            bounds_summary_text: str = (
+                "Bounds test failed or returned unexpected format."
+            )
+
+            try:
+                stat = float(bounds_test_result.stat)  # Ensure float
+                # Try direct attribute access
+                p_upper_raw = bounds_test_result.pu
+                p_lower_raw = bounds_test_result.pl
+                # Attempt conversion to float, keep nan if conversion fails or attribute missing
+                p_upper = float(p_upper_raw) if pd.notna(p_upper_raw) else np.nan
+                p_lower = float(p_lower_raw) if pd.notna(p_lower_raw) else np.nan
+                bounds_summary_text = str(
+                    bounds_test_result
+                )  # Get summary if successful
+            except (AttributeError, ValueError, TypeError) as pval_err:
+                logging.warning(
+                    f"Could not extract bounds test p-values directly: {pval_err}"
+                )
+                # Fallback: Try parsing from summary string if direct access fails
+                try:
+                    summary_lines = str(bounds_test_result).splitlines()
+                    for line in summary_lines:
+                        if "Upper P-value:" in line:
+                            p_upper = float(line.split(":")[1].strip())
+                        elif "Lower P-value:" in line:
+                            p_lower = float(line.split(":")[1].strip())
+                    bounds_summary_text = str(
+                        bounds_test_result
+                    )  # Still use original summary if parsing works
+                except Exception as parse_err:
+                    logging.error(
+                        f"Could not parse p-values from bounds test summary string: {parse_err}"
+                    )
+                    p_upper = np.nan  # Ensure they remain NaN if parsing fails
+                    p_lower = np.nan
+            # --- End More Robust extraction ---
 
             ardl_results["bounds_stat"] = stat
             ardl_results["bounds_p_upper"] = p_upper
             ardl_results["bounds_p_lower"] = p_lower
-            bounds_summary_text = str(bounds_test_result)
+
             logging.info(
                 "\n--- ARDL Bounds Test Summary ---\n%s\n-----------------------------",
-                bounds_summary_text,
+                bounds_summary_text,  # Log the potentially updated summary text
             )
             ardl_results["bounds_test_summary"] = bounds_summary_text
 
-            # Determine cointegration based on lower p-value
+            # Determine cointegration based on the potentially NaN p_lower
             cointegrated_5pct: Optional[bool] = None
+            # Only proceed if p_lower is a valid number
             if pd.notna(p_lower):
-                cointegrated_5pct = p_lower < 0.05
+                if p_lower < 0.05:
+                    cointegrated_5pct = True
+                else:  # p_lower >= 0.05
+                    cointegrated_5pct = False
+            # If p_lower is NaN, cointegrated_5pct remains None
+
             ardl_results["cointegrated_5pct"] = cointegrated_5pct
 
             logging.info(

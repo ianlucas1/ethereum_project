@@ -5,9 +5,7 @@ import pandas as pd
 import pytest
 
 # Assuming src is importable via conftest.py
-from src.ts_models import (
-    run_vecm_analysis,
-)  # Add run_ardl_analysis later
+from src.ts_models import run_vecm_analysis, run_ardl_analysis
 
 # --- Fixtures ---
 
@@ -143,8 +141,8 @@ def test_run_vecm_missing_columns(sample_coint_data: pd.DataFrame):
     )
 
     assert results["error"] is not None
-    # Check if the expected start is IN the error message
     assert "Monthly DataFrame missing required columns" in results["error"]
+    assert "nasdaq" in results["error"]
 
 
 def test_run_vecm_insufficient_data(sample_coint_data: pd.DataFrame):
@@ -161,4 +159,97 @@ def test_run_vecm_insufficient_data(sample_coint_data: pd.DataFrame):
     assert "Insufficient observations" in results["error"]
 
 
-# --- Tests for run_ardl_analysis (To be added later) ---
+# --- Tests for run_ardl_analysis ---
+
+
+@pytest.fixture
+def sample_ardl_data(sample_coint_data: pd.DataFrame) -> pd.DataFrame:
+    """Reuses the cointegrated data fixture for ARDL tests."""
+    # ARDL needs slightly more data typically for fixed lags p=2, q=1
+    # Let's ensure the fixture has enough (it has 100, which is fine)
+    return sample_coint_data.copy()
+
+
+def test_run_ardl_happy_path(sample_ardl_data: pd.DataFrame):
+    """Tests ARDL analysis and bounds test on cointegrated data."""
+    df = sample_ardl_data
+    endog_col = "log_marketcap"
+    # Use only one exog for simplicity in checking bounds test results
+    exog_cols = ["log_active"]
+
+    results = run_ardl_analysis(
+        df_monthly=df,
+        endog_col=endog_col,
+        exog_cols=exog_cols,
+        trend="c",  # Constant trend
+    )
+
+    assert results["error"] is None
+    assert results.get("order_p") == 2  # Fixed lag
+    assert results.get("order_q") == {"log_active": 1}  # Fixed lag
+    assert isinstance(results.get("summary"), str)
+    assert len(results["summary"]) > 0
+    assert isinstance(results.get("ect_coeff"), (float, np.floating))
+
+    # Bounds test results
+    assert isinstance(results.get("bounds_stat"), (float, np.floating))
+    assert isinstance(results.get("bounds_p_upper"), (float, np.floating))
+    assert isinstance(results.get("bounds_p_lower"), (float, np.floating))
+    assert isinstance(results.get("bounds_test_summary"), str)
+    # For cointegrated data, expect lower p-value < 0.05
+    assert results.get("cointegrated_5pct") is True
+    assert results.get("bounds_p_lower") < 0.05
+
+
+def test_run_ardl_non_coint_data(sample_non_coint_data: pd.DataFrame):
+    """Tests ARDL bounds test on non-cointegrated data."""
+    df = sample_non_coint_data
+    endog_col = "log_marketcap"
+    exog_cols = ["log_active"]  # Use only one exog
+
+    results = run_ardl_analysis(
+        df_monthly=df, endog_col=endog_col, exog_cols=exog_cols, trend="c"
+    )
+
+    assert results["error"] is None
+    assert isinstance(results.get("summary"), str)
+    # Bounds test should indicate no cointegration
+    assert results.get("cointegrated_5pct") is False
+    # Lower p-value should be >= 0.05 (or potentially None if test failed)
+    assert (
+        results.get("bounds_p_lower") is None or results.get("bounds_p_lower") >= 0.05
+    )
+
+
+def test_run_ardl_missing_columns(sample_ardl_data: pd.DataFrame):
+    """Tests ARDL error handling for missing columns."""
+    df = sample_ardl_data.drop(columns=["log_active"])
+    endog_col = "log_marketcap"
+    exog_cols = ["log_active", "nasdaq"]  # Require log_active
+
+    results = run_ardl_analysis(
+        df_monthly=df,
+        endog_col=endog_col,
+        exog_cols=exog_cols,
+    )
+
+    assert results["error"] is not None
+    assert "Monthly DataFrame missing required columns" in results["error"]
+    assert "log_active" in results["error"]
+
+
+def test_run_ardl_insufficient_data(sample_ardl_data: pd.DataFrame):
+    """Tests ARDL error handling for insufficient data."""
+    df = sample_ardl_data.iloc[:10]  # Only 10 observations
+    endog_col = "log_marketcap"
+    exog_cols = ["log_active"]
+
+    results = run_ardl_analysis(
+        df_monthly=df,
+        endog_col=endog_col,
+        exog_cols=exog_cols,
+        max_lags=6,  # max_lags used for check, even if fixed lags used in fit
+    )
+
+    assert results["error"] is not None
+    assert "Insufficient observations" in results["error"]
