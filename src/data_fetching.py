@@ -1,4 +1,14 @@
-# src/data_fetching.py
+"""Functions for fetching raw data from external APIs.
+
+Handles fetching data from:
+- Yahoo Finance (via RapidAPI) for ETH price and NASDAQ index.
+- CoinMetrics Community API for various on-chain metrics.
+
+Includes robust error handling, request retries (via session),
+and disk caching to avoid redundant downloads.
+"""
+
+from __future__ import annotations
 
 import logging
 import json
@@ -23,7 +33,10 @@ def fetch_eth_price_rapidapi() -> pd.DataFrame:
     """Fetches daily ETH-USD close from Yahoo via RapidAPI (chunked).
 
     Uses disk caching defined in utils.py (assumed to use settings.DATA_DIR).
-    Returns a DataFrame with a single 'price_usd' column.
+
+    Returns:
+        pd.DataFrame: A DataFrame with a single 'price_usd' column and DatetimeIndex.
+                      Returns an empty DataFrame if fetching fails completely.
     """
     key = settings.RAPIDAPI_KEY
     if not key:
@@ -37,7 +50,7 @@ def fetch_eth_price_rapidapi() -> pd.DataFrame:
     # YF API reported firstTradeDate around here for ETH-USD
     start = datetime(2017, 11, 9).date()
     today = datetime.now(tz=timezone.utc).date()
-    pieces = []
+    pieces: list[pd.Series] = []  # Type hint for list of Series
     logging.info("Starting Yahoo Finance ETH price fetch from %s to %s", start, today)
 
     while start <= today:
@@ -71,6 +84,7 @@ def fetch_eth_price_rapidapi() -> pd.DataFrame:
         try:
             # Use robust_get imported from utils
             prefix = f"yf_eth_{start.strftime('%Y%m%d')}_{end.strftime('%Y%m%d')}"
+            # robust_get returns dict[str, Any], which is compatible with Json type alias
             response_json = robust_get(
                 url, headers=hdrs, params=params, snapshot_prefix=prefix
             )
@@ -131,6 +145,13 @@ def fetch_eth_price_rapidapi() -> pd.DataFrame:
                 start = end + timedelta(days=1)
                 continue
 
+            if not isinstance(timestamps, list) or not isinstance(close_prices, list):
+                logging.warning(
+                    f"Timestamps or close_prices are not lists for {start} to {end}. Skipping."
+                )
+                start = end + timedelta(days=1)
+                continue
+
             if len(close_prices) != len(timestamps):
                 logging.warning(
                     f"Mismatch length for close/timestamps in YF ETH API response for {start} to {end}. Skipping."
@@ -166,6 +187,7 @@ def fetch_eth_price_rapidapi() -> pd.DataFrame:
             RuntimeError,
             requests.exceptions.RequestException,
             json.JSONDecodeError,
+            ValueError,  # Catch potential ValueError from robust_get if JSON is invalid
         ) as req_err:
             # Errors from robust_get or parsing issues already logged by robust_get or above checks
             logging.error(
@@ -179,6 +201,8 @@ def fetch_eth_price_rapidapi() -> pd.DataFrame:
         finally:
             # Ensure 'start' is always incremented
             start = end + timedelta(days=1)
+            # Add a small delay to avoid hitting rate limits
+            time.sleep(random.uniform(0.2, 0.5))
 
     if not pieces:
         logging.error("No ETH price data pieces were collected from Yahoo Finance API.")
@@ -209,12 +233,23 @@ def fetch_eth_price_rapidapi() -> pd.DataFrame:
 @disk_cache(
     "cm_{asset}_{metric}.parquet", max_age_hr=24
 )  # Dynamic name passed to decorator
-def cm_fetch(metric: str, asset="eth", start="2015-08-01", freq="1d") -> pd.Series:
+def cm_fetch(
+    metric: str, asset: str = "eth", start: str = "2015-08-01", freq: str = "1d"
+) -> pd.Series:
     """Fetches a specific metric from CoinMetrics Community API.
 
     Uses disk caching defined in utils.py (assumed to use settings.DATA_DIR).
     Cache filename includes asset and metric dynamically handled by the decorator.
-    Returns a pandas Series.
+
+    Args:
+        metric (str): The CoinMetrics metric ID (e.g., 'AdrActCnt').
+        asset (str): The asset ID (default: 'eth').
+        start (str): Start date in 'YYYY-MM-DD' format (default: '2015-08-01').
+        freq (str): Data frequency ('1d', '1h', etc.) (default: '1d').
+
+    Returns:
+        pd.Series: A Series containing the metric data with DatetimeIndex.
+                   Returns an empty Series if fetching fails.
     """
     # The cache filename is handled dynamically by the decorator based on args.
     # The decorator should construct the full path using settings.DATA_DIR.
@@ -224,7 +259,7 @@ def cm_fetch(metric: str, asset="eth", start="2015-08-01", freq="1d") -> pd.Seri
         f"?assets={asset}&metrics={metric}&frequency={freq}"
         f"&start_time={start}&page_size=10000"
     )
-    hdr = {}
+    hdr: dict[str, str] = {}  # Type hint for header dict
     api_key = settings.CM_API_KEY  # Use settings
     if api_key:
         hdr["Authorization"] = f"Bearer {api_key}"
@@ -232,7 +267,8 @@ def cm_fetch(metric: str, asset="eth", start="2015-08-01", freq="1d") -> pd.Seri
     else:
         logging.info(f"Fetching CoinMetrics data without API key for metric: {metric}")
 
-    data, url = [], base
+    data: list[dict[str, str]] = []  # Type hint for list of dicts
+    url: str | None = base  # Type hint for url (can be None)
     page_count = 0
     while url:
         page_count += 1
@@ -242,7 +278,22 @@ def cm_fetch(metric: str, asset="eth", start="2015-08-01", freq="1d") -> pd.Seri
             prefix = f"cm_{asset}_{metric}_p{page_count}"
             j = robust_get(url, headers=hdr, snapshot_prefix=prefix)
             page_data = j.get("data", [])
-            data.extend(page_data)
+            if not isinstance(page_data, list):
+                logging.warning(
+                    f"CM API 'data' field is not a list on page {page_count} for {metric}. Skipping page."
+                )
+                url = j.get("next_page_url")  # Still try next page
+                continue
+
+            # Basic check: Ensure items in page_data are dictionaries
+            if page_data and not all(isinstance(item, dict) for item in page_data):
+                logging.warning(
+                    f"CM API 'data' items are not all dictionaries on page {page_count} for {metric}. Skipping page."
+                )
+                url = j.get("next_page_url")  # Still try next page
+                continue
+
+            data.extend(page_data)  # Now safe to extend
             url = j.get("next_page_url")
             # Add a small delay to be polite to the API
             if url:
@@ -251,6 +302,7 @@ def cm_fetch(metric: str, asset="eth", start="2015-08-01", freq="1d") -> pd.Seri
             RuntimeError,
             requests.exceptions.RequestException,
             json.JSONDecodeError,
+            ValueError,  # Catch potential ValueError from robust_get
         ) as req_err:
             logging.error(
                 f"Failed to fetch or parse CM page for {metric}: {req_err}. Stopping fetch."
@@ -270,11 +322,25 @@ def cm_fetch(metric: str, asset="eth", start="2015-08-01", freq="1d") -> pd.Seri
 
     logging.info(f"Finished CoinMetrics fetch for {metric}, got {len(data)} records.")
     try:
+        # Ensure 'time' and 'metric' columns exist before processing
+        if not data or "time" not in data[0] or metric not in data[0]:
+            logging.error(
+                f"Required columns ('time', '{metric}') not found in first record of CM data."
+            )
+            return pd.Series(dtype=float, index=pd.to_datetime([]), name=metric)
+
+        df_from_data = pd.DataFrame(data)
+        # Check columns again after DataFrame creation
+        if "time" not in df_from_data.columns or metric not in df_from_data.columns:
+            logging.error(
+                f"Required columns ('time', '{metric}') not found in CM DataFrame. Columns: {df_from_data.columns.tolist()}"
+            )
+            return pd.Series(dtype=float, index=pd.to_datetime([]), name=metric)
+
         series = (
-            pd.DataFrame(data)
-            .assign(time=lambda d: pd.to_datetime(d["time"]))
+            df_from_data.assign(time=lambda d: pd.to_datetime(d["time"]))
             .set_index("time")[metric]
-            .astype(float)
+            .astype(float)  # Convert to float *after* selecting the column
             .sort_index()
             .loc[lambda s: ~s.index.duplicated()]
         )  # De-duplicate just in case
@@ -288,7 +354,7 @@ def cm_fetch(metric: str, asset="eth", start="2015-08-01", freq="1d") -> pd.Seri
         return series
     except KeyError:
         logging.error(
-            f"Metric '{metric}' not found in CM response columns: {pd.DataFrame(data).columns.tolist()}"
+            f"Metric '{metric}' not found in CM response columns after DataFrame creation: {pd.DataFrame(data).columns.tolist()}"
         )
         return pd.Series(dtype=float, index=pd.to_datetime([]), name=metric)
     except Exception as e:
@@ -303,7 +369,10 @@ def fetch_nasdaq() -> pd.Series:
     """Fetches true-daily ^NDX close from Yahoo via RapidAPI (chunked).
 
     Uses disk caching defined in utils.py (assumed to use settings.DATA_DIR).
-    Returns a pandas Series named 'nasdaq'.
+
+    Returns:
+        pd.Series: A pandas Series named 'nasdaq' with DatetimeIndex.
+                   Returns an empty Series if fetching fails.
     """
     key = settings.RAPIDAPI_KEY  # Use settings
     if not key:
@@ -316,7 +385,7 @@ def fetch_nasdaq() -> pd.Series:
 
     start = datetime(1985, 1, 1).date()  # Earliest ^NDX on Yahoo
     today = datetime.now(tz=timezone.utc).date()
-    pieces = []
+    pieces: list[pd.Series] = []  # Type hint for list of Series
     logging.info("Starting NASDAQ (^NDX) fetch from %s to %s", start, today)
 
     while start <= today:
@@ -407,6 +476,13 @@ def fetch_nasdaq() -> pd.Series:
                 start = end + timedelta(days=1)
                 continue
 
+            if not isinstance(timestamps, list) or not isinstance(close_prices, list):
+                logging.warning(
+                    f"Timestamps or close_prices are not lists for NASDAQ {start} to {end}. Skipping."
+                )
+                start = end + timedelta(days=1)
+                continue
+
             if len(close_prices) != len(timestamps):
                 logging.warning(
                     f"Mismatch length for close/timestamps in ^NDX API response for {start} to {end}. Skipping."
@@ -441,6 +517,7 @@ def fetch_nasdaq() -> pd.Series:
             RuntimeError,
             requests.exceptions.RequestException,
             json.JSONDecodeError,
+            ValueError,  # Catch potential ValueError from robust_get
         ) as req_err:
             logging.error(
                 f"Handled error during NASDAQ fetch/parse for chunk {start} to {end}: {req_err}. Skipping chunk."
@@ -453,6 +530,8 @@ def fetch_nasdaq() -> pd.Series:
         finally:
             # Ensure 'start' is always incremented
             start = end + timedelta(days=1)
+            # Add a small delay to avoid hitting rate limits
+            time.sleep(random.uniform(0.2, 0.5))
 
     if not pieces:
         logging.error(
