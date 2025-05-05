@@ -1,4 +1,6 @@
-# src/modeling.py
+"""Core modeling functions and re-exports for the ethereum_project."""
+
+from __future__ import annotations
 
 # Keeping these imports in case other modeling functions are added later.
 
