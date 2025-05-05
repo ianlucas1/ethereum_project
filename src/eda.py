@@ -189,12 +189,26 @@ def run_stationarity_tests(
     stationarity_tbl = pd.DataFrame(results)
     logging.info("Stationarity tests complete.")
     print("\n--- Stationarity Test Results ---")
-    try:
-        from IPython.display import display
 
-        display(stationarity_tbl)
+    # ---------------------------------------------------------------------
+    # Safe `display` helper — works in head-less CI and satisfies all linters
+    # ---------------------------------------------------------------------
+    from typing import Any, TYPE_CHECKING
+
+    if TYPE_CHECKING:  # for static type-checkers
+        from IPython.display import display  # noqa: F401,F811
+
+    try:
+        from IPython.display import display  # noqa: F401,F811
     except ImportError:
-        print(stationarity_tbl)
+        # fallback when IPython is absent (head-less CI, etc.)
+        def _display_plain(obj: Any) -> None:  # noqa: D401
+            print(obj)
+
+        display = _display_plain  # noqa: F811  # type: ignore[assignment]
+    # ---------------------------------------------------------------------
+
+    display(stationarity_tbl)
     print("---------------------------------\n")
 
     return stationarity_tbl

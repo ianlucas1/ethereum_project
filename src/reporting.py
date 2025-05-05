@@ -4,7 +4,7 @@ import logging
 import json
 import pandas as pd
 import numpy as np
-from typing import Any, Sequence
+from typing import Any, Sequence, cast
 
 
 # --- JSON Encoder for NumPy types ---
@@ -20,10 +20,12 @@ class NpEncoder(json.JSONEncoder):
                 return None
             return float(obj)
         elif isinstance(obj, np.ndarray):
-            # Convert NaN/Inf in arrays too
-            return np.where(
-                np.isnan(obj) | np.isinf(obj), None, obj
-            ).tolist()  # ndarray → JSON helper
+            # Convert NaN/Inf to None; stubs dislike None as x-arg so cast.
+            arr: list[Any] = cast(
+                list[Any],
+                np.where(np.isnan(obj) | np.isinf(obj), None, obj).tolist(),
+            )
+            return arr
         elif isinstance(obj, (pd.Timestamp, pd.Period)):
             # Format Timestamp/Period to ISO 8601 string
             return obj.isoformat() if hasattr(obj, "isoformat") else str(obj)
