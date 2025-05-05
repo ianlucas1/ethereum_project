@@ -49,7 +49,9 @@ def test_run_oos_validation_happy_path(
     sample_oos_data: pd.DataFrame,
 ):
     """Tests the OOS validation loop, mocking sub-functions."""
-    df = sample_oos_data
+    df = (
+        sample_oos_data.copy()
+    )  # Use a copy to avoid modifying fixture for other tests if needed
     window_size = 24
     n_obs = len(df)
     expected_oos_predictions = n_obs - window_size
@@ -65,42 +67,30 @@ def test_run_oos_validation_happy_path(
         spec=sm.regression.linear_model.RegressionResultsWrapper,
         predict=MagicMock(),  # Add predict attribute explicitly
     )
-    # Define expected exog names for a successful fit (including const)
     expected_exog_names = ["const", "feature1", "feature2"]
     mock_fitted_model.params = pd.Series(
         index=expected_exog_names, data=np.random.rand(len(expected_exog_names))
     )
-    # Mock the model attribute and its exog_names
     mock_fitted_model.model = MagicMock()
     mock_fitted_model.model.exog_names = expected_exog_names
-    # Add dummy resid/fittedvalues attributes
     mock_fitted_model.resid = pd.Series(dtype=float)
     mock_fitted_model.fittedvalues = pd.Series(dtype=float)
 
     def mock_predict(X_test_ordered):
-        # X_test_ordered should have columns matching expected_exog_names
-        # if the main code logic worked correctly before calling predict.
         if X_test_ordered.empty or not all(
             c in X_test_ordered for c in expected_exog_names
         ):
             return pd.Series(
                 [np.nan] * len(X_test_ordered) if not X_test_ordered.empty else [np.nan]
             )
-
         const_col = "const"
         feature_col = "feature1"
-        # Handle potential NaN in test feature
         if X_test_ordered[feature_col].isnull().any():
             return pd.Series([np.nan] * len(X_test_ordered))
-
-        # Dummy prediction logic
         preds = X_test_ordered[const_col] * 0.1 + X_test_ordered[feature_col] * 0.5 + 5
         return pd.Series(preds.values, index=X_test_ordered.index)
 
     mock_fitted_model.predict.side_effect = mock_predict
-
-    # Mock the fit method of the OLS instance to return our mock_fitted_model
-    # This assumes OLS(y, X) is called, and then .fit()
     mock_ols.return_value.fit.return_value = mock_fitted_model
     # --- End Mock Setup ---
 
@@ -120,19 +110,17 @@ def test_run_oos_validation_happy_path(
 
     # --- Assertions ---
     assert isinstance(results, dict)
-    # We expect 6 prediction attempts.
-    # OLS fit itself should succeed (as mocked).
-    # Prediction fails for step i=25 because test X has NaN.
-    # So N_OOS should be 5.
+    # Expect 6 prediction attempts. OLS mock always returns a fit object.
+    # Prediction mock returns NaN for step i=25 (predicting for index 25).
+    # N_OOS counts non-NaN prediction/actual pairs. Actuals are never NaN here.
+    # So N_OOS should be 6 - 1 = 5.
     assert results["N_OOS"] == expected_oos_predictions - 1, (
         f"Expected N_OOS={expected_oos_predictions - 1}, Got={results['N_OOS']}"
     )
     assert len(results["predictions"]) == expected_oos_predictions
     assert len(results["actuals"]) == expected_oos_predictions
     assert len(results["residuals"]) == expected_oos_predictions
-    assert (
-        len(results["models"]) == expected_oos_predictions
-    )  # Should store the mock model object
+    assert len(results["models"]) == expected_oos_predictions
     assert len(results["train_indices"]) == expected_oos_predictions
     assert len(results["test_indices"]) == expected_oos_predictions
 

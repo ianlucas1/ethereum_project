@@ -171,16 +171,18 @@ def run_oos_validation(
                 X_train_fit = X_train_df
                 X_test_fit = X_test_df
 
-            # Skip window if NaNs remain after preprocessing and selection
-            if X_train_fit.isnull().any().any() or y_train.isnull().any():
-                logging.warning(
-                    f"NaNs found in training data for window ending at index {i}. Skipping."
-                )
-                results["predictions"].append(np.nan)
-                results["actuals"].append(test_data_point[endog_col].iloc[0])
-                results["residuals"].append(np.nan)
-                results["models"].append(None)
-                continue  # Skip to next iteration
+            # --- REMOVE OR COMMENT OUT THIS BLOCK ---
+            # # Skip window if NaNs remain after preprocessing and selection
+            # if X_train_fit.isnull().any().any() or y_train.isnull().any():
+            #     logging.warning(
+            #         f"NaNs found in training data for window ending at index {i}. Skipping."
+            #     )
+            #     results["predictions"].append(np.nan)
+            #     results["actuals"].append(test_data_point[endog_col].iloc[0])
+            #     results["residuals"].append(np.nan)
+            #     results["models"].append(None)
+            #     continue  # Skip to next iteration
+            # --- END REMOVAL ---
 
         except KeyError as ke:
             logging.error(
@@ -207,9 +209,28 @@ def run_oos_validation(
         prediction: float | np.float64 | np.ndarray[Any, Any] | pd.Series = (
             np.nan
         )  # Initialize prediction
+        fitted_model: RegressionResultsWrapper | None = None  # Initialize fitted_model
         try:
+            # --- Add Logging ---
+            logging.debug(f"OOS Window {i}: Preparing to fit OLS.")
+            logging.debug(
+                f"OOS Window {i}: y_train shape={y_train.shape}, X_train_fit shape={X_train_fit.shape}"
+            )
+            logging.debug(
+                f"OOS Window {i}: y_train NaNs={y_train.isnull().sum()}, X_train_fit NaNs=\n{X_train_fit.isnull().sum().to_string()}"
+            )
+            # --- End Logging ---
+
             # Fit model on (potentially winsorized) training data
-            fitted_model: RegressionResultsWrapper = sm.OLS(y_train, X_train_fit).fit()
+            # Note: OLS handles NaNs by default with missing='drop'
+            model = sm.OLS(y_train, X_train_fit)
+            fitted_model = model.fit()  # Assign to variable
+
+            # --- Add Logging ---
+            logging.debug(
+                f"OOS Window {i}: OLS fit successful. Params:\n{fitted_model.params.to_string()}"
+            )
+            # --- End Logging ---
 
             # Ensure test data columns match fitted model params (after add_constant)
             model_params_index: pd.Index = fitted_model.params.index
@@ -223,8 +244,18 @@ def run_oos_validation(
             else:
                 # Reorder test data columns to match model parameters
                 X_test_ordered: pd.DataFrame = X_test_fit[model_params_index]
+                # --- Add Logging ---
+                logging.debug(
+                    f"OOS Window {i}: Predicting with X_test_ordered shape={X_test_ordered.shape}"
+                )
+                # --- End Logging ---
                 # Predict using the single row of (potentially constant-added) test data
                 prediction_series: pd.Series = fitted_model.predict(X_test_ordered)
+                # --- Add Logging ---
+                logging.debug(
+                    f"OOS Window {i}: Prediction successful. Result: {prediction_series.iloc[0] if not prediction_series.empty else 'Empty'}"
+                )
+                # --- End Logging ---
                 if not prediction_series.empty:
                     prediction = prediction_series.iloc[
                         0
@@ -237,7 +268,7 @@ def run_oos_validation(
                 try:
                     residual = float(actual) - float(prediction)
                 except (ValueError, TypeError):
-                    logging.warning(
+                    logging.warning(  # Keep as warning
                         f"Could not calculate residual at index {i} due to non-numeric types."
                     )
                     residual = np.nan  # Ensure it's NaN if calculation fails
@@ -246,13 +277,17 @@ def run_oos_validation(
             results["predictions"].append(prediction)
             results["actuals"].append(actual)
             results["residuals"].append(residual)
-            results["models"].append(fitted_model)
+            results["models"].append(
+                fitted_model
+            )  # Store the actual fitted model or None
 
         except Exception as e:
-            logging.error(
-                f"Error during OLS fitting or prediction for window ending at index {i}: {e}",
-                exc_info=True,
-            )
+            # --- Modify Logging ---
+            log_msg = f"OOS Window {i}: Error during OLS fitting or prediction. Error type: {type(e).__name__}, Message: {e}"
+            # Log full traceback for unexpected errors
+            logging.error(log_msg, exc_info=True)  # Use error level and add exc_info
+            # --- End Logging Modification ---
+
             results["predictions"].append(np.nan)
             # Try to get actual even if prediction fails
             actual_on_fail = np.nan
