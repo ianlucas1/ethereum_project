@@ -75,17 +75,29 @@ def fit_ols_hac(
 
     # Combine and drop NaNs for fitting
     df_fit = pd.concat([y, X], axis=1).dropna()
-    y_name: str = str(y.name) if y.name is not None else "y"  # Handle unnamed Series
+
+    # --- FIX: Ensure y column has the correct name in df_fit ---
+    y_name: str = str(y.name) if y.name is not None else "y"
+    # Check if the first column name is NOT y_name (e.g., it's 0)
+    if df_fit.columns[0] != y_name:
+        # Rename the first column to y_name
+        df_fit.rename(columns={df_fit.columns[0]: y_name}, inplace=True)
+    # --- END FIX ---
+
     X_names: list[str] = X.columns.tolist()
 
-    min_obs_needed = len(X_names) + (1 if add_const else 0) + 1  # Need > k regressors
+    # Check for sufficient observations
+    k_regressors = len(X_names) + (1 if add_const else 0)
+    min_obs_needed = k_regressors + 2  # k + 1 for OLS, +1 margin for HAC?
     if len(df_fit) < min_obs_needed:
         logging.warning(
             f"Skipping OLS for {y_name}: Insufficient observations ({len(df_fit)}) "
             f"after dropna. Need at least {min_obs_needed}."
         )
         results["error"] = "Insufficient observations."
-        return results
+        # Set n_obs to 0 when skipping due to insufficient data
+        results["n_obs"] = 0
+        return results  # Return immediately
 
     y_fit: pd.Series = df_fit[y_name]
     X_fit_df: pd.DataFrame = df_fit[X_names]  # Keep as DataFrame before adding constant
@@ -106,8 +118,6 @@ def fit_ols_hac(
         )
 
         # --- FIX for test_ols_beta_two ---
-        # Explicitly use the columns from X_to_fit as keys for the results dicts
-        # This ensures consistency even if hac_results.params loses original names.
         model_col_names = X_to_fit.columns.tolist()
         params_dict: Dict[str, float] = {
             name: float(val) if pd.notna(val) else np.nan
@@ -123,6 +133,7 @@ def fit_ols_hac(
         }
         # --- END FIX ---
 
+        # Store results - convert resid/fittedvalues to Series explicitly
         results.update(
             {
                 "model_obj": hac_results,
@@ -136,8 +147,13 @@ def fit_ols_hac(
                 if pd.notna(hac_results.rsquared_adj)
                 else np.nan,
                 "n_obs": int(hac_results.nobs),
-                "resid": hac_results.resid,
-                "fittedvalues": hac_results.fittedvalues,
+                # Convert potential numpy arrays to Series with correct index
+                "resid": pd.Series(
+                    hac_results.resid, index=y_fit.index, name="residuals"
+                ),
+                "fittedvalues": pd.Series(
+                    hac_results.fittedvalues, index=y_fit.index, name="fittedvalues"
+                ),
                 "model_formula": f"{y_name} ~ {' + '.join(X_to_fit.columns)} (HAC lags={lags})",
                 "error": None,
             }
@@ -145,17 +161,23 @@ def fit_ols_hac(
         return results
 
     except Exception as e:
-        # Handle singular matrix or invalid inputs
-        except_types = (np.linalg.LinAlgError, ValueError)
-        log_msg = f"OLS fit failed for {y_name}"
-        if isinstance(e, except_types):
-            log_msg += " due to linear algebra or value error"
-            logging.exception(log_msg)  # Log exception for these specific types
-        else:
-            log_msg += f" with unexpected error: {e}"
-            logging.exception(log_msg)  # Log exception for unexpected errors
-
-        results["error"] = str(e)
+        # Catch ANY exception during fit or HAC calculation
+        log_msg = f"OLS fit/HAC failed for {y_name}. Error type: {type(e).__name__}, Message: {e}"
+        logging.exception(
+            log_msg
+        )  # Log the full exception traceback AND the message/type
+        results["error"] = str(e)  # Store the error message
+        # Ensure other results are default/NaN
+        results["model_obj"] = None
+        results["params"] = {}
+        results["pvals_hac"] = {}
+        results["se_hac"] = {}
+        results["r2"] = np.nan
+        results["r2_adj"] = np.nan
+        # Use len(df_fit) for n_obs before failure
+        results["n_obs"] = len(df_fit) if "df_fit" in locals() else 0
+        results["resid"] = pd.Series(dtype=float)
+        results["fittedvalues"] = pd.Series(dtype=float)
         return results
 
 
