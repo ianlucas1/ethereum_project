@@ -57,3 +57,28 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
         slug: ${{ github.repository }}
         fail_ci_if_error: true
+
+  # ── new mypy strict type-check job ───────────────────────────────────
+  mypy:
+    name: Mypy strict (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    needs: test          # don't waste cycles if tests already failed
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install "mypy==1.15.0" "pydantic>=1.10,<2" types-requests
+      - name: Run mypy strict
+        run: |
+          mypy --config-file mypy.ini src/
