@@ -26,6 +26,7 @@ The project is structured to support both a full pipeline execution via `main.py
 | **Force pushes** | Disabled on `main`; allowed on your own branches with `--force-with-lease`. |
 | **Dependencies** | Locked in `requirements-lock.txt`; update via `pip-compile` + PR. |
 | **Local dev** | `python -m venv .venv && pip install -r requirements-lock.txt && pytest -q`. |
+| **Ignore local venv** | Add `.venv*/` to your global gitignore (`~/.gitignore_global`) or to `.git/info/exclude` so the virtual-env is never committed. |
 | **LLM etiquette** | Keep diffs minimal, commit messages clear (`feat:`, `fix:`, `docs:`), cite tools/sources. |
 
 > **Tip**  Run `pre-commit run --all-files` before pushing to catch lint/format issues locally.
@@ -95,8 +96,10 @@ ethereum_project/
     # On Windows (Git Bash):
     # source .venv/Scripts/activate
     # On Windows (Command Prompt):
-    # .venv\Scripts\activate.bat
+    # .venv\\Scripts\\activate.bat
     ```
+
+    > **Tip  🔒** : Make sure `.venv*/` is listed in your global gitignore (or `.git/info/exclude`) so Git never tracks your local virtual-environment.
 
 4.  **Install Locked Dependencies:**
     Install the exact dependencies that the project was last verified with:
