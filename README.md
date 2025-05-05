@@ -107,7 +107,16 @@ ethereum_project/
     pip install -r requirements-lock.txt
     ```
 
-5.  **Set Environment Variables (using `.env` file):**
+5.  **(Optional) Developer Dependencies:**
+    If you're working on the codebase and need linters/typers etc.:
+    ```bash
+    pip install -r requirements-dev.txt
+    ```
+
+    When adding any `# type: ignore`, make sure to follow our
+    [Type Ignore Guidelines](docs/type-ignore-guidelines.md).
+
+6.  **Set Environment Variables (using `.env` file):**
     The configuration (`src/config.py`) automatically loads API keys and other settings from a `.env` file in the project root directory. Create this file if it doesn't exist.
 
     *   **Create/Edit `.env` file:** In the project root, create or edit a file named `.env`.

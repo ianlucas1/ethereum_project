@@ -1,14 +1,15 @@
 # src/validation.py
-
 import logging
-import pandas as pd
-import numpy as np
-import statsmodels.api as sm
-from src.eda import winsorize_data, run_stationarity_tests
-from sklearn.metrics import mean_squared_error, mean_absolute_error
 from typing import Any, Dict
 
-# --- Out-of-Sample Rolling Validation ---
+import numpy as np
+import pandas as pd
+import statsmodels.api as sm
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+
+from src.eda import run_stationarity_tests, winsorize_data
+
+# --- Out-of-Sample Rolling Validation --------------------------------------------------
 
 
 def run_oos_validation(
@@ -20,7 +21,7 @@ def run_oos_validation(
     stationarity_cols: list[str],
     window_size: int = 24,
     add_const: bool = True,
-) -> dict:
+) -> Dict[str, Any]:  # ←── parameterised Dict fixes mypy complaint
     """
     Performs rolling out-of-sample (OOS) validation for an OLS model.
 
@@ -35,11 +36,13 @@ def run_oos_validation(
         add_const: Whether to add a constant to the exogenous variables.
 
     Returns:
-        A dictionary containing OOS predictions, actuals, residuals, and metrics.
+        Dict with OOS predictions, actuals, residuals, fitted models, indices, and metrics.
     """
     logging.info(
-        f"Starting OOS validation for '{endog_col}' ~ {' + '.join(exog_cols)} with window size {window_size}."
+        f"Starting OOS validation for '{endog_col}' ~ {' + '.join(exog_cols)} "
+        f"with window size {window_size}."
     )
+
     results: Dict[str, Any] = {
         "predictions": [],
         "actuals": [],
@@ -48,12 +51,14 @@ def run_oos_validation(
         "train_indices": [],
         "test_indices": [],
     }
+
     n_obs = len(df_monthly)
 
     # Check if enough data for at least one window + 1 prediction
     if n_obs < window_size + 1:
         logging.error(
-            f"Insufficient data ({n_obs} obs) for OOS validation with window size {window_size}. Need at least {window_size + 1}."
+            f"Insufficient data ({n_obs} obs) for OOS validation with window size "
+            f"{window_size}. Need at least {window_size + 1}."
         )
         return results  # Return empty results
 
@@ -66,48 +71,42 @@ def run_oos_validation(
             df=train_data,
             cols_to_cap=winsorize_cols,
             quantile=winsorize_quantile,
-            window_mask=train_data.index,  # Use current window's index
+            window_mask=train_data.index,
         )
 
         # Run stationarity tests on the winsorized training data for this window
-        if stationarity_cols:  # Only run if columns are specified
-            window_end_date = train_data.index[
-                -1
-            ].date()  # Use original train_data for date
+        if stationarity_cols:
+            window_end_date = train_data.index[-1].date()
             logging.debug(
-                f"Running stationarity tests for OOS window ending {window_end_date}"
+                "Running stationarity tests for OOS window ending %s", window_end_date
             )
-            # Run on the already-sliced (and potentially winsorized) data for this window
             stationarity_results_window = run_stationarity_tests(
                 df=train_data_winsorized,
                 cols_to_test=stationarity_cols,
-                window_mask=None,  # Test the entire slice passed as df
+                window_mask=None,
             )
-            # Log the results table (or process/store if needed later)
             logging.debug(
-                f"Stationarity Results (Window {window_end_date}):\n{stationarity_results_window.to_string()}"
+                "Stationarity Results (Window %s):\n%s",
+                window_end_date,
+                stationarity_results_window.to_string(),
             )
-            # Note: Results are not currently stored in the main output dict
 
-        # Use winsorized data for fitting
+        # Prepare training and test sets
         y_train = train_data_winsorized[endog_col]
         X_train = train_data_winsorized[exog_cols]
-
-        # Prepare test data (ensure same columns as training, including constant if added)
         X_test = test_data_point[exog_cols]
 
         if add_const:
             X_train = sm.add_constant(X_train, has_constant="add")
-            X_test = sm.add_constant(
-                X_test, has_constant="add"
-            )  # Add constant to test set too
+            X_test = sm.add_constant(X_test, has_constant="add")
 
-        # Check for NaNs after adding constant and before fitting
+        # Skip window if NaNs remain
         if X_train.isnull().any().any() or y_train.isnull().any():
             logging.warning(
-                f"NaNs found in training data for window ending at index {i}. Skipping this window."
+                "NaNs found in training data for window ending at index %d. "
+                "Skipping this window.",
+                i,
             )
-            # Append NaNs or handle as appropriate for your metrics later
             results["predictions"].append(np.nan)
             results["actuals"].append(test_data_point[endog_col].iloc[0])
             results["residuals"].append(np.nan)
@@ -117,37 +116,39 @@ def run_oos_validation(
             continue
 
         try:
-            model = sm.OLS(y_train, X_train)
-            fitted_model = model.fit()
+            fitted_model = sm.OLS(y_train, X_train).fit()
 
-            # Ensure test data columns match fitted model's exog names
+            # Ensure test data columns match fitted model
             if not all(col in X_test.columns for col in fitted_model.params.index):
-                missing_in_test = set(fitted_model.params.index) - set(X_test.columns)
+                missing = set(fitted_model.params.index) - set(X_test.columns)
                 logging.error(
-                    f"Mismatch between fitted model params and test data columns at index {i}. Missing in test: {missing_in_test}"
+                    "Mismatch between fitted model params and test data columns "
+                    "at index %d. Missing in test: %s",
+                    i,
+                    missing,
                 )
-                # Handle error: skip prediction, append NaN, etc.
                 prediction = np.nan
             else:
-                # Reorder test data columns to match the model's expectation exactly
                 X_test_ordered = X_test[fitted_model.params.index]
                 prediction = fitted_model.predict(X_test_ordered).iloc[0]
 
             actual = test_data_point[endog_col].iloc[0]
             residual = actual - prediction
 
+            # Store results
             results["predictions"].append(prediction)
             results["actuals"].append(actual)
             results["residuals"].append(residual)
-            results["models"].append(fitted_model)  # Store the fitted model
+            results["models"].append(fitted_model)
             results["train_indices"].append(train_data.index)
             results["test_indices"].append(test_data_point.index)
 
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-except
             logging.error(
-                f"Error during OLS fitting or prediction for window ending at index {i}: {e}"
+                "Error during OLS fitting or prediction for window ending at index %d: %s",
+                i,
+                e,
             )
-            # Append NaNs or handle error case
             results["predictions"].append(np.nan)
             results["actuals"].append(
                 test_data_point[endog_col].iloc[0]
@@ -159,17 +160,15 @@ def run_oos_validation(
             results["train_indices"].append(train_data.index)
             results["test_indices"].append(test_data_point.index)
 
-    # Convert lists to numpy arrays for easier calculation
+    # Convert to numpy arrays
     results["predictions"] = np.array(results["predictions"])
     results["actuals"] = np.array(results["actuals"])
     results["residuals"] = np.array(results["residuals"])
 
-    # Calculate OOS metrics, handling potential NaNs
-    valid_preds = ~np.isnan(results["predictions"])
-    valid_actuals = ~np.isnan(results["actuals"])
-    valid_mask = valid_preds & valid_actuals
+    # Calculate OOS metrics
+    valid_mask = ~np.isnan(results["predictions"]) & ~np.isnan(results["actuals"])
 
-    if np.sum(valid_mask) > 0:
+    if valid_mask.any():
         results["oos_rmse"] = np.sqrt(
             mean_squared_error(
                 results["actuals"][valid_mask], results["predictions"][valid_mask]
@@ -178,25 +177,28 @@ def run_oos_validation(
         results["oos_mae"] = mean_absolute_error(
             results["actuals"][valid_mask], results["predictions"][valid_mask]
         )
-        # Simple directional accuracy
+
+        # Directional accuracy
         direction_actual = np.sign(np.diff(results["actuals"][valid_mask]))
         direction_pred = np.sign(np.diff(results["predictions"][valid_mask]))
-        # Ensure comparison is valid (handle zeros if necessary, here ignoring 0 changes)
-        valid_dir_mask = (direction_actual != 0) & (direction_pred != 0)
-        if np.sum(valid_dir_mask) > 0:
-            results["oos_directional_accuracy"] = np.mean(
-                direction_actual[valid_dir_mask] == direction_pred[valid_dir_mask]
-            )
-        else:
-            results["oos_directional_accuracy"] = (
-                np.nan
-            )  # Not enough non-zero changes to calculate
+        dir_mask = (direction_actual != 0) & (direction_pred != 0)
+        results["oos_directional_accuracy"] = (
+            np.mean(direction_actual[dir_mask] == direction_pred[dir_mask])
+            if dir_mask.any()
+            else np.nan
+        )
+
         logging.info(
-            f"OOS Validation Complete. RMSE: {results['oos_rmse']:.4f}, MAE: {results['oos_mae']:.4f}, Dir Acc: {results.get('oos_directional_accuracy', 'N/A'):.2%}"
+            "OOS Validation Complete. RMSE: %.4f, MAE: %.4f, Dir Acc: %.2f%%",
+            results["oos_rmse"],
+            results["oos_mae"],
+            results["oos_directional_accuracy"] * 100
+            if not np.isnan(results["oos_directional_accuracy"])
+            else float("nan"),
         )
     else:
         logging.warning(
-            "No valid predictions/actuals available to calculate OOS metrics."
+            "No valid predictions/actuals available; OOS metrics set to NaN."
         )
         results["oos_rmse"] = np.nan
         results["oos_mae"] = np.nan
