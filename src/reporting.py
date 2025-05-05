@@ -20,9 +20,12 @@ class NpEncoder(json.JSONEncoder):
                 return None
             return float(obj)
         elif isinstance(obj, np.ndarray):
-            # Convert NaN/Inf in arrays too
-            arr = np.where(np.isnan(obj) | np.isinf(obj), None, obj)
-            return cast(list[Any], arr.tolist())  # ndarray → JSON helper
+            # NumPy stubs don't accept `None` as the x-argument when the y-argument
+            # is present.  Annotate as a list[Any] and silence the overload error.
+            arr = cast(
+                list[Any], np.where(np.isnan(obj) | np.isinf(obj), None, obj).tolist()
+            )
+            return arr
         elif isinstance(obj, (pd.Timestamp, pd.Period)):
             # Format Timestamp/Period to ISO 8601 string
             return obj.isoformat() if hasattr(obj, "isoformat") else str(obj)
