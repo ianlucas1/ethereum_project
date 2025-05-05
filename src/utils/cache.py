@@ -3,8 +3,9 @@
 import logging
 import json
 import shutil
+import inspect  # Import inspect module
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable
+from typing import Any, Callable, Dict  # Import Dict
 import pandas as pd
 
 # Import settings from config relative to the src directory
@@ -21,18 +22,42 @@ except ModuleNotFoundError as e:
 
 
 def disk_cache(
-    path_arg: str, max_age_hr: int = 24
+    path_arg_template: str, max_age_hr: int = 24
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-    """Decorator to cache pandas DataFrame/Series to disk (Parquet)."""
-    # Note: cache_path and lock_path are now defined inside the wrapper
+    """Decorator to cache pandas DataFrame/Series to disk (Parquet).
+
+    Supports dynamic path formatting based on function arguments.
+    Example: @disk_cache("item_{arg1}_{kwarg2}.parquet")
+    """
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+        # Get function signature to map args/kwargs to names for formatting
+        sig = inspect.signature(func)
+
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            # --- MOVED INSIDE WRAPPER ---
-            # Construct paths using the potentially patched settings.DATA_DIR
-            cache_path = settings.DATA_DIR / path_arg
+            # --- Determine dynamic cache path INSIDE wrapper ---
+            try:
+                # Bind passed args/kwargs to function signature parameter names
+                bound_args = sig.bind(*args, **kwargs)
+                bound_args.apply_defaults()
+                # Create a dictionary of all arguments for formatting
+                format_dict: Dict[str, Any] = bound_args.arguments
+                # Format the path template using the arguments
+                cache_filename = path_arg_template.format(**format_dict)
+            except (TypeError, ValueError, KeyError) as fmt_err:
+                # Fallback or error if formatting fails
+                logging.error(
+                    f"Failed to format cache path template '{path_arg_template}' "
+                    f"for {func.__name__} with args={args}, kwargs={kwargs}: {fmt_err}. "
+                    "Caching disabled for this call."
+                )
+                # Execute function without caching if path formatting fails
+                return func(*args, **kwargs)
+
+            cache_path = settings.DATA_DIR / cache_filename
             lock_path = cache_path.with_suffix(".lock")
-            # --- END OF MOVE ---
+            meta_path = cache_path.with_suffix(".meta.json")
+            # --- End dynamic path determination ---
 
             # Check cache existence and age
             if cache_path.exists():
@@ -45,9 +70,6 @@ def disk_cache(
                     age = now - cache_mtime
                     if age < timedelta(hours=max_age_hr):
                         logging.info(f"Loading cached result from: {cache_path.name}")
-
-                        # --- 3.3.2: read metadata to choose pandas type ---
-                        meta_path = cache_path.with_suffix(".meta.json")
                         pandas_type: str | None = None
                         if meta_path.exists():
                             try:
@@ -58,11 +80,7 @@ def disk_cache(
                                 logging.warning(
                                     f"Could not read cache metadata for {cache_path.name}: {meta_e}"
                                 )
-                        # -------------------------------------------------
 
-                        # Fallback: default to DataFrame, but convert to Series
-                        # when there's exactly one column (common for Series saved
-                        # via `to_parquet`) and no explicit meta.
                         df = pd.read_parquet(cache_path)
                         if pandas_type == "Series" or (
                             pandas_type is None and df.shape[1] == 1
@@ -79,8 +97,14 @@ def disk_cache(
                 logging.info(
                     f"Cache miss or expired for {cache_path.name}. Calling function {func.__name__}."
                 )
-                result = func(*args, **kwargs)
+                result = func(*args, **kwargs)  # Call original function
+
+                # --- Cache the result ---
                 tmp_path = cache_path.with_suffix(".tmp")
+
+                # Determine result type *before* potential modification
+                is_series = isinstance(result, pd.Series)
+                is_dataframe = isinstance(result, pd.DataFrame)
 
                 # Ensure data index is timezone-naive BEFORE saving
                 if (
@@ -88,59 +112,67 @@ def disk_cache(
                     and pd.api.types.is_datetime64_any_dtype(result.index)
                     and result.index.tz is not None
                 ):
-                    # Create a copy to avoid modifying the original result if it's used elsewhere
                     result_to_save = result.copy()
                     result_to_save.index = result_to_save.index.tz_localize(None)
                 else:
-                    result_to_save = result  # No modification needed
+                    # Use result directly if no tz conversion needed or if not Series/DataFrame
+                    result_to_save = result
 
-                try:
-                    # Save result to temporary file
-                    if isinstance(result_to_save, pd.Series):
-                        result_to_save.to_frame().to_parquet(
-                            tmp_path, index=True
-                        )  # Save Series as one-column DataFrame
-                    elif isinstance(result_to_save, pd.DataFrame):
-                        result_to_save.to_parquet(tmp_path, index=True)
-                    else:
-                        logging.error(
-                            f"Cannot cache result of type {type(result_to_save)} from {func.__name__}."
-                        )
-                        return result  # Return uncached result if not DataFrame/Series
-
-                    # Move temporary file to final cache path
-                    shutil.move(tmp_path, cache_path)
-                    logging.info(f"Saved fresh data to cache: {cache_path.name}")
-
-                    # --- 3.3.1: write sibling metadata file ---
+                # Only attempt to save if it's a Series or DataFrame
+                if is_series or is_dataframe:
                     try:
-                        meta = {
-                            "pandas_type": "Series"
-                            if isinstance(result_to_save, pd.Series)
-                            else "DataFrame",
-                            "created_at": datetime.now(timezone.utc).isoformat(),
-                        }
-                        meta_path = cache_path.with_suffix(".meta.json")
-                        with open(meta_path, "w") as f:
-                            json.dump(meta, f, indent=4)
-                        logging.debug(f"Wrote cache metadata to: {meta_path.name}")
-                    except Exception as meta_e:
-                        logging.error(
-                            f"Failed to write cache metadata for {cache_path}: {meta_e}"
-                        )
-                    # --- end 3.3.1 ---
+                        # Save result to temporary file
+                        if is_series:
+                            # Ensure the Series has a name before converting to frame
+                            if result_to_save.name is None:
+                                # Try to infer name from formatting dict if possible, else use default
+                                series_name = format_dict.get(
+                                    "metric", "value"
+                                )  # Example fallback
+                                result_to_save.name = str(series_name)
 
-                except Exception as e:
-                    logging.error(f"Failed to save cache file {cache_path}: {e}")
-                    # Clean up temp file if it exists
-                    if tmp_path.exists():
+                            result_to_save.to_frame().to_parquet(tmp_path, index=True)
+                        else:  # is_dataframe
+                            result_to_save.to_parquet(tmp_path, index=True)
+
+                        # Move temporary file to final cache path
+                        shutil.move(
+                            str(tmp_path), str(cache_path)
+                        )  # Ensure paths are strings for shutil
+                        logging.info(f"Saved fresh data to cache: {cache_path.name}")
+
+                        # Write sibling metadata file
                         try:
-                            tmp_path.unlink()
-                        except OSError as unlink_e:
+                            meta = {
+                                "pandas_type": "Series" if is_series else "DataFrame",
+                                "created_at": datetime.now(timezone.utc).isoformat(),
+                            }
+                            with open(meta_path, "w") as f:
+                                json.dump(meta, f, indent=4)
+                            logging.debug(f"Wrote cache metadata to: {meta_path.name}")
+                        except Exception as meta_e:
                             logging.error(
-                                f"Failed to remove temporary cache file {tmp_path}: {unlink_e}"
+                                f"Failed to write cache metadata for {cache_path}: {meta_e}"
                             )
-            # Return the original result (potentially with tz-aware index if it started that way)
+
+                    except Exception as e:
+                        logging.error(f"Failed to save cache file {cache_path}: {e}")
+                        if tmp_path.exists():
+                            try:
+                                tmp_path.unlink()
+                            except OSError as unlink_e:
+                                logging.error(
+                                    f"Failed to remove temporary cache file {tmp_path}: {unlink_e}"
+                                )
+                else:
+                    # Log if trying to cache unsupported type, but still return original result
+                    logging.warning(
+                        f"Cannot cache result of type {type(result)} from {func.__name__}. "
+                        "Returning uncached result."
+                    )
+                # --- End Caching ---
+
+            # Return the original result
             return result
 
         return wrapper
