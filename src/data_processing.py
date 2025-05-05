@@ -1,43 +1,67 @@
-# src/data_processing.py
+"""Processes raw data into cleaned daily and monthly datasets.
 
-from .data_fetching import fetch_eth_price_rapidapi, cm_fetch  # Add cm_fetch
-import matplotlib.pyplot as plt  # For the optional plot
+Handles:
+- Ensuring raw data files exist (fetching if necessary).
+- Loading raw data (ETH core, fees, transactions, NASDAQ).
+- Merging ETH datasets.
+- Aligning and joining NASDAQ data.
+- Engineering log-transformed features.
+- Creating cleaned daily and monthly DataFrames.
+- Saving processed DataFrames to parquet files.
+"""
+
+from __future__ import annotations
 
 import logging
-import pandas as pd
+from typing import TYPE_CHECKING  # Added Any import
+
+import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 # Import settings, helpers from utils and data_fetching
 from src.config import settings
-from .utils import load_parquet  # Removed DATA_DIR import
-from .data_fetching import fetch_nasdaq  # We need fetch_nasdaq here
+from .data_fetching import cm_fetch, fetch_eth_price_rapidapi, fetch_nasdaq
+from .utils import load_parquet
+
+if TYPE_CHECKING:
+    from matplotlib.figure import Figure
+
 
 # --- Raw Data Creation ---
 
 
 def _plot_core_data(df: pd.DataFrame, filename: str) -> None:
-    """Helper to plot raw core data, saving with the specified filename."""
+    """Helper to plot raw core data, saving with the specified filename.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing 'price_usd', 'active_addr', 'supply'.
+        filename (str): The filename (relative to project root) to save the plot.
+    """
     logging.info("Plotting raw core data diagnostics...")
     try:
+        fig: Figure
+        # Corrected type hint for numpy array of Axes objects
+        axes: np.ndarray
         fig, axes = plt.subplots(3, 1, figsize=(12, 9), sharex=True)
-        # Save plot in project root using settings for consistency (though not data dir)
+        # Save plot in project root using settings for consistency
         plot_path = settings.BASE_DIR / filename
 
         # Add checks for empty data before plotting
-        if not df["price_usd"].dropna().empty:
+        if "price_usd" in df.columns and not df["price_usd"].dropna().empty:
             axes[0].plot(df.index, df["price_usd"])
             axes[0].set_yscale("log")
             axes[0].set_title("ETH Price (USD)")
         else:
             axes[0].set_title("ETH Price (USD) - No Data")
 
-        if not df["active_addr"].dropna().empty:
+        if "active_addr" in df.columns and not df["active_addr"].dropna().empty:
             axes[1].plot(df.index, df["active_addr"])
             axes[1].set_title("Active Addresses")
         else:
             axes[1].set_title("Active Addresses - No Data")
 
-        if not df["supply"].dropna().empty:
+        if "supply" in df.columns and not df["supply"].dropna().empty:
             axes[2].plot(df.index, df["supply"])
             axes[2].set_title("Circulating Supply")
         else:
@@ -54,16 +78,20 @@ def _plot_core_data(df: pd.DataFrame, filename: str) -> None:
 def ensure_raw_data_exists(
     plot_diagnostics: bool = True, filename: str = "raw_core_data_plot.png"
 ) -> bool:
-    """
-    Checks if raw parquet files exist. If not, fetches data and creates them.
-    Mirrors the logic of the original Cell 1.
+    """Checks if raw parquet files exist. If not, fetches data and creates them.
+
+    Fetches ETH price, active addresses, supply, transaction count, and fees
+    if corresponding parquet files are missing in the data directory. Optionally
+    plots core data diagnostics.
 
     Args:
-        plot_diagnostics: Whether to generate the diagnostic plot.
-        filename: The filename to use for the diagnostic plot if generated.
+        plot_diagnostics (bool): Whether to generate the diagnostic plot. Defaults to True.
+        filename (str): The filename for the diagnostic plot if generated.
+                        Defaults to "raw_core_data_plot.png".
 
     Returns:
-        True if data exists or was successfully created, False otherwise.
+        bool: True if all required raw data exists or was successfully created,
+              False otherwise.
     """
     logging.info("Ensuring raw data files exist...")
     core_path = settings.DATA_DIR / "eth_core.parquet"
@@ -149,7 +177,19 @@ def ensure_raw_data_exists(
 
 
 def load_raw_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Loads the raw core, fee, and transaction parquet files."""
+    """Loads the raw core, fee, and transaction parquet files.
+
+    Loads 'eth_core.parquet', 'eth_fee.parquet', and 'eth_tx.parquet' from
+    the data directory specified in settings. Renames the fee column to 'burn'.
+
+    Returns:
+        tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]: A tuple containing
+            the core, fee (burn), and transaction DataFrames.
+
+    Raises:
+        FileNotFoundError: If any of the raw parquet files are not found.
+        ValueError: If required columns are missing or fee column cannot be identified.
+    """
     logging.info("Loading raw parquet files...")
     try:
         core_path = settings.DATA_DIR / "eth_core.parquet"
@@ -191,7 +231,19 @@ def load_raw_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 def merge_eth_data(
     core_df: pd.DataFrame, fee_df: pd.DataFrame, tx_df: pd.DataFrame
 ) -> pd.DataFrame:
-    """Merges core, fee, and transaction data."""
+    """Merges core, fee (burn), and transaction data into a single DataFrame.
+
+    Performs left joins starting from the core DataFrame. Fills NaN values in
+    the 'burn' column with 0.0 and calculates 'market_cap'.
+
+    Args:
+        core_df (pd.DataFrame): DataFrame with core ETH data (price, active_addr, supply).
+        fee_df (pd.DataFrame): DataFrame with ETH fee/burn data (renamed to 'burn').
+        tx_df (pd.DataFrame): DataFrame with ETH transaction count data.
+
+    Returns:
+        pd.DataFrame: The merged DataFrame containing all input data plus 'market_cap'.
+    """
     logging.info("Joining ETH datasets...")
     # Ensure indices are compatible (should be datetime already)
     # Perform left joins starting from core_df
@@ -217,7 +269,21 @@ def merge_eth_data(
 
 
 def align_nasdaq_data(eth_df: pd.DataFrame) -> pd.DataFrame:
-    """Fetches/loads NASDAQ data, aligns it, and joins it to the ETH DataFrame."""
+    """Fetches/loads NASDAQ data, aligns it, and joins it to the ETH DataFrame.
+
+    Fetches NASDAQ (^NDX) data using fetch_nasdaq (which utilizes caching).
+    Resamples NASDAQ data to daily frequency using forward fill. Aligns the
+    daily NASDAQ data to the date range of the input eth_df and joins it
+    as a new 'nasdaq' column.
+
+    Args:
+        eth_df (pd.DataFrame): The DataFrame containing merged ETH data.
+
+    Returns:
+        pd.DataFrame: The input DataFrame with an added 'nasdaq' column,
+                      aligned and forward-filled. Returns the original DataFrame
+                      with a NaN 'nasdaq' column if NASDAQ fetching/alignment fails.
+    """
     logging.info("Fetching/Loading NASDAQ data...")
     try:
         ndx_raw = fetch_nasdaq()  # Uses cache via decorator
@@ -279,7 +345,20 @@ def align_nasdaq_data(eth_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def engineer_log_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Calculates log-transformed features."""
+    """Calculates log-transformed features for key variables.
+
+    Computes natural logarithms for 'market_cap', 'active_addr', and 'nasdaq'.
+    Uses log(1 + x) for 'burn' to handle potential zero values. Replaces
+    any resulting infinities with NaN.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing the original features
+                           ('market_cap', 'active_addr', 'burn', 'nasdaq').
+
+    Returns:
+        pd.DataFrame: The input DataFrame with added log-transformed columns:
+                      'log_marketcap', 'log_active', 'log_gas', 'log_nasdaq'.
+    """
     logging.info("Calculating log-scale features...")
     df_out = df.copy()  # Avoid modifying original df
 
@@ -306,7 +385,17 @@ def engineer_log_features(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def create_daily_clean(df_with_logs: pd.DataFrame) -> pd.DataFrame:
-    """Creates the cleaned daily DataFrame by dropping essential NaN rows."""
+    """Creates the cleaned daily DataFrame by dropping rows with essential NaNs.
+
+    Drops rows where 'log_marketcap' or 'log_active' are NaN.
+
+    Args:
+        df_with_logs (pd.DataFrame): DataFrame containing log-transformed features.
+
+    Returns:
+        pd.DataFrame: The cleaned daily DataFrame. Can be empty if all rows
+                      have NaNs in essential columns.
+    """
     logging.info("Creating daily_clean DataFrame...")
     # Define core columns needed for analysis AFTER log transformation
     # Minimum requirement: log_marketcap and log_active must be present
@@ -324,7 +413,21 @@ def create_daily_clean(df_with_logs: pd.DataFrame) -> pd.DataFrame:
 
 
 def create_monthly_clean(df_with_logs: pd.DataFrame) -> pd.DataFrame:
-    """Resamples to month-end, recalculates log features, and cleans."""
+    """Resamples daily data to month-end, recalculates log features, and cleans.
+
+    Resamples the input DataFrame to month-end ('ME') frequency using the mean
+    of numeric columns. Recalculates log features on the monthly averages.
+    Drops months where any of the core log features ('log_marketcap',
+    'log_active', 'log_gas', 'log_nasdaq') are NaN.
+
+    Args:
+        df_with_logs (pd.DataFrame): The daily DataFrame *with* log features already
+                                     calculated (used for resampling base values).
+
+    Returns:
+        pd.DataFrame: The cleaned monthly DataFrame. Can be empty if input is empty
+                      or if all resampled rows have NaNs in essential log columns.
+    """
     logging.info("Resampling to month-end frequency...")
     if df_with_logs.empty:
         logging.warning(
@@ -365,7 +468,22 @@ def create_monthly_clean(df_with_logs: pd.DataFrame) -> pd.DataFrame:
 
 
 def process_all_data() -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Loads raw data, merges, adds features, cleans, and saves processed files."""
+    """Loads raw data, merges, adds features, cleans, and saves processed files.
+
+    Orchestrates the entire data processing pipeline:
+    1. Loads raw core, fee, and transaction data.
+    2. Merges the ETH-specific datasets.
+    3. Fetches, aligns, and joins NASDAQ data.
+    4. Engineers log-transformed features.
+    5. Creates the final cleaned daily DataFrame.
+    6. Creates the final cleaned monthly DataFrame (by resampling daily).
+    7. Saves the cleaned daily and monthly DataFrames to parquet files
+       ('daily_clean.parquet', 'monthly_clean.parquet') in the data directory.
+
+    Returns:
+        tuple[pd.DataFrame, pd.DataFrame]: A tuple containing the cleaned daily
+            and monthly DataFrames. Returns empty DataFrames if processing fails.
+    """
     try:
         # 1. Load
         core_df, fee_df, tx_df = load_raw_data()
