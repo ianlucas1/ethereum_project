@@ -6,6 +6,7 @@ import pandas as pd
 from statsmodels.tsa.stattools import adfuller, kpss
 import warnings  # <-- Added import
 from statsmodels.tools.sm_exceptions import InterpolationWarning  # <-- Added import
+from typing import Any, cast  # Added import
 
 logger = logging.getLogger(__name__)
 
@@ -192,7 +193,7 @@ def run_stationarity_tests(
     try:
         from IPython.display import display
 
-        display(stationarity_tbl)
+        cast(Any, display)(stationarity_tbl)
     except ImportError:
         print(stationarity_tbl)
     print("---------------------------------\n")
