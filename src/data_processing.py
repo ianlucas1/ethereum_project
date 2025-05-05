@@ -300,9 +300,13 @@ def align_nasdaq_data(eth_df: pd.DataFrame) -> pd.DataFrame:
 
         # Forward-fill on a daily frequency *before* slicing
         ndx_raw = ndx_raw.sort_index()  # Ensure sorted
-        ndx_daily = ndx_raw.resample("D").ffill()
-
-        # Slice *after* forward filling
+        # Create a full daily index from the start of NASDAQ to max_eth_date
+        full_daily_index = pd.date_range(
+            start=ndx_raw.index.min(), end=max_eth_date, freq="D"
+        )
+        # Reindex NASDAQ data to this full index, then forward fill
+        ndx_daily = ndx_raw.reindex(full_daily_index).ffill()
+        # Now slice based on the eth_df index range
         ndx_daily_aligned = ndx_daily.loc[min_eth_date:max_eth_date]
         logging.info(
             "Daily NASDAQ data shape after alignment: %s", ndx_daily_aligned.shape

@@ -9,8 +9,14 @@ from pathlib import Path
 from src.config import settings
 from src.data_processing import (
     load_raw_data,
-    merge_eth_data,  # Import private function for testing if needed, or mock its call
+    merge_eth_data,
+    align_nasdaq_data,  # Added align_nasdaq_data
+    # Keep other imports needed for later tests:
 )
+# We don't need to import fetch_nasdaq here, but the patch target is important:
+# @patch("src.data_processing.fetch_nasdaq")
+
+# We might need load_parquet later if testing process_all_data fully
 
 # --- Fixtures ---
 
@@ -205,3 +211,103 @@ def test_merge_eth_data_with_missing_rows(
 
     # Check that burn NaN was filled with 0.0
     assert merged_df.loc["2023-01-03", "burn"] == 0.0
+
+
+# --- Tests for align_nasdaq_data ---
+
+
+@pytest.fixture
+def sample_merged_eth_df() -> pd.DataFrame:
+    """Sample DataFrame mimicking output of merge_eth_data."""
+    # Use dates that will overlap with sample_raw_nasdaq_series
+    dates = pd.to_datetime(["2023-01-02", "2023-01-03", "2023-01-04", "2023-01-05"])
+    df = pd.DataFrame(
+        {
+            "price_usd": [1210.0, 1205.0, 1220.0, 1230.0],
+            "active_addr": [510000, 505000, 515000, 520000],
+            "supply": [120.1e6, 120.2e6, 120.3e6, 120.4e6],
+            "burn": [150.0, 120.0, 160.0, 170.0],
+            "tx_count": [1.1e6, 1.05e6, 1.15e6, 1.2e6],
+            "market_cap": [1.465e11, 1.452e11, 1.480e11, 1.500e11],
+        },
+        index=pd.Index(dates, name="time"),
+    )
+    return df
+
+
+@patch(
+    "src.data_processing.fetch_nasdaq"
+)  # Mock fetch_nasdaq called by align_nasdaq_data
+def test_align_nasdaq_data_happy_path(
+    mock_fetch_nasdaq: MagicMock,
+    sample_merged_eth_df: pd.DataFrame,
+    sample_raw_nasdaq_series: pd.Series,
+):
+    """Tests successful alignment and joining of NASDAQ data."""
+    mock_fetch_nasdaq.return_value = sample_raw_nasdaq_series
+    eth_df = sample_merged_eth_df
+
+    df_with_nasdaq = align_nasdaq_data(eth_df)
+
+    # Check nasdaq column exists
+    assert "nasdaq" in df_with_nasdaq.columns
+    # Check shape (should be same number of rows as eth_df)
+    assert df_with_nasdaq.shape[0] == eth_df.shape[0]
+    assert df_with_nasdaq.shape[1] == eth_df.shape[1] + 1
+    # Check index matches eth_df
+    assert df_with_nasdaq.index.equals(eth_df.index)
+
+    # Check values and forward filling
+    # Raw NASDAQ: 2023-01-01: 15000, 02: 15100, 03: 15050, 04: 15150
+    # ETH DF:          Dates: 02,      03,      04,      05
+    # Expected NASDAQ:        15100,   15050,   15150,   15150 (ffill from 04)
+    expected_nasdaq_values = [15100.0, 15050.0, 15150.0, 15150.0]
+    pd.testing.assert_series_equal(
+        df_with_nasdaq["nasdaq"],
+        pd.Series(expected_nasdaq_values, index=eth_df.index, name="nasdaq"),
+        check_dtype=False,
+    )
+    mock_fetch_nasdaq.assert_called_once()
+
+
+@patch("src.data_processing.fetch_nasdaq")
+def test_align_nasdaq_data_fetch_fails(
+    mock_fetch_nasdaq: MagicMock, sample_merged_eth_df: pd.DataFrame
+):
+    """Tests behavior when fetch_nasdaq returns an empty Series."""
+    mock_fetch_nasdaq.return_value = pd.Series(
+        dtype=float, name="nasdaq"
+    )  # Empty series
+    eth_df = sample_merged_eth_df
+
+    df_with_nasdaq = align_nasdaq_data(eth_df)
+
+    assert "nasdaq" in df_with_nasdaq.columns
+    # Check all nasdaq values are NaN
+    assert df_with_nasdaq["nasdaq"].isna().all()
+    # Check shape is still correct
+    assert df_with_nasdaq.shape[0] == eth_df.shape[0]
+    assert (
+        df_with_nasdaq.shape[1] == eth_df.shape[1]
+    )  # Shape shouldn't change in this path
+    mock_fetch_nasdaq.assert_called_once()
+
+
+@patch("src.data_processing.fetch_nasdaq", side_effect=Exception("API Down"))
+def test_align_nasdaq_data_fetch_exception(
+    mock_fetch_nasdaq: MagicMock, sample_merged_eth_df: pd.DataFrame
+):
+    """Tests behavior when fetch_nasdaq raises an exception."""
+    eth_df = sample_merged_eth_df
+
+    df_with_nasdaq = align_nasdaq_data(eth_df)
+
+    assert "nasdaq" in df_with_nasdaq.columns
+    # Check all nasdaq values are NaN
+    assert df_with_nasdaq["nasdaq"].isna().all()
+    # Check shape is still correct
+    assert df_with_nasdaq.shape[0] == eth_df.shape[0]
+    assert (
+        df_with_nasdaq.shape[1] == eth_df.shape[1]
+    )  # Shape shouldn't change in this path
+    mock_fetch_nasdaq.assert_called_once()
