@@ -5,13 +5,14 @@ import pandas as pd
 import numpy as np
 import statsmodels.api as sm
 from sklearn.metrics import mean_squared_error  # For RMSE calculation
+from typing import Any
 
 # --- OLS Fitting Function ---
 
 
 def fit_ols_hac(
     y: pd.Series, X: pd.DataFrame, add_const: bool = True, lags: int = 12
-) -> dict:
+) -> dict[str, Any]:
     """
     Fits OLS model with HAC robust standard errors.
 
@@ -106,7 +107,9 @@ def fit_ols_hac(
 # --- OLS Benchmark Analysis ---
 
 
-def run_ols_benchmarks(daily_df: pd.DataFrame, monthly_df: pd.DataFrame) -> dict:
+def run_ols_benchmarks(
+    daily_df: pd.DataFrame, monthly_df: pd.DataFrame
+) -> dict[str, Any]:
     """
     Runs baseline and extended OLS models on daily and monthly data.
     MODIFIES monthly_df by adding fair value columns.
@@ -119,7 +122,7 @@ def run_ols_benchmarks(daily_df: pd.DataFrame, monthly_df: pd.DataFrame) -> dict
         Dictionary containing results for different OLS specifications.
     """
     logging.info("Running Static OLS Benchmarks...")
-    ols_results = {}
+    ols_results: dict[str, Any] = {}
     ols_results["monthly_base"] = {}
     ols_results["monthly_extended"] = {}
     ols_results["monthly_constrained"] = {}  # For beta=2 check

@@ -15,7 +15,7 @@ from .data_fetching import fetch_nasdaq  # We need fetch_nasdaq here
 # --- Raw Data Creation ---
 
 
-def _plot_core_data(df: pd.DataFrame, filename: str):
+def _plot_core_data(df: pd.DataFrame, filename: str) -> None:
     """Helper to plot raw core data, saving with the specified filename."""
     logging.info("Plotting raw core data diagnostics...")
     try:

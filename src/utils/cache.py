@@ -4,7 +4,7 @@ import logging
 import json
 import shutil
 from datetime import datetime, timedelta, timezone
-from typing import Callable, Any
+from typing import Any, Callable
 import pandas as pd
 
 # Import settings from config relative to the src directory
@@ -20,12 +20,14 @@ except ModuleNotFoundError as e:
     ) from e
 
 
-def disk_cache(path_arg: str, max_age_hr: int = 24) -> Callable:
+def disk_cache(
+    path_arg: str, max_age_hr: int = 24
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Decorator to cache pandas DataFrame/Series to disk (Parquet)."""
     # Note: cache_path and lock_path are now defined inside the wrapper
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
-        def wrapper(*args, **kwargs) -> Any:
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             # --- MOVED INSIDE WRAPPER ---
             # Construct paths using the potentially patched settings.DATA_DIR
             cache_path = settings.DATA_DIR / path_arg

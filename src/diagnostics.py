@@ -14,11 +14,12 @@ from statsmodels.stats.diagnostic import (
 from statsmodels.tools.sm_exceptions import SpecificationWarning
 from scipy.stats import jarque_bera, f
 import warnings
+from typing import Any
 
 # --- Residual Diagnostics ---
 
 
-def run_residual_diagnostics(ols_hac_results: dict) -> dict:
+def run_residual_diagnostics(ols_hac_results: dict[str, Any]) -> dict[str, Any]:
     """
     Performs residual diagnostics on a fitted OLS model (HAC results object).
 
@@ -29,7 +30,7 @@ def run_residual_diagnostics(ols_hac_results: dict) -> dict:
         Dictionary containing diagnostic test results.
     """
     logging.info("Running Residual Diagnostics...")
-    diag_results = {}
+    diag_results: dict[str, Any] = {}
     fit = ols_hac_results.get("model_obj")  # Get the HAC results object
 
     if fit is None or not hasattr(fit, "resid") or not hasattr(fit, "model"):
@@ -115,7 +116,10 @@ def run_residual_diagnostics(ols_hac_results: dict) -> dict:
 # --- Structural Break Tests ---
 
 
-def run_structural_break_tests(ols_hac_results: dict, break_dates: dict) -> dict:
+def run_structural_break_tests(
+    ols_hac_results: dict[str, Any],
+    break_dates: dict[str, Any],
+) -> dict[str, Any]:
     """
     Performs CUSUM and Chow tests for structural breaks.
 
@@ -127,7 +131,7 @@ def run_structural_break_tests(ols_hac_results: dict, break_dates: dict) -> dict
         Dictionary containing structural break test results.
     """
     logging.info("Running Structural Break Tests...")
-    break_results = {}
+    break_results: dict[str, Any] = {}
     fit = ols_hac_results.get("model_obj")
 
     if fit is None or not hasattr(fit, "resid") or not hasattr(fit, "model"):

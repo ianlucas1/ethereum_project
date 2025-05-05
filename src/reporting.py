@@ -4,13 +4,14 @@ import logging
 import json
 import pandas as pd
 import numpy as np
+from typing import Any, Sequence
 
 
 # --- JSON Encoder for NumPy types ---
 class NpEncoder(json.JSONEncoder):
     """Custom JSON encoder to handle NumPy types and NaN/Inf values."""
 
-    def default(self, obj):
+    def default(self, obj: Any) -> Any:
         if isinstance(obj, np.integer):
             return int(obj)
         elif isinstance(obj, np.floating):
@@ -20,7 +21,9 @@ class NpEncoder(json.JSONEncoder):
             return float(obj)
         elif isinstance(obj, np.ndarray):
             # Convert NaN/Inf in arrays too
-            return np.where(np.isnan(obj) | np.isinf(obj), None, obj).tolist()
+            return np.where(
+                np.isnan(obj) | np.isinf(obj), None, obj
+            ).tolist()  # ndarray → JSON helper
         elif isinstance(obj, (pd.Timestamp, pd.Period)):
             # Format Timestamp/Period to ISO 8601 string
             return obj.isoformat() if hasattr(obj, "isoformat") else str(obj)
@@ -40,10 +43,10 @@ class NpEncoder(json.JSONEncoder):
 
 
 def generate_summary(
-    analysis_results: dict,
+    analysis_results: dict[str, Any],
     monthly_df_with_fv: pd.DataFrame,
     monthly_df_oos: pd.DataFrame,
-) -> dict:
+) -> dict[str, Any]:
     """
     Generates the final results dictionary and interpretation text.
 
@@ -60,10 +63,14 @@ def generate_summary(
             - 'interpretation_text': The formatted summary string.
     """
     logging.info("Generating final summary report...")
-    final_dict = {}
+    final_dict: dict[str, Any] = {}
 
     # Helper function to safely get nested dictionary values
-    def safe_get(data_dict, key_list, default=None):
+    def safe_get(
+        data_dict: Any,
+        key_list: Sequence[str | int],  # Allow int for tuple indexing
+        default: Any | None = None,
+    ) -> Any:
         current = data_dict
         for key in key_list:
             if isinstance(current, dict) or isinstance(
@@ -206,7 +213,13 @@ def generate_summary(
     final_dict["last_date"] = last_date  # Store the determined last date
 
     # --- Format Values for Interpretation Text ---
-    def format_val(val, precision=2, is_p_value=False, is_usd=False, is_bool=False):
+    def format_val(
+        val: Any,
+        precision: int = 2,
+        is_p_value: bool = False,
+        is_usd: bool = False,
+        is_bool: bool = False,  # Reverted parameter name to match existing usage
+    ) -> str:
         # Handle infinity first
         if isinstance(val, (float, np.floating)) and np.isinf(val):
             # Check sign of infinity
@@ -231,7 +244,7 @@ def generate_summary(
             fmt_str = "{:." + str(precision) + "f}"
             return fmt_str.format(val)
         if isinstance(val, (pd.Timestamp)):  # Format Timestamp
-            return val.strftime("%Y-%m-%d")
+            return str(val.strftime("%Y-%m-%d"))  # cast to str for mypy
         return str(val)  # Fallback for other types
 
     beta_ext_str = format_val(final_dict["ols_ext_beta_active"])
