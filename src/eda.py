@@ -1,218 +1,152 @@
-# src/eda.py
+"""
+Exploratory-data-analysis helpers
+───────────────────────────────────────────────────────────────────────────────
+* winsorise outliers (optionally inside a window)
+* run ADF / KPSS stationarity tests
+* quick demo:  python -m src.eda
+"""
+
+from __future__ import annotations
 
 import logging
+from typing import Any, Iterable, Sequence, TYPE_CHECKING, cast
+
 import numpy as np
 import pandas as pd
 from statsmodels.tsa.stattools import adfuller, kpss
-import warnings  # <-- Added import
-from statsmodels.tools.sm_exceptions import InterpolationWarning  # <-- Added import
 
 logger = logging.getLogger(__name__)
 
-# --- Data Preprocessing Functions ---
+# --------------------------------------------------------------------------- #
+# Winsorisation                                                               #
+# --------------------------------------------------------------------------- #
+
+
+def _normalise_mask(
+    df: pd.DataFrame,
+    window_mask: Sequence[bool] | pd.Index | None,
+) -> pd.Series:
+    """Return a boolean Series aligned to *df.index* selecting the rows of interest."""
+    if window_mask is None:
+        return pd.Series(True, index=df.index, name="mask")
+
+    if isinstance(window_mask, (pd.Series, np.ndarray, list, tuple)) and len(
+        window_mask
+    ) == len(df):
+        return pd.Series(window_mask, index=df.index, name="mask").astype(bool)
+
+    # treat as an index-label collection
+    return pd.Series(df.index.isin(window_mask), index=df.index, name="mask")
 
 
 def winsorize_data(
+    *,
     df: pd.DataFrame,
     cols_to_cap: list[str],
-    quantile: float = 0.995,
-    window_mask: pd.Series | pd.Index | None = None,
+    quantile: float,
+    window_mask: Sequence[bool] | pd.Index | None = None,
 ) -> pd.DataFrame:
-    """
-    Caps specified columns in a DataFrame at the specified upper quantile.
-
-    Args:
-        df: Input DataFrame.
-        cols_to_cap: List of column names to cap.
-        quantile: The upper quantile to cap at (e.g., 0.99 for 99th percentile).
-                  Only the upper tail is capped. Defaults to 0.995.
-            window_mask: Optional boolean Series or Index aligned with df's index, specifying
-                         the rows to use for quantile calculation and capping scope.
-                         If None, uses the full DataFrame. Defaults to None.
-
-    Returns:
-        DataFrame with specified columns capped.
-    """
+    """Cap the upper tail of *cols_to_cap* within rows selected by *window_mask*."""
     df_out = df.copy()
-    capped_cols = []
+    mask = _normalise_mask(df_out, window_mask)
 
-    for col in cols_to_cap:
-        if col not in df_out.columns:
-            logger.warning(f"Column '{col}' not found in DataFrame. Skipping capping.")
-            continue
-
-        if not pd.api.types.is_numeric_dtype(df_out[col]):
-            logger.warning(f"Column '{col}' is not numeric. Skipping capping.")
-            continue
-
-        # Calculate the cap value based on the specified quantile
-        data_for_quantile = (
-            df_out.loc[window_mask, col] if window_mask is not None else df_out[col]
-        )
-        cap_val = data_for_quantile.quantile(quantile)
-
-        # Identify all values exceeding the cap across the DataFrame
-        mask_exceeding_cap = df_out[col] > cap_val
-
-        if window_mask is not None:
-            # If a window is specified, only apply capping *within* that window
-            # Accept either a boolean Series (usual case) **or** an Index of rows
-            if isinstance(window_mask, pd.Index):
-                window_mask_bool = df_out.index.isin(window_mask)
-            else:  # Assume boolean Series
-                window_mask_bool = window_mask
-            # ensure boolean Series aligns with df
-            window_mask_bool = pd.Series(
-                window_mask_bool, index=df_out.index, dtype=bool
-            )
-
-            mask_to_cap = (
-                mask_exceeding_cap & window_mask_bool
-            )  # Use the derived boolean mask
-            df_out.loc[mask_to_cap, col] = cap_val
-            num_capped = mask_to_cap.sum()
-            logger.info(
-                f"Capped column '{col}' at {quantile * 100:.1f}th percentile (value: {cap_val:.4f}) within window. {num_capped} values affected."
-            )
-        else:
-            # If no window, apply capping to all values exceeding the cap (original behavior)
-            df_out.loc[mask_exceeding_cap, col] = cap_val
-            num_capped = mask_exceeding_cap.sum()
-            logger.info(
-                f"Capped column '{col}' at {quantile * 100:.1f}th percentile (value: {cap_val:.4f}). {num_capped} values affected."
-            )
-
-        if num_capped > 0:  # Only append if capping actually occurred
-            capped_cols.append(col)
-
-    if not capped_cols:
-        logger.warning("No columns were capped.")
+    caps = df_out.loc[mask, cols_to_cap].quantile(quantile)
+    for col, cap_val in caps.items():
+        mask_to_cap = (df_out[col] > cap_val) & mask
+        df_out.loc[mask_to_cap, col] = cap_val
 
     return df_out
 
 
-# --- Diagnostic Functions ---
+# --------------------------------------------------------------------------- #
+# Stationarity tests                                                          #
+# --------------------------------------------------------------------------- #
+
+
+def _adf(series: pd.Series) -> float:
+    """Augmented-Dickey–Fuller p-value."""
+    return cast(float, adfuller(series.dropna())[1])
+
+
+def _kpss(series: pd.Series) -> float:
+    """KPSS p-value (nlags='auto')."""
+    with np.errstate(invalid="ignore"):
+        return cast(float, kpss(series.dropna(), nlags="auto")[1])
 
 
 def run_stationarity_tests(
-    df: pd.DataFrame, cols_to_test: list[str], window_mask: pd.Index | None = None
+    *,
+    df: pd.DataFrame,
+    cols_to_test: Iterable[str],
+    window_mask: Sequence[bool] | pd.Index | None = None,
 ) -> pd.DataFrame:
-    """
-    Performs ADF and KPSS stationarity tests on specified columns.
+    """Return a DataFrame with columns **series | ADF p | KPSS p**."""
+    mask = _normalise_mask(df, window_mask)
+    rows = [
+        {
+            "series": col,
+            "ADF p": _adf(df.loc[mask, col]),
+            "KPSS p": _kpss(df.loc[mask, col]),
+        }
+        for col in cols_to_test
+    ]
+    return pd.DataFrame(rows, columns=["series", "ADF p", "KPSS p"])
 
-    Args:
-        df: Input DataFrame.
-        cols_to_test: List of column names to test.
-            window_mask: Optional index slice to select data for testing. If None,
-                         uses the full DataFrame. Defaults to None.
 
-    Returns:
-        A DataFrame summarizing the test results.
-    """
-    logging.info(f"Running stationarity tests (ADF, KPSS) for: {cols_to_test}")
-    results = []
+# --------------------------------------------------------------------------- #
+# Safe display helper (works inside head-less CI too)                         #
+# --------------------------------------------------------------------------- #
 
-    # Check if columns exist
-    valid_cols_to_test = [col for col in cols_to_test if col in df.columns]
-    if len(valid_cols_to_test) < len(cols_to_test):
-        missing = set(cols_to_test) - set(valid_cols_to_test)
-        logging.warning(
-            f"Columns not found for stationarity tests, skipping: {missing}"
-        )
+if TYPE_CHECKING:  # for static analysers
+    from typing import Callable
 
-    if not valid_cols_to_test:
-        logging.warning("No valid columns provided for stationarity tests.")
-        return pd.DataFrame()
+    display: Callable[[Any], None]  # noqa: D401
 
-    # Nested helper functions for tests
-    def adf_test(series: pd.Series) -> tuple[float, float]:
-        try:
-            # Ensure series is float type for ADF
-            stat, p, *_ = adfuller(series.astype(float), autolag="AIC")
-            return stat, p
-        except Exception as e:
-            logging.error(f"ADF test failed for series {series.name}: {e}")
-            return np.nan, np.nan
+try:
+    from IPython.display import display as display  # type: ignore  # noqa: F401
+except ModuleNotFoundError:  # pragma: no cover
 
-    def kpss_test(series: pd.Series) -> tuple[float, float]:
-        # KPSS test requires minimum observations, handle potential errors
-        if len(series) < 10:  # Arbitrary minimum, adjust if needed
-            logging.warning(
-                f"KPSS test skipped for {series.name}: insufficient observations ({len(series)})"
-            )
-            return np.nan, np.nan
-        try:
-            # Suppress KPSS warnings about p-value interpolation
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", category=InterpolationWarning)
-                # Ensure series is float type for KPSS
-                kpss_result = kpss(series.astype(float), regression="c", nlags="auto")
-                stat, p = kpss_result[0], kpss_result[1]  # Get first two return values
-            return stat, p
-        except Exception as e:
-            logging.error(f"KPSS test failed for series {series.name}: {e}")
-            return np.nan, np.nan
+    def display(obj: Any) -> None:  # noqa: D401
+        """Fallback plain print when IPython is unavailable."""
+        print(obj)
 
-    for col in valid_cols_to_test:
-        # Use df here, not df_out
-        if col in df.columns:
-            # Select data based on mask if provided
-            df_to_use = df.loc[window_mask] if window_mask is not None else df
 
-            # Now use df_to_use to get the series 's'
-            s = df_to_use[col].dropna()
+# --------------------------------------------------------------------------- #
+# CLI demo                                                                    #
+# --------------------------------------------------------------------------- #
 
-            if s.empty:
-                logging.warning(
-                    f"Skipping stationarity tests for {col}: Series is empty after dropna."
-                )
-                adf_stat, adf_p = np.nan, np.nan
-                kpss_stat, kpss_p = np.nan, np.nan
-            else:
-                adf_stat, adf_p = adf_test(s)
-                kpss_stat, kpss_p = kpss_test(s)
 
-            results.append(
-                {
-                    "series": col,
-                    "ADF stat": f"{adf_stat:+.2f}" if pd.notna(adf_stat) else "N/A",
-                    "ADF p": f"{adf_p:.3f}" if pd.notna(adf_p) else "N/A",
-                    "KPSS stat": f"{kpss_stat:+.2f}" if pd.notna(kpss_stat) else "N/A",
-                    "KPSS p": f"{kpss_p:.3f}" if pd.notna(kpss_p) else "N/A",
-                }
-            )
-        else:
-            logging.warning(
-                f"Column {col} not found in DataFrame for stationarity test."
-            )
+def _demo() -> pd.DataFrame:
+    """Mini demo showing winsorisation + stationarity helpers."""
+    logging.basicConfig(level=logging.INFO)
 
-    stationarity_tbl = pd.DataFrame(results)
-    logging.info("Stationarity tests complete.")
+    rng = pd.date_range("2018-01-01", periods=120, freq="M")
+    df = pd.DataFrame(
+        {
+            "price": np.random.lognormal(mean=0.1, sigma=0.2, size=len(rng)).cumsum(),
+            "volume": np.random.chisquare(df=8.0, size=len(rng)),
+        },
+        index=rng,
+    )
+
+    df_w = winsorize_data(
+        df=df,
+        cols_to_cap=["volume"],
+        quantile=0.95,
+        window_mask=df.index[-24:],  # last two years
+    )
+
+    tbl = run_stationarity_tests(
+        df=df_w,
+        cols_to_test=["price", "volume"],
+        window_mask=df.index[-24:],
+    )
+
     print("\n--- Stationarity Test Results ---")
-
-    # ---------------------------------------------------------------------
-    # Safe `display` helper — works in head-less CI and satisfies all linters
-    # ---------------------------------------------------------------------
-    from typing import Any, TYPE_CHECKING
-
-    if TYPE_CHECKING:  # for static type-checkers
-        from IPython.display import display  # noqa: F401,F811
-
-    try:
-        from IPython.display import display  # noqa: F401,F811
-    except ImportError:
-        # fallback when IPython is absent (head-less CI, etc.)
-        def _display_plain(obj: Any) -> None:  # noqa: D401
-            print(obj)
-
-        display = _display_plain  # noqa: F811  # type: ignore[assignment]
-    # ---------------------------------------------------------------------
-
-    display(stationarity_tbl)
+    display(tbl)
     print("---------------------------------\n")
+    return tbl
 
-    return stationarity_tbl
 
-
-# Note: The original EDA plots/summaries from In[5] are not included here.
-# They can be added as separate functions if needed for the final workflow.
+if __name__ == "__main__":
+    _demo()
