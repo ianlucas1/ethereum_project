@@ -189,7 +189,20 @@ def run_stationarity_tests(
     stationarity_tbl = pd.DataFrame(results)
     logging.info("Stationarity tests complete.")
     print("\n--- Stationarity Test Results ---")
-    from IPython.display import display
+
+    # ---------------------------------------------------------------------
+    # Safe "display" helper – works in head-less CI and satisfies all linters
+    # ---------------------------------------------------------------------
+    try:
+        # If IPython stubs are available, this is fully typed.
+        from IPython.display import display
+    except ImportError:  # pragma: no cover
+        from typing import Any
+
+        def display(obj: Any) -> None:  # noqa: D401  (simple helper)
+            """Fallback when IPython isn't installed (e.g. in CI)."""
+            print(obj)
+    # ---------------------------------------------------------------------
 
     display(stationarity_tbl)
     print("---------------------------------\n")

@@ -23,8 +23,10 @@ class NpEncoder(json.JSONEncoder):
             # NumPy stubs don't accept `None` as the x-argument when the y-argument
             # is present.  Annotate as a list[Any] and silence the overload error.
             arr = cast(
-                list[Any],
-                np.where(np.isnan(obj) | np.isinf(obj), None, obj).tolist(),
+                list[Any],  # keep annotation
+                np.where(
+                    np.isnan(obj) | np.isinf(obj), None, obj, dtype=object
+                ).tolist(),
             )
             return arr
         elif isinstance(obj, (pd.Timestamp, pd.Period)):
