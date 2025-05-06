@@ -1,0 +1,60 @@
+```text
+########################################################################################
+# Roadmap Status Evaluation Prompt — **ethereum_project**
+########################################################################################
+
+## Objective
+Determine **precisely which roadmap step is *currently active*** by parsing the `prompts/roadmap.csv` file. The agent will analyze the CSV, the live codebase, tests, and configuration files to make this determination.
+
+> This prompt is meant for the *coding-agent* running inside Cursor IDE. It assumes the agent has read-only access to the repository and can perform semantic searches (`codebase_search`), regex searches (`grep_search`), and file reads (`read_file`, including CSV parsing). The **agent** will autonomously run any required terminal commands. If a command or the test suite fails, it may attempt up to **five** automated remediation cycles. **After five unsuccessful attempts it must halt and emit a concise failure report so the human can intervene.**
+
+## Inputs you can rely on
+1. The full repository (latest commit on the current branch).
+2. `prompts/roadmap.csv` — Authoritative source of roadmap tasks, their details, and statuses.
+3. Configuration files (`README.md`, `PROJECT_CONFIG_DETAILS.md`, CI workflows) for additional clues.
+
+## Tasks
+1.  **Parse Roadmap CSV**:
+    *   Read and parse the `prompts/roadmap.csv` file (e.g., using Python's `csv` module or `pandas.read_csv`).
+    *   Identify the header row and treat subsequent rows as data.
+    *   Pay attention to columns: `ID`, `Task_Title`, and `Status`.
+
+2.  **Identify Active Step**:
+    *   First, scan the `Status` column for any task marked `IN PROGRESS`. If found, this is the active step.
+    *   If no task is `IN PROGRESS`, find the *first* task (by order in the CSV) with `Status` as `NOT STARTED`. This is the next active step.
+    *   Use evidence from the codebase (presence/absence of files/functions, test results, commit messages) to corroborate the status found in the CSV if needed, especially if multiple items seem plausible.
+
+3.  **Produce Justification**:
+    *   Provide a brief justification (max 3 points) for the determined active step.
+    *   Cite evidence from `prompts/roadmap.csv` (e.g., "Row with ID '7.1' has Status 'NOT STARTED'") and optionally from code using Cursor's citation format `startLine:endLine:filepath`.
+
+4.  **Output Determined Step**:
+    *   Output the `ID` (e.g., `7.1`) and `Task_Title` of the determined active roadmap step.
+
+5.  **Sync Status Check**:
+    *   If a task is marked `DONE` in the CSV but related code changes seem incomplete or tests fail, or if code for a task seems complete but the CSV status is not `DONE`, highlight this as `OUT-OF-SYNC` and suggest an update to the CSV or code.
+
+6.  **Quality Perfect Check**:
+    *   If a file named `quality_scoreboard.json` exists at the project root *and* every axis in it scores `100`, output `HALT: TRUE` (plus a celebratory one‑liner) and skip further roadmap processing; otherwise output `HALT: FALSE`.
+
+## Output format
+```
+Current roadmap step: <ID> — "<Task_Title>"
+
+Justification:
+1. <Evidence from prompts/roadmap.csv or code citation> – <why it matters>
+2. <Evidence from prompts/roadmap.csv or code citation> – <why it matters>
+3. <Evidence from prompts/roadmap.csv or code citation> – <why it matters>
+
+Sync status: <OK | OUT-OF-SYNC>
+
+If OUT-OF-SYNC:
+    Suggested change: "Update prompts/roadmap.csv: Set ID '<ID>' Status to '<NEW_STATUS>' because <reason>." (≤ 150 chars)
+```
+
+## Guard-rails & best practices
+• Use **Cursor code citations** if referencing code.
+• Keep the entire answer ≤ 200 words (excluding citations).
+• Do *not* modify any files yourself; only analyse and report.
+• If you encounter conflicting evidence, explain briefly and pick the *most defensible* conclusion.
+```
