@@ -2,77 +2,105 @@
 
 ## Overview
 
-This project performs an econometric analysis of Ethereum (ETH) valuation, primarily exploring concepts related to Metcalfe's Law and network effects. It utilizes Python along with libraries such as `pandas` for data manipulation, `statsmodels` and `linearmodels` for econometric modeling, and `matplotlib`/`seaborn` for visualization.
+This project conducts an econometric analysis of Ethereum (ETH) valuation, primarily exploring its relationship with network activity metrics, drawing inspiration from Metcalfe's Law. It aims to identify key drivers of ETH's value using various statistical models. The project fetches, processes, and analyzes on-chain and market data for Ethereum and benchmark assets like the NASDAQ index.
 
-The core analysis involves:
-*   Fetching relevant on-chain and market data for Ethereum and benchmark assets (like NASDAQ).
-*   Processing and cleaning the raw data into daily and monthly frequencies.
-*   Performing exploratory data analysis (EDA), including outlier treatment and stationarity testing.
-*   Building and evaluating various econometric models (OLS, VECM, ARDL) to understand the drivers of ETH's value.
-*   Conducting out-of-sample validation.
-*   Generating a summary report and saving structured results.
+The primary execution script is `main.py`, which runs the complete end-to-end analysis pipeline. For interactive data exploration, model development, and visualization, `research.py` provides a suitable environment.
 
-The project is structured to support both a full pipeline execution via `main.py` and interactive research/exploration using `research.py`.
+## Key Features
 
-## Collaboration & GitHub Workflow
+*   **Data Fetching**: Retrieves on-chain data (e.g., active addresses, transaction counts) and market data (prices, volumes) from various APIs.
+*   **Data Processing**: Cleans, transforms, merges, and resamples raw data into daily and monthly frequencies suitable for analysis.
+*   **Exploratory Data Analysis (EDA)**: Includes outlier treatment (e.g., winsorization) and stationarity testing (e.g., ADF tests) on time series data.
+*   **Econometric Modeling**: Implements and evaluates several models:
+    *   Ordinary Least Squares (OLS) benchmarks.
+    *   Vector Error Correction Models (VECM).
+    *   Autoregressive Distributed Lag (ARDL) models.
+*   **Model Diagnostics**: Performs residual analysis and structural break tests.
+*   **Out-of-Sample Validation**: Conducts rolling window validation to assess model robustness.
+*   **Reporting**: Generates a structured JSON file (`final_results.json`) with all analysis results and prints a summary interpretation.
 
-| What | How |
-|------|-----|
-| **Default branch** | `main` (protected by ruleset) |
-| **Branching** | Work on short-lived branches (`feature/<topic>`). **Never** push directly to `main`. |
-| **Pull requests** | Required for every change; CI must pass |
-| **Required check** | `Python CI` (runs unit tests & lint on Py 3.10 → 3.12). |
-| **Merge methods** | Merge, Squash, or Rebase (choose what makes sense). |
-| **Force pushes** | Disabled on `main`; allowed on your own branches with `--force-with-lease`. |
-| **Dependencies** | Locked in `requirements-lock.txt`; update via `pip-compile` + PR. |
-| **Local dev** | `python -m venv .venv && pip install -r requirements-lock.txt && pytest -q`. |
-| **Ignore local venv** | Add `.venv*/` to your global gitignore (`~/.gitignore_global`) or to `.git/info/exclude` so the virtual-env is never committed. |
-| **LLM etiquette** | Keep diffs minimal, commit messages clear (`feat:`, `fix:`, `docs:`), cite tools/sources. |
+## Technology Stack
 
-> **Tip**  Run `pre-commit run --all-files` before pushing to catch lint/format issues locally.
+*   **Language**: Python
+*   **Core Libraries**:
+    *   `pandas` (for data manipulation)
+    *   `numpy` (for numerical operations)
+    *   `statsmodels` (for statistical models, e.g., OLS, ARDL, VECM diagnostics)
+    *   `linearmodels` (for panel data models, though primary use here is for advanced time series models)
+    *   `scikit-learn` (for utility functions like preprocessing)
+    *   `matplotlib` & `seaborn` (for data visualization)
+    *   `requests` (for API communication)
+    *   `pydantic` (for configuration management)
+    *   `pyarrow` (for efficient Parquet file handling)
+*   **Containerization**: Docker
+*   **Development Tools**: (Detailed in `PROJECT_CONFIG_DETAILS.md`)
+    *   `pre-commit` (for git hooks)
+    *   `ruff` & `flake8` (for linting and formatting)
+    *   `mypy` (for static type checking)
+    *   `pytest` (for testing)
 
-## Repository Structure
+## Project Structure
 
 ```
 ethereum_project/
-├── .venv/                       # Python virtual environment (created by user)
-├── data/                        # Data files (raw fetched, processed clean)
-│   ├── cm_{asset}_{metric}.parquet  # Raw CoinMetrics data examples
-│   ├── eth_core.parquet         # Raw core ETH data
-│   ├── eth_fee.parquet          # Raw ETH fee data
-│   ├── eth_price_yf.parquet     # Raw ETH price from Yahoo Finance
-│   ├── eth_tx.parquet           # Raw ETH transaction data
-│   ├── nasdaq_ndx.parquet       # Raw NASDAQ index data
-│   ├── daily_clean.parquet      # Processed daily data
-│   └── monthly_clean.parquet    # Processed monthly data
-├── src/                         # Source code modules
+├── .git/                        # Git repository data
+├── .github/                     # GitHub Actions workflows (CI/CD)
+├── .venv/                       # Python virtual environment (user-created)
+├── data/                        # Raw and processed data files (e.g., .parquet)
+├── docs/                        # Project documentation (e.g., type ignore guidelines)
+├── htmlcov/                     # HTML code coverage reports
+├── scripts/                     # Utility scripts (if any)
+├── src/                         # Core source code
+│   ├── utils/                   # Utility modules (caching, API helpers, file I/O)
 │   ├── __init__.py
-│   ├── utils.py                 # Utilities (logging, constants, file paths)
-│   ├── data_fetching.py         # Functions for fetching data from APIs
-│   ├── data_processing.py       # Functions for cleaning and structuring data
-│   ├── eda.py                   # Functions for EDA (winsorizing, stationarity)
-│   ├── modeling.py              # Functions for econometric modeling (OLS, VECM, etc.)
-│   └── reporting.py             # Functions for generating results summaries
-├── .gitignore                   # Git ignore file
-├── final_results.json           # Output JSON containing analysis results
+│   ├── config.py                # Project configuration (loads .env)
+│   ├── data_fetching.py         # Data retrieval logic
+│   ├── data_processing.py       # Data cleaning, transformation, feature engineering
+│   ├── diagnostics.py           # Model diagnostic tests
+│   ├── eda.py                   # Exploratory Data Analysis functions
+│   ├── main.py                  # Main pipeline script (moved to root in your project)
+│   ├── modeling.py              # (Currently minimal, core models in dedicated files)
+│   ├── ols_models.py            # OLS regression models
+│   ├── reporting.py             # Results summarization and output generation
+│   ├── ts_models.py             # Time series models (VECM, ARDL)
+│   └── validation.py            # Out-of-sample validation logic
+├── tests/                       # Automated tests
+├── .dockerignore                # Specifies files to exclude from Docker builds
+├── .gitignore                   # Specifies intentionally untracked files for Git
+├── .pre-commit-config.yaml      # Configuration for pre-commit hooks
+├── .python-version              # Specifies the project's Python version (e.g., for pyenv)
+├── Dockerfile                   # Defines the Docker image for the project
+├── final_results.json           # Output JSON from the analysis pipeline
+├── LICENSE                      # Project license information
 ├── main.py                      # Main script to run the full analysis pipeline
-├── raw_core_data_plot.png       # Diagnostic plot generated during data fetching
+├── mypy.ini                     # Configuration for mypy static type checker
+├── pip.conf                     # pip configuration (e.g., extra index URLs)
+├── PROJECT_CONFIG_DETAILS.md    # Detailed content of hidden config files for LLM context
+├── raw_core_data_plot.png       # Example diagnostic plot
 ├── README.md                    # This file
-├── research.py                  # Script for interactive research and plotting (`#%%` cells)
-└── requirements.txt             # Python package dependencies
+├── research.py                  # Script for interactive research and plotting
+├── requirements-dev.txt         # Dependencies for development (linters, testers)
+└── requirements-lock.txt        # Pinned versions of all dependencies for reproducible environments
 ```
 
 ## Modules (`src/` directory)
 
-*   `utils.py`: Contains shared utility functions, constants (like `DATA_DIR`), and logging configuration used across the project.
-*   `data_fetching.py`: Handles fetching raw data from external sources (e.g., CoinMetrics API, Yahoo Finance). Includes caching mechanisms to avoid redundant downloads.
-*   `data_processing.py`: Responsible for cleaning, transforming, merging, and resampling the raw data into the `daily_clean.parquet` and `monthly_clean.parquet` datasets used for analysis.
-*   `eda.py`: Provides functions for exploratory data analysis and preprocessing steps necessary before modeling. This includes *leak-free* data winsorization (calculating quantiles based only on the relevant training window to prevent lookahead bias) and stationarity tests (e.g., ADF).
-*   `modeling.py`: Implements the core econometric models, including Ordinary Least Squares (OLS) benchmarks, Vector Error Correction Models (VECM), Autoregressive Distributed Lag (ARDL) models, residual diagnostics, structural break tests, and out-of-sample validation.
-*   `validation.py`: Handles out-of-sample model validation, specifically implementing rolling window validation. Preprocessing steps like winsorization are applied *within* each training window iteration to prevent lookahead bias / data leakage.
-*   `reporting.py`: Contains functions to generate summaries of the analysis results, format them into a structured dictionary, create interpretation text, and handle JSON serialization (including custom encoders for NumPy types).
+*   `config.py`: Manages project settings and API keys, primarily by loading them from an `.env` file.
+*   `data_fetching.py`: Handles fetching raw data from external APIs (e.g., CoinMetrics, Yahoo Finance), including caching mechanisms.
+*   `data_processing.py`: Cleans, transforms, merges, and resamples raw data into analysis-ready `daily_clean.parquet` and `monthly_clean.parquet` datasets.
+*   `diagnostics.py`: Implements model diagnostic tests, such as residual analysis and structural break tests.
+*   `eda.py`: Provides functions for exploratory data analysis, including data winsorization and stationarity tests (e.g., ADF).
+*   `modeling.py`: Currently a minimal file; core modeling logic is in `ols_models.py` and `ts_models.py`.
+*   `ols_models.py`: Implements Ordinary Least Squares (OLS) benchmark models.
+*   `reporting.py`: Generates summaries of analysis results, formats them into a structured dictionary, and handles JSON serialization.
+*   `ts_models.py`: Implements time series models like Vector Error Correction Models (VECM) and Autoregressive Distributed Lag (ARDL) models.
+*   `validation.py`: Handles out-of-sample model validation, particularly rolling window validation, ensuring preprocessing steps are applied correctly within each window to prevent data leakage.
+*   `utils/`: A sub-package containing various utility modules:
+    *   `cache.py`: Caching utilities.
+    *   `api_helpers.py`: Helper functions for interacting with external APIs.
+    *   `file_io.py`: Utilities for file input/output.
 
-## Setup
+## Setup and Installation
 
 1.  **Clone the Repository:**
     ```bash
@@ -81,139 +109,137 @@ ethereum_project/
     ```
 
 2.  **Ensure Correct Python Version:**
-    *   This project is currently **verified to work with Python 3.12**. The dependencies in `requirements-lock.txt` were generated and tested in this environment.
-    *   Make sure you have Python 3.12 installed and accessible (e.g., via `pyenv`, Homebrew, or direct download). You can check with `python3.12 --version`.
+    *   The project is configured to use **Python 3.11** for local development, as specified in the `.python-version` file (used by tools like `pyenv`).
+    *   The `Dockerfile` uses **Python 3.12-slim** for containerized execution.
+    *   Ensure you have Python 3.11 accessible for local work. Check with `python --version` (if `pyenv` is active) or `python3.11 --version`.
 
-3.  **Create and Activate Virtual Environment (using Python 3.12):**
-    It's highly recommended to use a virtual environment.
+3.  **Create and Activate Virtual Environment (using Python 3.11):**
     ```bash
-    # Create the virtual environment using python3.12
-    python3.12 -m venv .venv
+    # Using Python 3.11
+    python3.11 -m venv .venv
 
-    # Activate the virtual environment
-    # On macOS/Linux:
+    # Activate on macOS/Linux:
     source .venv/bin/activate
-    # On Windows (Git Bash):
+    # Activate on Windows (Git Bash):
     # source .venv/Scripts/activate
-    # On Windows (Command Prompt):
-    # .venv\\Scripts\\activate.bat
     ```
+    Ensure `.venv/` is in your `.gitignore`.
 
-    > **Tip  🔒** : Make sure `.venv*/` is listed in your global gitignore (or `.git/info/exclude`) so Git never tracks your local virtual-environment.
-
-4.  **Install Locked Dependencies:**
-    Install the exact dependencies that the project was last verified with:
+4.  **Install Dependencies:**
+    Install the exact dependencies from the lock file for a reproducible environment:
     ```bash
+    pip install --upgrade pip
     pip install -r requirements-lock.txt
     ```
 
-5.  **(Optional) Developer Dependencies:**
-    If you're working on the codebase and need linters/typers etc.:
+5.  **Developer Dependencies (Optional):**
+    For development (running linters, type checkers, tests locally):
     ```bash
     pip install -r requirements-dev.txt
     ```
+    It's recommended to set up `pre-commit` hooks:
+    ```bash
+    pre-commit install
+    ```
 
-    When adding any `# type: ignore`, make sure to follow our
-    [Type Ignore Guidelines](docs/type-ignore-guidelines.md).
-
-6.  **Set Environment Variables (using `.env` file):**
-    The configuration (`src/config.py`) automatically loads API keys and other settings from a `.env` file in the project root directory. Create this file if it doesn't exist.
-
-    *   **Create/Edit `.env` file:** In the project root, create or edit a file named `.env`.
-    *   **Add Keys:** Add your keys to the file like this:
-        ```dotenv
-        # .env file content
-        RAPIDAPI_KEY=your_rapidapi_key_here
-        CM_API_KEY=your_coinmetrics_key_here # Optional - leave blank or comment out if not using Pro
-        ETHERSCAN_API_KEY=your_etherscan_key_here # Optional - add if needed
-        ```
-    *   **Ensure `.gitignore**:** Double-check that your `.gitignore` file contains a line with just `.env` to prevent accidentally committing your keys.
-
-    *(Alternatively, you can still set these as system environment variables, which will override the `.env` file if both are present, but using the `.env` file is recommended for managing project-specific keys.)*
-
-## CI caching tips
-
-- **Bump the cache key whenever you upgrade Python or change `runs-on`**  
-  e.g. include the Python minor version in `venv-${{ runner.os }}-3.11-…`.
-- **Regenerate and commit `requirements-lock.txt` with every dependency change**  
-  A stale lock file causes a stale cache and silent mismatches.
-- **Watch cache storage** (GitHub Actions ▸ *Caches*).  
-  GitHub only keeps the most-recent 10 GB per repo—delete old entries periodically.
-- **Fix nightly full-matrix failures promptly**  
-  The nightly job surfaces OS/Python issues hidden by the slim matrix.
-- **Keep local parity**  
-  Use the `.python-version` file (3.11) or `pyenv`/`asdf` before creating a new venv.
+6.  **Environment Variables (`.env` file):**
+    Create a `.env` file in the project root for API keys and other configurations. `src/config.py` loads these variables.
+    Example `.env` content:
+    ```dotenv
+    RAPIDAPI_KEY=your_rapidapi_key_here
+    CM_API_KEY=your_coinmetrics_key_here # Optional
+    ETHERSCAN_API_KEY=your_etherscan_key_here # Optional
+    ```
+    Ensure `.env` is listed in your `.gitignore` file.
 
 ## Usage
 
 ### Full Pipeline Execution
 
-To run the entire analysis pipeline from data fetching/checking to final report generation:
-
-1.  Ensure your virtual environment is activated.
-2.  Ensure the required environment variables (at least `RAPIDAPI_KEY`) are set.
-3.  Run `main.py` from the project root directory:
+1.  Activate your virtual environment (e.g., `source .venv/bin/activate`).
+2.  Ensure required environment variables (at least `RAPIDAPI_KEY`) are set in your `.env` file or system environment.
+3.  Run `main.py` from the project root:
     ```bash
     python main.py
     ```
-
-This script will:
-*   Check for/fetch raw data (saving to `data/`).
-*   Process data, saving `data/daily_clean.parquet` and `data/monthly_clean.parquet`.
-*   Perform EDA and modeling steps.
-*   Save the analysis results to `final_results.json`.
-*   Print a summary interpretation to the console.
-*   Potentially generate `raw_core_data_plot.png` during the initial data check.
+    This executes the entire pipeline: data fetching/checking, processing, EDA, modeling, and report generation (output to `final_results.json` and console summary).
 
 ### Interactive Research
 
-For exploring data, visualizing results, or developing specific analysis components interactively:
+1.  Open the `ethereum_project` folder in an IDE supporting interactive Python (VS Code, Cursor, PyCharm, Jupyter).
+2.  Ensure the IDE's Python interpreter is set to the project's virtual environment (`.venv/bin/python`).
+3.  Open `research.py`. This file uses `#%%` cell markers for interactive execution.
+    *   The first cell loads data (run `main.py` once first to generate `daily_clean.parquet` and `monthly_clean.parquet`).
+    *   Subsequent cells provide examples for plotting and analysis.
 
-1.  Open the `ethereum_project` folder in an IDE that supports interactive Python execution (like VS Code with the Python extension, Cursor, PyCharm, or Jupyter environments).
-2.  Ensure the IDE's Python interpreter is set to the project's virtual environment (`.venv` - which should be Python 3.12).
-3.  Open `research.py`. This file contains `#%%` delimited cells.
-4.  Run the cells sequentially using the IDE's "Run Cell" or similar commands.
-    *   The first cell loads necessary libraries and the processed `daily_clean` and `monthly_clean` dataframes (assuming `main.py` has been run at least once to generate them).
-    *   Subsequent cells contain example code (like plotting) that can be modified or extended for research purposes.
+## Testing
 
-## Notes on Dependencies and Python Versions
-
-*   **Current Setup (Python 3.12):** The project currently runs reliably using **Python 3.12** and the specific package versions pinned in `requirements-lock.txt`. This includes `numpy==1.26.4` and `statsmodels==0.14.1`. This configuration was established to resolve compatibility issues encountered with newer versions.
-*   **Target Setup (Python 3.13+, Future):** The `requirements-dev.txt` file specifies broader version ranges (e.g., `numpy>=2.1`, `statsmodels@git+...`) targeting **Python 3.13+** and newer library features (like the statsmodels development version). **This target setup is NOT currently guaranteed to work.** Future work is required to update the code in `src/` to be compatible with these newer dependencies (addressing potential API changes or runtime issues) and then regenerate `requirements-lock.txt` based on `requirements-dev.txt` in the newer Python environment.
-*   **`pyarrow`:** Installation might pull pre-releases (nightlies) if necessary for compatibility, especially with newer Python versions. This was previously facilitated by an explicit index URL but may now rely on `--pre` flags or package availability.
-
-## Key Dependencies (Current Working Set)
-
-The project relies on several key Python libraries (versions as per `requirements-lock.txt`):
-
-*   `pandas`: Data manipulation and analysis (e.g., 2.2.3).
-*   `numpy`: Numerical operations (e.g., 1.26.4).
-*   `scipy`: Scientific and technical computing (e.g., 1.15.2).
-*   `statsmodels`: Statistical models, econometric tests (e.g., 0.14.1).
-*   `linearmodels`: Panel data and IV regression models (e.g., 6.1).
-*   `scikit-learn`: Machine learning utilities (e.g., 1.5.2).
-*   `matplotlib`: Plotting library.
-*   `seaborn`: High-level interface for drawing attractive statistical graphics.
-*   `requests`: HTTP requests for data fetching.
-*   `filelock`: Platform-independent file locking for caching.
-*   `pyarrow`: Efficient backend for reading/writing Parquet files with pandas.
-*   `pydantic`: Data validation and settings management (e.g., 1.10.22).
-
-## 🚢 Running with Docker
-
-The repository ships with a lightweight image definition (`Dockerfile`) so you can build
-and test the project in an isolated container:
-
+Tests are run using `pytest`. Ensure development dependencies are installed.
 ```bash
-# build the image
-docker build -t ethereum_project .
+# Run all tests
+pytest
 
-# run the tests inside the image
-docker run --rm ethereum_project pytest -q
-
-# run the main script (override the placeholder key if you need live API calls)
-docker run --rm -e RAPIDAPI_KEY=your_real_key ethereum_project
+# Run tests with coverage report (as in CI)
+pytest --cov=src --cov-report=xml
+# HTML report will be in htmlcov/
 ```
 
-> The image is based on **python 3.12-slim**, installs dependencies from
-> `requirements-lock.txt`, and sets a dummy `RAPIDAPI_KEY` so tests pass without secrets. 
+## Running with Docker
+
+The project includes a `Dockerfile` for building and running in an isolated container environment.
+
+1.  **Build the Docker Image:**
+    ```bash
+    docker build -t ethereum_project .
+    ```
+
+2.  **Run Tests in the Container:**
+    ```bash
+    docker run --rm ethereum_project pytest -q
+    ```
+
+3.  **Run the Main Application in the Container:**
+    ```bash
+    # Using the dummy RAPIDAPI_KEY set in the Dockerfile (may not fetch live data)
+    docker run --rm ethereum_project
+
+    # To use a real API key for live data fetching:
+    docker run --rm -e RAPIDAPI_KEY="your_actual_rapidapi_key" ethereum_project
+    ```
+    The Docker image is based on `python:3.12-slim`.
+
+## Configuration File Details
+
+For detailed contents of project configuration files (e.g., `.gitignore`, `.pre-commit-config.yaml`, `mypy.ini`, GitHub Actions workflows), please refer to **`PROJECT_CONFIG_DETAILS.md`**. This document is specifically curated to provide comprehensive context for LLMs.
+
+## Key Dependencies (from `requirements-lock.txt`)
+
+*   `pandas` (e.g., 2.2.3)
+*   `numpy` (e.g., 1.26.4)
+*   `statsmodels` (e.g., 0.14.1)
+*   `linearmodels` (e.g., 6.1)
+*   `scikit-learn` (e.g., 1.5.2)
+*   `matplotlib` (e.g., 3.10.1)
+*   `seaborn` (e.g., 0.13.2)
+*   `requests` (e.g., 2.32.3)
+*   `pydantic` (e.g., 1.10.22)
+*   `pyarrow` (e.g., 20.0.0)
+*   (See `requirements-lock.txt` for the full list and exact versions.)
+
+## Notes on Python Versions & Dependencies
+
+*   **Current Local Development:** Python 3.11 (see `.python-version`).
+*   **Current Docker Environment:** Python 3.12 (see `Dockerfile`).
+*   **Locked Dependencies (`requirements-lock.txt`):** Generated using `pip-compile` (header indicates Python 3.13 was used for compilation, likely for forward compatibility checks). These are the versions used for stable runs.
+*   **Development Dependencies (`requirements-dev.txt`):** May specify broader ranges or newer versions for tools and future compatibility testing (e.g., targeting Python 3.13+). Compatibility with the main `src/` code is not guaranteed with these bleeding-edge versions without code updates.
+
+## License
+
+This project is licensed under the terms of the [MIT License](LICENSE). (Assuming MIT, please verify `LICENSE` file content).
+
+## Collaboration & CI (For Human Contributors)
+
+*   **Branching**: Work on feature branches (`feature/<topic>`), submit Pull Requests to `main`.
+*   **CI**: GitHub Actions run linters, type checkers, and tests on Python 3.10-3.12 (see `.github/workflows/`).
+*   **Pre-commit**: Use `pre-commit run --all-files` locally before pushing.
+(Details of CI workflows are in `PROJECT_CONFIG_DETAILS.md`) 
