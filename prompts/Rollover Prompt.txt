@@ -1,0 +1,81 @@
+################################################################################
+### Rollover Prompt — refresh **Starter Prompt.txt** & **roadmap.md** for next ticket
+################################################################################
+You are the planning-assistant LLM.
+
+───────────────────────────
+## 1 · Inputs  (fill before sending)
+───────────────────────────
+COMPLETED_TICKET_CODE   = X.Y            # e.g. 4.2
+COMPLETION_DATE         = YYYY-MM-DD     # today (UTC)
+NEXT_TICKET_CODE        = A.B            # e.g. 4.3
+NEXT_TICKET_TITLE       = "…"            # short name
+NEXT_BRANCH             = "…"            # feature branch, e.g. feature/docker-image
+NEXT_TASKS_MARKDOWN     = |              # bullet list for §5 Current ticket
+  • <step 1>
+  • <step 2>
+  • …
+
+LESSONS_LEARNED         = |              # NEW – issues hit & their preventions  
+  • <symptom> → <preventive reminder>
+  • …
+  # If no lessons, leave this block empty – guards stay unchanged.
+
+───────────────────────────
+## 2 · Attachments (required)
+───────────────────────────
+* **`Starter Prompt.txt`** (previous version)    ← supply the whole current file  
+* **roadmap.md** (previous version)           ← supply the whole current file  
+
+> When pasting these files, please preserve Cursor's code citation style if you include excerpts elsewhere (format: `startLine:endLine:filepath`).
+
+───────────────────────────
+## 3 · Required output
+───────────────────────────
+Return **exactly two fenced code blocks** — nothing else.  
+Each block must be a **full drop-in replacement** of the corresponding file.
+
+### ❶ updated `Starter Prompt.txt`
+* Mark **COMPLETED_TICKET_CODE** as **DONE** and remove it from §5.  
+* Insert **NEXT_TICKET_CODE + NEXT_TICKET_TITLE** plus **NEXT_TASKS_MARKDOWN** as the new §5 "Current ticket".  
+* Update checkpoints, dates, branch reminders, and the `SYNC <ticket>` keyword to match *NEXT_TICKET_CODE* and *NEXT_BRANCH*.  
+* **Integrate LESSONS_LEARNED**:  
+  - For each bullet, add a ≤ 120-character guard-rail line under the most relevant existing Guard section  
+    (Quality-guard, Testing, Refactoring, Docker, etc.).  
+  - If no section fits, create a new titled guard (e.g. "### Time-Freezing Guard").  
+  - Prefix each addition with "• ".  
+  - If `LESSONS_LEARNED` is empty, skip this step (leave guards unchanged).
+
+### ❷ `updated roadmap.md`
+* Mark **COMPLETED_TICKET_CODE** row/status as **DONE** (or move to History table).  
+* Activate **NEXT_TICKET_CODE** in the correct section with status **IN PROGRESS**.  
+* Update the checkpoint footer with **COMPLETION_DATE** and the new roadmap status.  
+* Keep every other line unchanged.
+
+⚠️  Do **NOT** add commentary outside the two code blocks.
+
+# Session Rollover / Continuation Prompt
+
+## Previous Session Summary:
+
+*   **Last Main Task/Focus**: [User to briefly summarize, e.g., "Developing VECM analysis functions in `src/ts_models.py`"]
+*   **Key Accomplishments/Changes Made**: [User to list 1-3 key changes or decisions, e.g., "Successfully implemented `run_vecm_analysis` function.", "Decided to use Johansen test for cointegration rank.", "Added initial unit tests for VECM data preparation."]
+*   **Code Files Modified (if known)**: [e.g., `src/ts_models.py`, `tests/test_ts_models.py`]
+*   **Current Git Branch (if applicable)**: [e.g., `feature/vecm-modeling`]
+
+## Current Session Goal & Next Steps:
+
+*   **Immediate Next Task**: [User to define, e.g., "Complete unit tests for `run_vecm_analysis`, covering edge cases and expected outputs."]
+*   **Broader Goal (if part of a larger feature from roadmap)**: [User to mention, e.g., "Continuing work on VECM modeling as per roadmap item X."]
+
+## Important Context Reminders:
+
+*   **Core Project Documentation**: Please remember to refer to **`README.md`** (for overall project structure, setup, usage) and **`PROJECT_CONFIG_DETAILS.md`** (for detailed tool configurations, CI workflows, etc.) if you need to refresh your understanding of the project context. These are in the root directory.
+*   **Library Versions**: Ensure any new code aligns with library versions in `requirements-lock.txt`.
+*   **Interaction Style**: Let's continue our collaboration style (diffs preferred, ask clarifying questions, conventional commits, etc.) as outlined in the full `Starter Prompt.txt`.
+*   **Recent Configuration Changes (If Any & Relevant)**: [User to briefly note if any critical project-level configurations (e.g., a linter rule in `mypy.ini` or a CI step) were changed *manually* since the last full context. Otherwise, state "None" or omit. `PROJECT_CONFIG_DETAILS.md` remains the source of truth for current configs.]
+
+## Specific Question/Request for this Session:
+
+[User to clearly state the first question or task for the LLM in this new session. E.g., "Please help me draft the remaining unit tests for the `run_vecm_analysis` function, focusing on [specific aspects]. The current code for the function is as follows: [optional: paste relevant code snippet if small and helpful]"]
+```
