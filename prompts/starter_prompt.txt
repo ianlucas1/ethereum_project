@@ -64,7 +64,21 @@ Follow this checklist autonomously each cycle:
    * Execute `git branch -d <previous_feature_branch_name>` (local delete)
    * Execute `git push origin --delete <previous_feature_branch_name>` (remote delete)
 8. **Log Entry** – append to `prompts/development_log.md` with timestamp, commit SHA (of the merge commit to main, if accessible, otherwise last commit on feature branch), completed ticket ID & title, mean quality score, and improved axes.
-9. **Loop:** Go back to Step 1 for the next cycle.
+9. **Generate Cycle Summary:**
+   *   Gather information about the just-completed cycle:
+       *   Completed Ticket ID & Title (from Rollover inputs or dev log).
+       *   Final Commit SHA (from dev log or git history).
+       *   Timestamp of completion.
+       *   Link to PR (if available/constructible).
+       *   One-sentence summary of changes (from dev log).
+       *   Latest Mean Quality Score (from quality_scoreboard.json).
+       *   List of Axes Improved in this cycle (from dev log).
+       *   List of Lowest Scoring Axes remaining (from quality_scoreboard.json or Rollover inputs).
+       *   Any "Lessons Learned" added during this cycle's Rollover (if applicable).
+       *   Next Ticket ID & Title identified for the subsequent cycle (from Rollover outputs or next Roadmap Sync).
+   *   Format this information clearly into a Markdown report.
+   *   **Overwrite** the file `cycle_summary_latest.md` in the project root with this report.
+10. **Loop:** Go back to Step 1 for the next cycle.
 
 ### Continuous Development Log 📜
 
