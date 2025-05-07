@@ -34,19 +34,19 @@ Follow this checklist autonomously each cycle:
 
 1. **Run Quality Audit** – execute `prompts/codebase_review_prompt.txt`, produce `prompts/quality_scoreboard.md` & `quality_scoreboard.json`.
 2. **Perfection Test** – if every axis score in `quality_scoreboard.json` is 100 → print `QUALITY PERFECT – all axes 100/100. Halting further tickets.` and stop.
-3. **Roadmap Sync** – execute `prompts/roadmap_status_evaluation_prompt.txt` to locate the active ticket (`Status` = `IN PROGRESS` or first `NOT STARTED`) or confirm HALT.
+3. **Roadmap Sync** – execute `prompts/roadmap_status_evaluation_prompt.txt` to locate the active ticket (`Status` = `IN PROGRESS` or first `NOT STARTED` from `prompts/roadmap.jsonl`) or confirm HALT.
 4. **Rollover Planning** – If the previous step indicated the prior ticket is complete (i.e., no `IN PROGRESS` found and you are selecting a `NOT STARTED` one), run `prompts/rollover_prompt.txt` supplying the latest scoreboard data; choose the next task(s) prioritizing those that address the **lowest‑scoring axes**.
 5. **Implementation Loop (for the identified active ticket ID)**
-   * Create branch `feature/<ticket-id>-<slug>` (where `<ticket-id>` is from `prompts/roadmap.csv`, generate a concise `<slug>` from `Task_Title`).
+   * Create branch `feature/<ticket-id>-<slug>` (where `<ticket-id>` is from `prompts/roadmap.jsonl`, generate a concise `<slug>` from `Task_Title`).
    * **Task Understanding & Planning (Chain-of-Thought):**
-     * Review the current ticket's `Task_Title` and `Notes` from `prompts/roadmap.csv`.
+     * Review the current ticket's `Task_Title` and `Notes` from `prompts/roadmap.jsonl`.
      * If the task is complex (e.g., 'Estimated_Effort' M, L, XL, or involves multiple components): First, outline a brief step-by-step plan (2-5 bullets) in your internal thought process for how you will tackle the task. Consider potential pitfalls based on project context and guardrails.
    * **Iterative Development (Finer Task Decomposition):**
      * For complex tasks with multiple planned sub-steps: Implement and verify each major sub-component incrementally if feasible. You can make intermediate commits *to your feature branch* for each verified sub-component to manage complexity, before the final commit for the whole ticket.
    * **Coding & Testing:**
      * Write/modify code **and associated unit tests (including new assertions for new/changed logic)** for the current step/task. Adhere to all design principles and guards.
    * **Self-Critique:**
-     * Briefly review your changes against the task requirements. Does the solution fully address the current step/task from `prompts/roadmap.csv`? Are there any obvious bugs, style issues, or missed edge cases? Have all acceptance criteria (if any in roadmap notes) been met? Make any necessary adjustments.
+     * Briefly review your changes against the task requirements. Does the solution fully address the current step/task from `prompts/roadmap.jsonl`? Are there any obvious bugs, style issues, or missed edge cases? Have all acceptance criteria (if any in roadmap notes) been met? Make any necessary adjustments.
    * **Local Validation & Retries:**
      * Run `ruff --fix .`, `pytest -q`, `pytest --cov .`.
      * If failures occur (up to 5 retries for the overall ticket):
@@ -63,36 +63,22 @@ Follow this checklist autonomously each cycle:
    * Execute `git pull origin main`
    * Execute `git branch -d <previous_feature_branch_name>` (local delete)
    * Execute `git push origin --delete <previous_feature_branch_name>` (remote delete)
-8. **Log Entry** – append to `prompts/development_log.md` with timestamp, commit SHA (of the merge commit to main, if accessible, otherwise last commit on feature branch), completed ticket ID & title, mean quality score, and improved axes.
-9. **Generate Cycle Summary:**
-   *   Gather information about the just-completed cycle:
-       *   Completed Ticket ID & Title (from Rollover inputs or dev log).
-       *   Final Commit SHA (from dev log or git history).
-       *   Timestamp of completion.
-       *   Link to PR (if available/constructible).
-       *   One-sentence summary of changes (from dev log).
-       *   Latest Mean Quality Score (from quality_scoreboard.json).
-       *   List of Axes Improved in this cycle (from dev log).
-       *   List of Lowest Scoring Axes remaining (from quality_scoreboard.json or Rollover inputs).
-       *   Any "Lessons Learned" added during this cycle's Rollover (if applicable).
-       *   Next Ticket ID & Title identified for the subsequent cycle (from Rollover outputs or next Roadmap Sync).
-   *   Format this information clearly into a Markdown report.
-   *   **Overwrite** the file `cycle_summary_latest.md` in the project root with this report.
-10. **Loop:** Go back to Step 1 for the next cycle.
+8. **Log Entry** – append to `prompts/development_log.md` with timestamp, commit SHA (of the merge commit to main, if accessible, otherwise last commit on feature branch), completed ticket ID & title (from `prompts/roadmap.jsonl`), mean quality score, and improved axes.
+9. **Loop:** Go back to Step 1 for the next cycle.
 
 ### Continuous Development Log 📜
 
 After each completed ticket (after step 7 above) the agent must append an entry to `prompts/development_log.md` containing:
 
 * UTC timestamp & git commit SHA (of the merge commit to main, if accessible, otherwise last commit on feature branch)
-* Completed ticket ID & title (from `prompts/roadmap.csv`)
+* Completed ticket ID & title (from `prompts/roadmap.jsonl`)
 * Mean quality score and any axes improved since the last snapshot
 * One‑sentence summary of implemented changes
 
 ---
 ## Core Project Documents & Context:
 
-**Crucially, before diving into specific tasks, familiarize yourself with the project's structure, setup, current state, and detailed configurations by reviewing:**
+**Crucially, before diving into specific tasks, please familiarize yourself with the project's structure, setup, current state, and detailed configurations by reviewing:**
 
 1. **`README.md`**: Provides a comprehensive overview, setup instructions, module descriptions, and usage guidelines.
 2. **`PROJECT_CONFIG_DETAILS.md`**: Contains the full content of all relevant configuration files (linters, formatters, CI workflows, `.gitignore`, etc.). This is vital for understanding our development environment and standards.
@@ -116,7 +102,7 @@ If a self-generated plan appears naïve / inefficient / an anti-pattern / overly
 • **You Ain't Gonna Need It (YAGNI):** Implement only the functionality defined by the current ticket. Avoid speculative generalization or adding features 'just in case'.
 
 ### Requirements & Ambiguity Guard (Applies to Agent)
-• If a roadmap task description is unclear or too high-level, first attempt to clarify it by examining project documentation (`README.md`, `PROJECT_CONFIG_DETAILS.md`), code comments, and related tasks in `prompts/roadmap.csv`.
+• If a roadmap task description is unclear or too high-level, first attempt to clarify it by examining project documentation (`README.md`, `PROJECT_CONFIG_DETAILS.md`), code comments, and related tasks in `prompts/roadmap.jsonl`.
 • If still uncertain after internal research, proceed by making the most reasonable minimal assumption. Clearly document this assumption in your commit message and, if appropriate, as a TODO comment in the code.
 • **Don't Panic:** If facing repeated failures or high uncertainty, do not make extensive random changes. Pause, re-evaluate the problem and your approach using the Error Explanation & Planning process. It's okay to spend extra 'thought time' to reason out the problem.
 
@@ -168,10 +154,10 @@ If you spot a **new** ≥ medium-impact issue not on the roadmap during your wor
 
 > **[DISCOVERY]**
 > Title | Location | Why | Suggested fix (≤ 4 bullets) | Severity
-> *(Log the discovery details in `prompts/development_log.md`. Optionally, add a new task to `prompts/roadmap.csv` with status `NOT STARTED` and `Medium` or `Low` priority for later consideration. Then, continue with the current primary workflow.)*
+> *(Log the discovery details in `prompts/development_log.md`. Optionally, add a new task to `prompts/roadmap.jsonl` with status `NOT STARTED` and `Medium` or `Low` priority for later consideration. Then, continue with the current primary workflow.)*
 
 ## 4 · Reference
-* The current roadmap is maintained in `prompts/roadmap.csv`. The agent will parse this file as needed.
+* The current roadmap is maintained in `prompts/roadmap.jsonl`. The agent will parse this file as needed (each line is a JSON object).
 * Attached project zip (current snapshot); ask if you need files not visible here.
 * GitHub repo: <https://github.com/ianlucas1/ethereum_project.git>
 * If you feel you lack context, tell me what you need.
@@ -179,7 +165,7 @@ If you spot a **new** ≥ medium-impact issue not on the roadmap during your wor
 ---
 
 ## 5 · Current ticket — **TBD**
-> *This section will be dynamically updated by the `prompts/rollover_prompt.txt` based on `prompts/roadmap.csv`.*
+> *This section will be dynamically updated by the `prompts/rollover_prompt.txt` based on `prompts/roadmap.jsonl`.*
 > *Example if ID '7.1' was next:*
 > **Current ticket — 7.1: Advanced Feature Engineering**
 > * Branch: `feature/7.1-advanced-feature-eng`
