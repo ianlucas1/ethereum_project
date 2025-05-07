@@ -1,0 +1,55 @@
+﻿ID,Parent_ID,Type,Section_Title,Task_Title,Status,Priority,Assigned_To,Estimated_Effort,Start_Date,Target_Date,Completion_Date,PR_Link,Dependencies,Blockers,Notes
+1,-,Section,Architecture & API hygiene,Architecture & API hygiene,DONE,N/A,Agent,N/A,N/A,N/A,2025-02-10,N/A,N/A,N/A,Gate A passed
+1.1,1,Task,Architecture & API hygiene,Public API namespace flattened,DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+1.2,1,Task,Architecture & API hygiene,Settings via pydantic.BaseSettings,DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+1.3,1,Task,Architecture & API hygiene,FastAPI health-check endpoint,DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+GateA,1,Gate,Architecture & API hygiene,Baseline architecture validated,DONE,N/A,Human,N/A,N/A,N/A,2025-02-10,N/A,"1.1,1.2,1.3",N/A,N/A
+2,-,Section,Data-science leakage fixes,Data-science leakage fixes,DONE,N/A,Agent,N/A,N/A,N/A,2025-03-05,N/A,N/A,N/A,Gate B passed
+2.1,2,Task,Data-science leakage fixes,Winsor leak fix,DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+2.2,2,Task,Data-science leakage fixes,Walk-forward split utility,DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+2.3,2,Task,Data-science leakage fixes,Stationarity test windowing,DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+GateB,2,Gate,Data-science leakage fixes,Leakage fixes validated,DONE,N/A,Human,N/A,N/A,N/A,2025-03-05,N/A,"2.1,2.2,2.3",N/A,N/A
+3,-,Section,Reliability & CI,Reliability & CI,DONE,N/A,Agent,N/A,N/A,N/A,2025-04-15,N/A,N/A,N/A,Gate C passed
+3.1,3,Task,Reliability & CI,Retry/backoff wrapper,DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+3.2,3,Task,Reliability & CI,Snapshot unit-tests,DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+3.3,3,Task,Reliability & CI,GitHub Actions matrix (py 3.10-3.12),DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+GateC,3,Gate,Reliability & CI,Reliability suite + CI green,DONE,N/A,Human,N/A,N/A,N/A,2025-04-15,N/A,"3.1,3.2,3.3",N/A,N/A
+4,-,Section,Maintainability & Dev-Experience,Maintainability & Dev-Experience,DONE,N/A,Agent,N/A,N/A,N/A,2024-08-01,N/A,N/A,N/A,Gate D passed
+4.1,4,Task,Maintainability & Dev-Experience,Pre-commit hook stack,DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+4.2,4,Task,Maintainability & Dev-Experience,Split utils.py,DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+4.3,4,Task,Maintainability & Dev-Experience,Add Docker image,DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+4.4,4,Task,Maintainability & Dev-Experience,Introduce mypy --strict,DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+4.4.1,4.4,Sub-Task,Maintainability & Dev-Experience,Add mypy.ini strict config,DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+4.4.2,4.4,Sub-Task,Maintainability & Dev-Experience,Fix type errors in code-base,DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+4.4.3,4.4,Sub-Task,Maintainability & Dev-Experience,Add mypy to pre-commit,DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+4.4.4,4.4,Sub-Task,Maintainability & Dev-Experience,CI step for mypy,DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+4.4.5,4.4,Sub-Task,Maintainability & Dev-Experience,Document any type: ignore,DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+4.4.6,4.4,Sub-Task,Maintainability & Dev-Experience,Merge mypy-ignore docs PR,DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+4.5,4,Task,Maintainability & Dev-Experience,Replace raw requests with Session & global retry,DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+GateD,4,Gate,Maintainability & Dev-Experience,Maintainability / DevX pass,DONE,N/A,Human,N/A,N/A,N/A,2024-08-01,N/A,"4.1,4.2,4.3,4.4,4.5",N/A,N/A
+5,-,Section,Documentation polish,Documentation polish,DONE,N/A,Agent,N/A,N/A,N/A,2024-08-16,N/A,N/A,N/A,Gate E passed
+5.1,5,Task,Documentation polish,Add docstrings and type hints,DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+5.1.1,5.1,Sub-Task,Documentation polish,Add module-level docstrings to all src/*.py files.,DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+5.1.2,5.1,Sub-Task,Documentation polish,Add function/method docstrings (Google style) where missing or unclear.,DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+5.1.3,5.1,Sub-Task,Documentation polish,Ensure all public functions/methods have type hints for args/return values.,DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+5.1.4,5.1,Sub-Task,Documentation polish,Run mypy and ruff check --select DOC to verify.,DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+GateE,5,Gate,Documentation polish,Documentation polish pass,DONE,N/A,Human,N/A,N/A,N/A,2024-08-16,N/A,5.1,N/A,N/A
+6,-,Section,Testing & Coverage,Testing & Coverage,DONE,N/A,Agent,N/A,N/A,N/A,2024-08-17,N/A,N/A,N/A,Gate F passed
+6.1,6,Task,Testing & Coverage,Increase Test Coverage to >= 75%,DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+6.1.1,6.1,Sub-Task,Testing & Coverage,Write tests for src/diagnostics.py,DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,Target Coverage >= 75%
+6.1.2,6.1,Sub-Task,Testing & Coverage,Write tests for src/data_fetching.py (mocking APIs),DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,Target Coverage >= 75%
+6.1.3,6.1,Sub-Task,Testing & Coverage,Write tests for src/ols_models.py,DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,Target Coverage >= 75%
+6.1.4,6.1,Sub-Task,Testing & Coverage,Write tests for src/ts_models.py,DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,Target Coverage >= 75%
+6.1.5,6.1,Sub-Task,Testing & Coverage,Write tests for src/data_processing.py,DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,Target Coverage >= 75%
+6.1.6,6.1,Sub-Task,Testing & Coverage,Write tests for src/validation.py,DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,Target Coverage >= 75%
+6.1.7,6.1,Sub-Task,Testing & Coverage,"Improve tests for src/eda.py, src/utils/* if needed",DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,Target Coverage >= 75%
+6.1.8,6.1,Sub-Task,Testing & Coverage,Verify overall coverage >= 75% using coverage report,DONE,N/A,Agent,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+GateF,6,Gate,Testing & Coverage,Testing & coverage pass,DONE,N/A,Human,N/A,N/A,N/A,2024-08-17,N/A,6.1,N/A,N/A
+NEW_S7_PLAN,-,Milestone,Model Enhancements & Forecasting,Planning: Define Scope for Section 7,IN PROGRESS,High,Human/Agent,S,N/A,N/A,N/A,N/A,GateF,N/A,Define sub-tasks for Section 7
+7,-,Section,Model Enhancements & Forecasting,Model Enhancements & Forecasting,NOT STARTED,High,Agent,XL,N/A,N/A,N/A,N/A,NEW_S7_PLAN,N/A,Section 7 kickoff pending
+7.1,7,Task,Model Enhancements & Forecasting,Advanced Feature Engineering,NOT STARTED,Medium,Agent,M,N/A,N/A,N/A,N/A,NEW_S7_PLAN,N/A,"e.g., interaction terms, lag structures"
+7.2,7,Task,Model Enhancements & Forecasting,Explore Alternative Time Series Models,NOT STARTED,Medium,Agent,L,N/A,N/A,N/A,N/A,NEW_S7_PLAN,N/A,"e.g., Prophet, NBEATS, ML-based forecasts"
+7.3,7,Task,Model Enhancements & Forecasting,Implement Forecasting Module,NOT STARTED,High,Agent,L,N/A,N/A,N/A,N/A,"7.1,7.2",N/A,Generate and store future predictions
+7.4,7,Task,_Model Enhancements & Forecasting,Backtest Forecasting Accuracy,NOT STARTED,High,Agent,M,N/A,N/A,N/A,N/A,7.3,N/A,Use walk-forward validation for forecasts
+GateG,7,Gate,Model Enhancements & Forecasting,Forecasting Capabilities Implemented & Validated,NOT STARTED,N/A,Human,N/A,N/A,N/A,N/A,N/A,"7.1,7.2,7.3,7.4",N/A,N/A
+NEW_S8_PLAN,-,Milestone,Project Review & Next Steps,Planning: Project Review & Future Scope,NOT STARTED,Medium,Human,S,N/A,N/A,N/A,N/A,GateG,N/A,"Review overall project, plan next major phase"
