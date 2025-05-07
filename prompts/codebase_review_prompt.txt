@@ -2,7 +2,7 @@
 # Codebase Review Prompt — **ethereum_project**
 ########################################################################################
 
-Objective: Please conduct a thorough review of the current project codebase. Your primary goals are to identify areas for improvement in terms of best practices, efficiency, clarity, and robustness.
+Objective: Please conduct a thorough review of the current project codebase. Your primary goals are to identify areas for improvement in terms of best practices, efficiency, clarity, and robustness, **using available tools to gather evidence where possible.**
 
 Referential Documents for Standards and Context:
 
@@ -12,40 +12,48 @@ PROJECT_CONFIG_DETAILS.md: For detailed settings of our linters (Ruff, Flake8), 
 
 prompts/starter_prompt.txt: For general collaboration guidelines, code quality expectations (e.g., PEP 8, docstrings, type hints), and design principles (KISS, DRY, YAGNI).
 
+Methodology:
+*   Perform a high-level conceptual review based on project structure and documentation.
+*   **Supplement with targeted checks using available tools:**
+    *   Use `read_file` on key or recently changed modules (e.g., `src/utils/`, core model files) to assess internal clarity, error handling, and docstring quality.
+    *   Use `codebase_search` to look for specific patterns (e.g., `TODO:`, `FIXME:`, potential hardcoded secrets, common anti-patterns).
+    *   If feasible and safe, run relevant static analysis tools via terminal (e.g., `radon cc src -a`, `xenon --max-absolute B src`) and incorporate findings into relevant axis scores. Parse tool output carefully.
+    *   Focus deeper dives on areas identified as weak in previous scoreboards or related to recent changes.
+
 Areas of Focus for Review:
 
 1.  **Adherence to Best Practices & Project Standards**:
-    *   Does the code align with Python best practices (PEP 8, idiomatic Python)?
+    *   Does the code align with Python best practices (PEP 8, idiomatic Python)? (Verify with `ruff check` output if run).
     *   Are project-specific conventions (if any, implied by existing code or `README.md`) followed?
-    *   Are docstrings (Google style) and type hints used effectively and consistently?
+    *   Are docstrings (Google style) and type hints used effectively and consistently? (Check key files with `read_file`).
     *   Is the code aligned with the configurations set in our linting/formatting tools (see `PROJECT_CONFIG_DETAILS.md`)?
-    *   Does the code adhere to design principles like KISS, DRY, YAGNI as outlined in `prompts/starter_prompt.txt`?
+    *   Does the code adhere to design principles like KISS, DRY, YAGNI as outlined in `prompts/starter_prompt.txt`? (Assess conceptually and via targeted file reads).
 
 2.  **Correctness, Robustness & Error Handling**:
-    *   Are there any potential bugs, logical errors, or edge cases not handled?
-    *   Is error handling robust and user-friendly (e.g., clear logging, appropriate exceptions)?
+    *   Are there any potential bugs, logical errors, or edge cases not handled? (Review critical logic paths if possible with `read_file`).
+    *   Is error handling robust and user-friendly (e.g., clear logging, appropriate exceptions)? (Check key functions with `read_file`).
     *   Are there any race conditions or other concurrency issues (if applicable)?
 
 3.  **Efficiency & Performance**:
-    *   Are there any obvious performance bottlenecks (e.g., inefficient loops, redundant computations, suboptimal use of `pandas`/`numpy`)?
+    *   Are there any obvious performance bottlenecks (e.g., inefficient loops, redundant computations, suboptimal use of `pandas`/`numpy`)? (Review data processing/modeling files with `read_file`).
     *   Can any sections be optimized for speed or memory usage without sacrificing clarity?
 
 4.  **Clarity, Readability & Maintainability**:
-    *   Is the code easy to understand? Are variable and function names clear and descriptive?
+    *   Is the code easy to understand? Are variable and function names clear and descriptive? (Assess via `read_file` on sample modules).
     *   Is there unnecessary complexity? Can any parts be simplified for better readability? (KISS)
     *   Does the code behave in an intuitive and predictable manner? (Principle of Least Astonishment)
     *   Are modules and functions well-organized and cohesive?
-    *   Is there sufficient commenting for non-obvious logic, while avoiding over-commenting obvious code?
+    *   Is there sufficient commenting for non-obvious logic, while avoiding over-commenting obvious code? (Assess via `read_file`).
 
 5.  **Modularity & Reusability**:
     *   Are there opportunities to refactor code into more reusable functions or classes? (DRY)
-    *   Is there duplicated code that could be centralized? (DRY)
-    *   Do modules and functions have a single, well-defined responsibility? (Single Responsibility Principle)
+    *   Is there duplicated code that could be centralized? (DRY - Use `codebase_search` for similar snippets if possible).
+    *   Do modules and functions have a single, well-defined responsibility? (Single Responsibility Principle - Assess conceptually and via file structure/reads).
 
-6.  **Testability & Test Coverage (Conceptual)**:
-    *   While you may not run the tests, does the code seem structured in a way that is easy to unit test?
+6.  **Testability & Test Coverage (Conceptual & Tool-Assisted)**:
+    *   Does the code seem structured in a way that is easy to unit test?
     *   Are there any parts that would be particularly difficult to test? (Suggesting refactoring if so).
-    *   Are new features and modifications adequately covered by unit tests?
+    *   Are new features and modifications adequately covered by unit tests? (Check `pytest --cov` output if available from last run, or conceptually review test files for relevant modules).
 
 7.  **Consistency**:
     *   Beyond automated checks, is there consistency in coding style, naming conventions, and architectural patterns across different modules?
@@ -56,7 +64,7 @@ Areas of Focus for Review:
 
 Quality Scoring Fly‑Wheel 🔄
 
-Before issuing detailed feedback, compute a 0–100 score for each of the twelve quality axes listed below and produce the Scoreboard Table plus JSON snapshot.Write artefacts to:
+Before issuing detailed feedback, compute a 0–100 score for each of the twelve quality axes listed below, **justifying scores with specific evidence from tool outputs or file analysis where possible.** Produce the Scoreboard Table plus JSON snapshot. Write artefacts to:
 
 prompts/quality_scoreboard.md – append a new markdown row each run, preserving history.
 
@@ -64,18 +72,18 @@ quality_scoreboard.json – overwrite with the latest snapshot.
 
 Evaluation Axes
 
-1.  **Clarity & Readability** (Simplicity, intuitiveness, naming, comments)
-2.  **Documentation Quality** (`README.md`, `PROJECT_CONFIG_DETAILS.md`, inline docs, API refs, docstrings)
-3.  **Coding‑Style Consistency** (PEP 8, formatting, idioms, project conventions)
-4.  **Complexity Management** (Avoids unnecessary complexity, KISS principle)
-5.  **Modularity & Cohesion** (SRP, DRY, reusability, separation of concerns)
-6.  **Test Coverage & Quality** (Presence, relevance, and thoroughness of unit tests)
-7.  **Performance & Efficiency** (No obvious bottlenecks, optimal data structures/algorithms)
-8.  **Error Handling & Resilience** (Graceful failure, clear logging, robust exceptions)
-9.  **Dependency & Security Hygiene** (CVEs, deprecated libs, SBOM, basic secure coding practices like input validation if applicable, no hardcoded secrets in code)
-10. **Scalability & Extensibility** (Architecture flexibility, OCP considerations)
-11. **Version‑Control Practices** (Commit messages, branching, tagging - evaluated conceptually)
-12. **Overall Maintainability** (Ease of onboarding & long-term upkeep)
+1.  **Clarity & Readability** (Simplicity, intuitiveness, naming, comments - Evidence: `read_file` samples, `radon`/`xenon` complexity if run)
+2.  **Documentation Quality** (`README.md`, `PROJECT_CONFIG_DETAILS.md`, inline docs, API refs, docstrings - Evidence: `read_file` samples, review of top-level docs)
+3.  **Coding‑Style Consistency** (PEP 8, formatting, idioms, project conventions - Evidence: `ruff`/`flake8` results if run, conceptual review)
+4.  **Complexity Management** (Avoids unnecessary complexity, KISS principle - Evidence: `radon`/`xenon` if run, conceptual review)
+5.  **Modularity & Cohesion** (SRP, DRY, reusability, separation of concerns - Evidence: File structure, `codebase_search` for duplication, conceptual review)
+6.  **Test Coverage & Quality** (Presence, relevance, and thoroughness of unit tests - Evidence: `pytest --cov` results if available, conceptual review of test files)
+7.  **Performance & Efficiency** (No obvious bottlenecks, optimal data structures/algorithms - Evidence: Review of data-heavy code via `read_file`)
+8.  **Error Handling & Resilience** (Graceful failure, clear logging, robust exceptions - Evidence: Review of key functions via `read_file`)
+9.  **Dependency & Security Hygiene** (CVEs, deprecated libs, SBOM, basic secure coding practices like input validation if applicable, no hardcoded secrets in code - Evidence: `requirements-lock.txt`, `safety check` if run, `codebase_search` for secrets)
+10. **Scalability & Extensibility** (Architecture flexibility, OCP considerations - Evidence: Conceptual review of design)
+11. **Version‑Control Practices** (Commit messages, branching, tagging - evaluated conceptually based on recent history if observable)
+12. **Overall Maintainability** (Ease of onboarding & long-term upkeep - Holistic assessment based on other axes)
 
 Scoreboard Table (markdown)
 
@@ -85,7 +93,7 @@ Scoreboard Table (markdown)
 | …  | …                       |             … | …                    |
 | 12 | Overall Maintainability |               |                      |
 
-After the table, include Strengths, Weaknesses, Detailed Recommendations, Top‑Priority Fixes, and Overall Quality Grade (mean score).If every axis scores 100, output the exact line:
+After the table, include Strengths, Weaknesses, Detailed Recommendations, Top‑Priority Fixes, and Overall Quality Grade (mean score). If every axis scores 100, output the exact line:
 QUALITY PERFECT – all axes 100/100. Halting further tickets. and terminate the cycle.
 
 Requested Output Format:

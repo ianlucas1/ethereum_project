@@ -1,15 +1,15 @@
 ################################################################################
-### Rollover Prompt — refresh prompts/starter_prompt.txt & update prompts/roadmap.csv for next ticket
+### Rollover Prompt — refresh prompts/starter_prompt.txt & update prompts/roadmap.jsonl for next ticket
 ################################################################################
 You are the planning-assistant LLM.
 
 ───────────────────────────
 ## 1 · Inputs  (fill before sending)
 ───────────────────────────
-COMPLETED_TICKET_ID     = X.Y            # e.g., 4.4.6 (ID from prompts/roadmap.csv)
+COMPLETED_TICKET_ID     = X.Y            # e.g., 4.4.6 (ID from prompts/roadmap.jsonl)
 COMPLETION_DATE         = YYYY-MM-DD     # today (UTC)
-NEXT_TICKET_ID          = A.B            # e.g., 4.5 (ID for the next ticket from prompts/roadmap.csv)
-NEXT_TICKET_TITLE       = "…"            # Task_Title for NEXT_TICKET_ID from prompts/roadmap.csv
+NEXT_TICKET_ID          = A.B            # e.g., 4.5 (ID for the next ticket from prompts/roadmap.jsonl)
+NEXT_TICKET_TITLE       = "…"            # Task_Title for NEXT_TICKET_ID from prompts/roadmap.jsonl
 NEXT_BRANCH_SLUG        = "…"            # e.g., session-retry (for feature/<ticket-id>-<slug>)
 NEXT_TASKS_MARKDOWN     = |              # bullet list for §5 Current ticket in Starter Prompt
   • <step 1 for next ticket>
@@ -17,7 +17,7 @@ NEXT_TASKS_MARKDOWN     = |              # bullet list for §5 Current ticket in
   • …
 
 QUALITY_SNAPSHOT_PATH   = prompts/quality_scoreboard.md   # auto-appended scoreboard history
-LOW_SCORING_AXES        = |              # list from latest scoreboard (≤ 4 axes)
+LOW_SCORING_AXES        = |              # list from latest scoreboard (≤ 4 axes, likely from quality_scoreboard.json)
   • <axis 1> (score <value>)
   • <axis 2> (score <value>)
   • …
@@ -31,7 +31,7 @@ LESSONS_LEARNED         = |              # issues hit & their preventions
 ## 2 · Attachments (required)
 ───────────────────────────
 * **`prompts/starter_prompt.txt`** (previous version)    ← supply the whole current file
-* **`prompts/roadmap.csv`** (previous version)   ← supply the whole current file
+* **`prompts/roadmap.jsonl`** (previous version)   ← supply the whole current file
 
 > When pasting these files, please preserve Cursor's code citation style if you include excerpts elsewhere (format: `startLine:endLine:filepath`).
 
@@ -45,7 +45,7 @@ Each block must be a **full drop-in replacement** of the corresponding file.
 * Mark **COMPLETED_TICKET_ID** as **DONE** and remove it from §5.
 * Insert **NEXT_TICKET_ID + NEXT_TICKET_TITLE** plus **NEXT_TASKS_MARKDOWN** as the new §5 "Current ticket".
 * Update branch reminders to `feature/<NEXT_TICKET_ID>-<NEXT_BRANCH_SLUG>`.
-* Update the `SYNC <ticket>` keyword to match *NEXT_TICKET_ID*.
+* Update the `SYNC <ticket>` keyword (if used) to match *NEXT_TICKET_ID*.
 * **Integrate LESSONS_LEARNED**:
   - For each bullet, add a ≤ 120-character guard-rail line under the most relevant existing Guard section
     (Quality-guard, Testing, Refactoring, Docker, etc.).
@@ -53,15 +53,17 @@ Each block must be a **full drop-in replacement** of the corresponding file.
   - Prefix each addition with "• ".
   - If `LESSONS_LEARNED` is empty, skip this step (leave guards unchanged).
 
-### ❷ `updated prompts/roadmap.csv`
-*   **Parse the input `prompts/roadmap.csv` file.**
-*   **Locate the row** where the `ID` column matches `COMPLETED_TICKET_ID`.
-    *   Update its `Status` column to `DONE`.
-    *   Update its `Completion_Date` column with `COMPLETION_DATE`.
-*   **Locate the row** where the `ID` column matches `NEXT_TICKET_ID`.
-    *   Update its `Status` column to `IN PROGRESS`.
-    *   If its `Start_Date` is "N/A" or empty, update it with `COMPLETION_DATE` (as the start of the next ticket).
-*   **Output the entire modified CSV content.** Ensure correct CSV formatting, especially quoting for fields containing commas.
-*   Keep every other row and cell unchanged.
+### ❷ `updated prompts/roadmap.jsonl`
+*   **Parse the input `prompts/roadmap.jsonl` file** line by line into a list of JSON objects.
+*   **Iterate through the list of objects:**
+    *   Find the object where the `ID` value matches `COMPLETED_TICKET_ID`.
+        *   Update its `Status` value to `DONE`.
+        *   Update its `Completion_Date` value with `COMPLETION_DATE`.
+    *   Find the object where the `ID` value matches `NEXT_TICKET_ID`.
+        *   Update its `Status` value to `IN PROGRESS`.
+        *   If its `Start_Date` value is "N/A" or empty, update it with `COMPLETION_DATE` (as the start of the next ticket).
+*   **Reconstruct the output file content:** Convert each (potentially modified) JSON object back into a string and join them with newline characters (`\n`).
+*   **Output the entire modified JSONL content.** Ensure each line is a valid JSON object.
+*   Keep every other object/line unchanged.
 
 ⚠️  Do **NOT** add commentary outside the two code blocks.
