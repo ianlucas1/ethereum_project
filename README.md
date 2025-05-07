@@ -242,4 +242,4 @@ This project is licensed under the terms of the [MIT License](LICENSE). (Assumin
 *   **Branching**: Work on feature branches (`feature/<topic>`), submit Pull Requests to `main`.
 *   **CI**: GitHub Actions run linters, type checkers, and tests on Python 3.10-3.12 (see `.github/workflows/`).
 *   **Pre-commit**: Use `pre-commit run --all-files` locally before pushing.
-(Details of CI workflows are in `PROJECT_CONFIG_DETAILS.md`) 
+(Details of CI workflows are in `PROJECT_CONFIG_DETAILS.md`)
