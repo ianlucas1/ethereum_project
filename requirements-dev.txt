@@ -4,6 +4,8 @@ ruff==0.0.241
 mypy==1.15.0
 coverage==6.4.1
 pip-tools==6.8.0
-radon==5.1.0     # cyclomatic complexity
-xenon==0.7.0     # maintainability score
-safety==2.3.5    # CVE scanner
+radon==5.1.0          # cyclomatic complexity
+xenon==0.9.1          # maintainability score (allows PyYAML 6)
+safety==2.3.5         # CVE scanner
+cython==0.29.37       # needed to build PyYAML<6 wheel
+
