@@ -155,4 +155,4 @@ data/
 type_ignore_occurrences.txt
 
 # ... other ignores ...
-cycle_summary_latest.md
+cycle_summary_latest.md.ci-venv/
