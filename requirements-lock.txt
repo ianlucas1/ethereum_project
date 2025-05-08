@@ -46,6 +46,8 @@ idna==3.10
     # via requests
 iniconfig==2.1.0
     # via pytest
+joblib==1.5.0
+    # via scikit-learn
 kiwisolver==1.4.8
     # via matplotlib
 mando==0.6.4
@@ -65,6 +67,7 @@ numpy==1.26.4
     #   matplotlib
     #   pandas
     #   patsy
+    #   scikit-learn
     #   scipy
     #   statsmodels
 packaging==21.3
@@ -133,14 +136,20 @@ ruff==0.0.241
     # via -r requirements-dev.txt
 safety==2.3.5
     # via -r requirements-dev.txt
+scikit-learn==1.5.0
+    # via -r requirements-dev.txt
 scipy==1.15.3
-    # via statsmodels
+    # via
+    #   scikit-learn
+    #   statsmodels
 six==1.17.0
     # via
     #   mando
     #   python-dateutil
 statsmodels==0.14.2
     # via -r requirements-dev.txt
+threadpoolctl==3.6.0
+    # via scikit-learn
 typing-extensions==4.13.2
     # via
     #   mypy
