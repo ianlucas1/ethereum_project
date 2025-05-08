@@ -1,69 +1,40 @@
 ################################################################################
-### Rollover Prompt — refresh prompts/starter_prompt.txt & update prompts/roadmap.jsonl for next ticket
+### Rollover Prompt — automatic context refresh
 ################################################################################
-You are the planning-assistant LLM.
+You are in the **rollover phase** between tickets.
 
-───────────────────────────
-## 1 · Inputs  (fill before sending)
-───────────────────────────
-COMPLETED_TICKET_ID     = X.Y            # e.g., 4.4.6 (ID from prompts/roadmap.jsonl)
-COMPLETION_DATE         = YYYY-MM-DD     # today (UTC)
-NEXT_TICKET_ID          = A.B            # e.g., 4.5 (ID for the next ticket from prompts/roadmap.jsonl)
-NEXT_TICKET_TITLE       = "…"            # Task_Title for NEXT_TICKET_ID from prompts/roadmap.jsonl
-NEXT_BRANCH_SLUG        = "…"            # e.g., session-retry (for feature/<ticket-id>-<slug>)
-NEXT_TASKS_MARKDOWN     = |              # bullet list for §5 Current ticket in Starter Prompt
-  • <step 1 for next ticket>
-  • <step 2 for next ticket>
+────────────────────────────
+## 1 · Inputs (to fill)
+────────────────────────────
+COMPLETED_TICKET_ID   = X.Y
+COMPLETION_DATE       = YYYY-MM-DD
+NEXT_TICKET_ID        = A.B
+NEXT_TICKET_TITLE     = "…"
+NEXT_BRANCH_SLUG      = "…"      # slug used in feature/<id>-<slug>
+
+NEXT_TASKS_MARKDOWN   = |
   • …
 
-QUALITY_SNAPSHOT_PATH   = prompts/quality_scoreboard.md   # auto-appended scoreboard history
-LOW_SCORING_AXES        = |              # list from latest scoreboard (≤ 4 axes, likely from quality_scoreboard.json)
-  • <axis 1> (score <value>)
-  • <axis 2> (score <value>)
+LOW_SCORING_AXES      = |        # from quality_scoreboard.json
   • …
 
-LESSONS_LEARNED         = |              # issues hit & their preventions
-  • <symptom> → <preventive reminder>
+LESSONS_LEARNED       = |
   • …
-  # If no lessons, leave this block empty – guards stay unchanged.
 
-───────────────────────────
+────────────────────────────
 ## 2 · Attachments (required)
-───────────────────────────
-* **`prompts/starter_prompt.txt`** (previous version)    ← supply the whole current file
-* **`prompts/roadmap.jsonl`** (previous version)   ← supply the whole current file
+────────────────────────────
+* `prompts/starter_prompt.txt`   (pre-rollover version)
+* `prompts/roadmap.jsonl`        (pre-rollover version)
 
-> When pasting these files, please preserve Cursor's code citation style if you include excerpts elsewhere (format: `startLine:endLine:filepath`).
-
-───────────────────────────
-## 3 · Required output
-───────────────────────────
-Return **exactly two fenced code blocks** — nothing else.
-Each block must be a **full drop-in replacement** of the corresponding file.
-
-### ❶ updated `prompts/starter_prompt.txt`
-* Mark **COMPLETED_TICKET_ID** as **DONE** and remove it from §5.
-* Insert **NEXT_TICKET_ID + NEXT_TICKET_TITLE** plus **NEXT_TASKS_MARKDOWN** as the new §5 "Current ticket".
-* Update branch reminders to `feature/<NEXT_TICKET_ID>-<NEXT_BRANCH_SLUG>`.
-* Update the `SYNC <ticket>` keyword (if used) to match *NEXT_TICKET_ID*.
-* **Integrate LESSONS_LEARNED**:
-  - For each bullet, add a ≤ 120-character guard-rail line under the most relevant existing Guard section
-    (Quality-guard, Testing, Refactoring, Docker, etc.).
-  - If no section fits, create a new titled guard (e.g. "### Time-Freezing Guard").
-  - Prefix each addition with "• ".
-  - If `LESSONS_LEARNED` is empty, skip this step (leave guards unchanged).
-
-### ❷ `updated prompts/roadmap.jsonl`
-*   **Parse the input `prompts/roadmap.jsonl` file** line by line into a list of JSON objects.
-*   **Iterate through the list of objects:**
-    *   Find the object where the `ID` value matches `COMPLETED_TICKET_ID`.
-        *   Update its `Status` value to `DONE`.
-        *   Update its `Completion_Date` value with `COMPLETION_DATE`.
-    *   Find the object where the `ID` value matches `NEXT_TICKET_ID`.
-        *   Update its `Status` value to `IN PROGRESS`.
-        *   If its `Start_Date` value is "N/A" or empty, update it with `COMPLETION_DATE` (as the start of the next ticket).
-*   **Reconstruct the output file content:** Convert each (potentially modified) JSON object back into a string and join them with newline characters (`\n`).
-*   **Output the entire modified JSONL content.** Ensure each line is a valid JSON object.
-*   Keep every other object/line unchanged.
-
-⚠️  Do **NOT** add commentary outside the two code blocks.
+────────────────────────────
+## 3 · Return exactly TWO code blocks
+────────────────────────────
+1️⃣ **updated prompts/starter_prompt.txt**  
+   • Remove COMPLETED_TICKET from §5  
+   • Insert NEXT_TICKET + NEXT_TASKS_MARKDOWN as new §5  
+   • Integrate LESSONS_LEARNED bullets into relevant guard sections  
+2️⃣ **updated prompts/roadmap.jsonl**  
+   • Set COMPLETED_TICKET.Status → "DONE", Completion_Date = COMPLETION_DATE  
+   • Set NEXT_TICKET.Status     → "IN PROGRESS", Start_Date = COMPLETION_DATE  
+   • Keep all other lines unchanged (one JSON object per line).  
