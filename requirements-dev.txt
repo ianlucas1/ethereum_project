@@ -4,6 +4,7 @@ ruff==0.0.241
 mypy==1.15.0
 coverage==6.4.1
 pip-tools==6.8.0
+pre-commit==3.7.0     # runs git hooks
 radon==5.1.0          # cyclomatic complexity
 xenon==0.9.1          # maintainability score (allows PyYAML 6)
 safety==2.3.5         # CVE scanner
