@@ -4,7 +4,7 @@ This document consolidates the content of various configuration files in the pro
 
 ## `.gitignore`
 
-```
+```gitignore
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -142,24 +142,31 @@ cython_debug/
 # Cursor / IDX specific
 .idx/
 
-# Data files (Optional - uncomment if you DON'T want data in Git)
+# --- Project-specific Generated Outputs, Data, and Cache ---
+# Ignore all contents of the data directory by default
+data/
+
+# Specific patterns for generated data/output files (mostly within data/)
 data/*.parquet
 data/*.csv
 final_results.json
 raw_core_data_plot.png
 
-# Cache lock files
+# Cache lock files (often in data/)
 data/*.lock
 data/*.tmp
+
+# Project-specific cache files
+.qa_audit_cache
 
 # OS generated files
 .DS_Store
 Thumbs.db
 
-# Ignore local cache directory
-data/
-
 type_ignore_occurrences.txt
+
+# ... other ignores ...
+cycle_summary_latest.md.ci-venv/
 ```
 
 ## `.pre-commit-config.yaml`
@@ -167,43 +174,45 @@ type_ignore_occurrences.txt
 ```yaml
 # .pre-commit-config.yaml
 repos:
--   repo: https://github.com/astral-sh/ruff-pre-commit
-    # Ruff version. Must be kept in sync with installed version.
-    rev: v0.11.8 # Match the version installed via pip
+  # --------------------------------------------------------------------- #
+  # Ruff (formatter + linter) — keep version in sync with requirements     #
+  # --------------------------------------------------------------------- #
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.0.241            # ruff==0.0.241 in requirements-dev.txt
     hooks:
-    # Run the formatter.
-    -   id: ruff-format
-    # Run the linter.
-    -   id: ruff
-        args: [--fix, --exit-non-zero-on-fix] # Auto-fix and fail if fixes are made
+      - id: ruff             # does both linting & formatting
+        args: [--fix, --exit-non-zero-on-fix]   # auto-fix and fail if fixes made
 
-- repo: https://github.com/pycqa/flake8
-  rev: 6.1.0
-  hooks:
-    - id: flake8
-      additional_dependencies:
-        - flake8-bugbear>=23.9.16
-      args:
-        - --max-line-length=88
-        - --ignore=E203,E501,W503
+  # --------------------------------------------------------------------- #
+  # Flake8 — extra opinionated linting (Ruff already covers most rules)    #
+  # --------------------------------------------------------------------- #
+  - repo: https://github.com/pycqa/flake8
+    rev: 6.1.0
+    hooks:
+      - id: flake8
+        additional_dependencies:
+          - flake8-bugbear>=23.9.16
+        args:
+          - --max-line-length=88
+          - --ignore=E203,E501,W503
 
--   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.15.0          # keep in sync with pyproject/requirements
+  # --------------------------------------------------------------------- #
+  # MyPy strict static type-checking                                        #
+  # --------------------------------------------------------------------- #
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.15.0                 # keep in sync with requirements-dev.txt
     hooks:
       - id: mypy
         name: mypy (strict)
-        pass_filenames: false       # run once, let mypy discover files itself
+        pass_filenames: false     # run once; MyPy discovers files itself
         additional_dependencies:
-          # runtime-only extras so CI can run without global stubs
           - "mypy==1.15.0"
           - "pydantic>=1.10,<2"   # v1 plugin only
-          - "types-requests"     # silence requests import
+          - "types-requests"      # silence requests import
         args:
           - "--config-file"
           - "mypy.ini"
           - "src"
-
-# ... existing code ...
 ```
 
 ## `.python-version`
@@ -214,7 +223,7 @@ repos:
 
 ## `.dockerignore`
 
-```
+```dockerignore
 # Python byte-code / caches
 __pycache__/
 *.py[cod]
@@ -291,7 +300,7 @@ ignore_missing_imports = True
 extra-index-url = https://pypi.fury.io/arrow-nightlies/
 ```
 
-## `.github/workflows/ci.yml`
+## `.github/workflows/ci.yml` (General CI)
 
 ```yaml
 name: Python CI
@@ -305,57 +314,59 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.10", "3.11", "3.12"] # Test across supported versions
+        python-version: ["3.10", "3.11", "3.12"]  # test across supported versions
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-        cache: 'pip'
-        cache-dependency-path: requirements-lock.txt
+      - uses: actions/checkout@v4
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements-lock.txt
-        pip install pytest-cov
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: requirements-lock.txt
 
-    - name: Lint with Ruff (optional, good practice)
-      run: |
-        pip install ruff
-        ruff check .
-        ruff format --check .
+      # ---------- dependency install ---------------------------------------------------------
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-lock.txt
+          pip install pytest-cov
 
-    - name: Test with pytest and generate coverage report
-      env:
-        RAPIDAPI_KEY: "dummy_key_for_ci"
-        CM_API_KEY: ""
-        ETHERSCAN_API_KEY: ""
-      if: matrix.os != 'macos-latest' || matrix.python-version == '3.10'
-      run: |
-        pytest --cov=src --cov-report=xml
+      # ---------- lint -----------------------------------------------------------------------
+      - name: Lint with Ruff (optional, good practice)
+        run: |
+          pip install ruff==0.0.241      # same version used in local dev hooks
+          ruff .                         # no --check flag in this version
 
-    - name: Test with pytest (no coverage)
-      env:
-        RAPIDAPI_KEY: "dummy_key_for_ci"
-        CM_API_KEY: ""
-        ETHERSCAN_API_KEY: ""
-      if: matrix.os == 'macos-latest' && matrix.python-version != '3.10'
-      run: |
-        pytest -q
+      # ---------- tests ----------------------------------------------------------------------
+      - name: Test with pytest and generate coverage report
+        if: matrix.os != 'macos-latest' || matrix.python-version == '3.10'
+        env:
+          RAPIDAPI_KEY: dummy_key_for_ci
+          CM_API_KEY: ""
+          ETHERSCAN_API_KEY: ""
+        run: pytest --cov=src --cov-report=xml
 
-    - name: Upload coverage reports to Codecov
-      if: matrix.os != 'macos-latest' || matrix.python-version == '3.10'
-      uses: codecov/codecov-action@v4.0.1
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        slug: ${{ github.repository }}
-        fail_ci_if_error: true
+      - name: Test with pytest (no coverage)
+        if: matrix.os == 'macos-latest' && matrix.python-version != '3.10'
+        env:
+          RAPIDAPI_KEY: dummy_key_for_ci
+          CM_API_KEY: ""
+          ETHERSCAN_API_KEY: ""
+        run: pytest -q
+
+      # ---------- coverage upload ------------------------------------------------------------
+      - name: Upload coverage reports to Codecov
+        if: matrix.os != 'macos-latest' || matrix.python-version == '3.10'
+        uses: codecov/codecov-action@v4.0.1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: ${{ github.repository }}
+          fail_ci_if_error: true
 ```
 
-## `.github/workflows/python-ci.yml`
+## `.github/workflows/python-ci.yml` (Main Branch Focused CI)
 
 ```yaml
 name: Python CI
@@ -530,4 +541,3 @@ jobs:
           tags: ethereum_project:test
           load: false         # don't load into local Docker daemon
           push: false
-``` 

@@ -2,122 +2,82 @@
 # Codebase Review Prompt — **ethereum_project**
 ########################################################################################
 
-Objective: Please conduct a thorough review of the current project codebase. Your primary goals are to identify areas for improvement in terms of best practices, efficiency, clarity, and robustness, **using available tools to gather evidence where possible.**
+# Phase 1: Codebase Review Prompt
 
-Referential Documents for Standards and Context:
+## Overview  
+**Goal:** Perform a comprehensive static review of the repository at its current HEAD commit.  
+**Scope:** All source code, configuration, and documentation in the repo. Focus on areas highlighted by the previous audit while also covering general best practices.  
+**Deterministic Output:** Pin the full commit SHA under review and base all analysis on this exact revision. Avoid using any data that could change between runs.  
+**Constraints:** Limit the exploration to ≤200 lines of file content read and ≤10 external calls to ensure efficiency.  
 
-README.md: For project overview, module descriptions, and intended architecture.
+## Quality Axes and Checks  
+Evaluate the codebase across the following quality axes. For each axis, run the specified checks and gather findings.  
 
-PROJECT_CONFIG_DETAILS.md: For detailed settings of our linters (Ruff, Flake8), formatter (Ruff format), type checker (MyPy), and other development tools. Adherence to these configurations is key.
+1. **Documentation & Metadata**  
+   - Verify that the README (and any docs) accurately describe setup, usage, and dependencies. Ensure that instructions (e.g., installation steps or examples) align with the actual code and requirements. *(For example, if the README lists a library or command, confirm it exists and is correct in the repository.)*  
+   - Cross-check declared dependencies and versions in the README against the actual `requirements.txt` / environment files. **Flag** any mismatches or drift (e.g., a package version in README that differs from the pinned requirement).  
+   - Inspect the LICENSE file for completeness. **Assert** that it has correct project metadata (year, author, etc.) with no placeholder or template text. If placeholders (like “\[year\]” or boilerplate names) are present instead of real data, **flag** this as an issue.  
+   - **Evaluate** the overall documentation quality: Are usage examples up-to-date and working? Is there any missing information (e.g., contribution guidelines, changelog)? Consider performing a lightweight “hello-world” walkthrough using the docs (mentally simulate following the README step-by-step) to see if anything is confusing or incorrect.  
+   - **Score Criterion:** High score if documentation is clear, correct, and complete (including a proper LICENSE). Deduct points for stale instructions, missing info, or metadata issues.  
 
-prompts/starter_prompt.txt: For general collaboration guidelines, code quality expectations (e.g., PEP 8, docstrings, type hints), and design principles (KISS, DRY, YAGNI).
+2. **Code Quality & Maintainability**  
+   - **Examine** code style consistency and linting: If a linter or formatter is configured (e.g. Ruff, Black), ensure its configuration is consistent. **Check** specifically for the Ruff version discrepancy noted in the audit: compare the version pinned in `pyproject.toml` or `requirements.txt` against the version referenced in any config (like `.pre-commit-config.yaml`). **Flag** any version mismatches or outdated pins.  
+   - Scan for common code smells or maintainability issues: overly complex functions, duplicated code, or obvious bugs. **Identify** any “orphan” modules or files (e.g. modules like `modeling.py` that are never imported or used). Such dead code should be highlighted as cleanup targets.  
+   - **Assess** project structure and clarity: Are modules and functions well-organized? Is naming self-explanatory? Check if the code adheres to standard conventions and if the repository structure is logical (for example, no miscellaneous scripts floating without purpose).  
+   - Optionally, **visualize** module relationships: If feasible, generate a simple module dependency graph (e.g., using PlantUML syntax) to illustrate how internal modules interact. This can reveal unusual couplings or unused components. *(This step is optional and for insight; skip if time is limited or not applicable.)*  
+   - **Score Criterion:** High score if code is clean, well-structured, and free of obvious issues, and all linting/tool configurations are in sync. Deduct for inconsistent styles, unused code, or maintainability red flags.  
 
-Methodology:
-*   Perform a high-level conceptual review based on project structure and documentation.
-*   **Supplement with targeted checks using available tools:**
-    *   Use `read_file` on key or recently changed modules (e.g., `src/utils/`, core model files) to assess internal clarity, error handling, and docstring quality.
-    *   Use `codebase_search` to look for specific patterns (e.g., `TODO:`, `FIXME:`, potential hardcoded secrets, common anti-patterns).
-    *   If feasible and safe, run relevant static analysis tools via terminal (e.g., `radon cc src -a`, `xenon --max-absolute B src`) and incorporate findings into relevant axis scores. Parse tool output carefully.
-    *   Focus deeper dives on areas identified as weak in previous scoreboards or related to recent changes.
+3. **Security & Dependency Management**  
+   - **Scan** the repository for secrets or sensitive information. This includes looking for API keys, credentials, or private keys committed in the code. Use both automated pattern searches (e.g., `"AKIA"` for AWS keys, `"BEGIN RSA PRIVATE KEY"`) and manual inspection of config files. **Flag** any secret or key exposure **CRITICAL** if found (these should be removed and rotated).  
+   - **Inspect** dependency management: Review `requirements.txt`, `pyproject.toml`, or equivalent for third-party packages. Are versions pinned (fixed) to ensure reproducible builds? **Flag** unpinned dependencies (they introduce non-determinism). Check for extremely outdated versions or known vulnerable libraries (if known offline). If a vulnerability scanning tool is available, run it and include any findings.  
+   - Ensure consistency across configurations: e.g., the Python version in Dockerfile vs. CI vs. README, or library versions referenced in multiple places (as seen with Ruff). All such references should align.  
+   - Generate a brief **SBOM (Software Bill of Materials)**: list the key external libraries and their versions in use. You can extract this from the requirements or lock file. This helps identify what software the project relies on.  
+   - **Score Criterion:** High score if no sensitive data is in repo, dependencies are well-managed (pinned, updated, no known major vulns), and config is consistent. Deduct for any secret exposures, outdated or inconsistent dependencies, or security policy gaps.  
 
-Areas of Focus for Review:
+4. **Testing & CI**  
+   - **Check** for the presence and quality of tests. Look for a `tests/` directory or test files. Are there adequate unit/integration tests covering core functionality? If possible, estimate test coverage or at least whether critical paths are tested.  
+   - Review continuous integration (CI) setup: is there a GitHub Actions workflow or similar? **Verify** that linting and tests are run in CI. Note if the CI is passing or if there are failing badges.  
+   - **Assess** how easy it is to run tests and the test suite results. If tests exist, can they be run with a single command (e.g., `pytest`)? Are there instructions in the README for running tests or contributing?  
+   - Consider whether the testing strategy covers security (e.g., misuse cases) and if the CI includes checks for code quality (lint, format) and security (SAST or dependency audit).  
+   - **Score Criterion:** High score if the project has thorough tests, a robust CI pipeline, and easy developer experience for running tests. Deduct for lack of tests, missing CI, or fragile testing processes.  
 
-1.  **Adherence to Best Practices & Project Standards**:
-    *   Does the code align with Python best practices (PEP 8, idiomatic Python)? (Verify with `ruff check` output if run).
-    *   Are project-specific conventions (if any, implied by existing code or `README.md`) followed?
-    *   Are docstrings (Google style) and type hints used effectively and consistently? (Check key files with `read_file`).
-    *   Is the code aligned with the configurations set in our linting/formatting tools (see `PROJECT_CONFIG_DETAILS.md`)?
-    *   Does the code adhere to design principles like KISS, DRY, YAGNI as outlined in `prompts/starter_prompt.txt`? (Assess conceptually and via targeted file reads).
+5. **DevOps & Infrastructure**  
+   - **Inspect** the Dockerfile and/or deployment scripts. Ensure the Docker image is lean and production-ready, not cluttered with development-only tools. **Check** if a multi-stage build is used to reduce image size (this was noted as a potential issue). If the Dockerfile installs test or dev dependencies or includes large tools unnecessary at runtime, **flag** it.  
+   - Evaluate environment reproducibility: Are there lock files (like `requirements.txt` with exact pins, or `poetry.lock`/`Pipfile.lock` if relevant)? If this is a Python project, can a developer reliably reproduce the environment? **Flag** the absence of lock files or inconsistent environment configuration.  
+   - **Verify** the `.gitignore` is properly configured. Cross-check it against the repo contents for any large or generated files that should have been ignored. For example, identify any huge files or build outputs in the repository (notebooks outputs, datasets, etc.). If `.gitignore` intends to exclude them but they are present, that's a problem. List the top largest files in the repo as evidence if they seem out of place, and **flag** accordingly.  
+   - **Assess** the deployment and build process: Is documentation provided for building or deploying the project (Docker usage, etc.)? Does the project specify consistent tooling (particular Python version, etc.) to avoid “works on my machine” issues?  
+   - **Score Criterion:** High score if the project is easy to build and deploy, with a minimal and correct Docker image, no unwanted artifacts in VCS, and reproducible env. Deduct for heavy or dev-laden Docker images, leaked build artifacts, or unclear build steps.  
 
-2.  **Correctness, Robustness & Error Handling**:
-    *   Are there any potential bugs, logical errors, or edge cases not handled? (Review critical logic paths if possible with `read_file`).
-    *   Is error handling robust and user-friendly (e.g., clear logging, appropriate exceptions)? (Check key functions with `read_file`).
-    *   Are there any race conditions or other concurrency issues (if applicable)?
+## Scoring & Reporting Guidelines  
+After performing the checks above, assign a 0-100 score for each quality axis: higher means better quality/compliance. Use **professional judgment** based on findings to score fairly. Keep the scoring consistent with previous evaluations (if any) to allow trend tracking. General guidance: 
+- **90-100 (Excellent):** Virtually no issues, or only trivial improvements remain. (Must provide concrete evidence or examples to justify such a high score.)  
+- **70-89 (Good):** Good overall, with some minor issues or improvement opportunities.  
+- **50-69 (Fair):** Noticeable issues that should be addressed, though not critical.  
+- **0-49 (Poor):** Serious problems in this area. (Must provide evidence for why the score is so low and outline key failings.)  
 
-3.  **Efficiency & Performance**:
-    *   Are there any obvious performance bottlenecks (e.g., inefficient loops, redundant computations, suboptimal use of `pandas`/`numpy`)? (Review data processing/modeling files with `read_file`).
-    *   Can any sections be optimized for speed or memory usage without sacrificing clarity?
+For **any score ≥ 90 or ≤ 50**, include a specific citation of evidence: e.g., file names and line numbers or excerpt that illustrate why the score is very high or very low. This could be a code snippet showing excellence or a problematic fragment that justifies the concern.  
 
-4.  **Clarity, Readability & Maintainability**:
-    *   Is the code easy to understand? Are variable and function names clear and descriptive? (Assess via `read_file` on sample modules).
-    *   Is there unnecessary complexity? Can any parts be simplified for better readability? (KISS)
-    *   Does the code behave in an intuitive and predictable manner? (Principle of Least Astonishment)
-    *   Are modules and functions well-organized and cohesive?
-    *   Is there sufficient commenting for non-obvious logic, while avoiding over-commenting obvious code? (Assess via `read_file`).
+Next to each score, provide a **confidence rating** (High, Medium, Low) reflecting how certain you are about the assessment. Use High if the area was thoroughly checked with clear evidence, Medium if there are some uncertainties or gaps in info, and Low if the assessment had to rely on inference or limited data.  
 
-5.  **Modularity & Reusability**:
-    *   Are there opportunities to refactor code into more reusable functions or classes? (DRY)
-    *   Is there duplicated code that could be centralized? (DRY - Use `codebase_search` for similar snippets if possible).
-    *   Do modules and functions have a single, well-defined responsibility? (Single Responsibility Principle - Assess conceptually and via file structure/reads).
+## Output Format  
+Finally, update the quality scoreboard files with the new results:  
 
-6.  **Testability & Test Coverage (Conceptual & Tool-Assisted)**:
-    *   Does the code seem structured in a way that is easy to unit test?
-    *   Are there any parts that would be particularly difficult to test? (Suggesting refactoring if so).
-    *   Are new features and modifications adequately covered by unit tests? (Check `pytest --cov` output if available from last run, or conceptually review test files for relevant modules).
+- **Markdown Output (quality_scoreboard.md):** Begin with a heading or note identifying the commit (e.g., “**Quality Scoreboard for commit `<SHA>`**”). For each quality axis, list the axis name, the score (0-100), and the confidence. Provide a brief rationale in full sentences, including key findings and any flagged issues or highlights. Use bullet points under each axis if needed to list multiple findings or recommendations. Ensure that any critical issues are clearly marked (for example, prefix with "**CRITICAL:**" in bold). If applicable, suggest quick wins for improvement (simple fixes) in *italic* to distinguish them. For example, "*Quick win: Remove the large `data.json` file from version control and add it to .gitignore.*"  
+  - If a previous scoreboard exists (e.g., from an earlier run/commit), include a short comparison for trend analysis. For instance: "*Documentation score increased by +5 compared to previous run, due to the updated README.*" Note any significant improvements or regressions for each axis.  
+  - Strive to keep the markdown readable and concise, using subheadings or bold labels for each axis as needed for clarity. Wrap lines at ~100 characters for readability.  
 
-7.  **Consistency**:
-    *   Beyond automated checks, is there consistency in coding style, naming conventions, and architectural patterns across different modules?
+- **JSON Output (quality_scoreboard.json):** Provide a machine-readable summary of the scores and confidence. The JSON should include the commit SHA and a structured breakdown of each axis. For example:  
+  ```json
+  {
+    "commit": "<full 40-char SHA>",
+    "axes": [
+      { "name": "Documentation & Metadata", "score": 75, "confidence": "High" },
+      { "name": "Code Quality & Maintainability", "score": 85, "confidence": "Medium" },
+      ... 
+    ]
+  }
+````
 
-8.  **Documentation Sync**:
-    *   Is `README.md` up-to-date with the current features and project state?
-    *   Does `PROJECT_CONFIG_DETAILS.md` accurately reflect all current configurations, especially if new tools/dependencies were added or settings changed?
+Ensure the JSON is valid and matches the markdown. The axis names in JSON should exactly match those in the markdown. Include any other relevant fields if needed for downstream use (such as timestamps or comparisons).
 
-Quality Scoring Fly‑Wheel 🔄
-
-Before issuing detailed feedback, compute a 0–100 score for each of the twelve quality axes listed below, **justifying scores with specific evidence from tool outputs or file analysis where possible.** Produce the Scoreboard Table plus JSON snapshot. Write artefacts to:
-
-prompts/quality_scoreboard.md – append a new markdown row each run, preserving history.
-
-quality_scoreboard.json – overwrite with the latest snapshot.
-
-Evaluation Axes
-
-1.  **Clarity & Readability** (Simplicity, intuitiveness, naming, comments - Evidence: `read_file` samples, `radon`/`xenon` complexity if run)
-2.  **Documentation Quality** (`README.md`, `PROJECT_CONFIG_DETAILS.md`, inline docs, API refs, docstrings - Evidence: `read_file` samples, review of top-level docs)
-3.  **Coding‑Style Consistency** (PEP 8, formatting, idioms, project conventions - Evidence: `ruff`/`flake8` results if run, conceptual review)
-4.  **Complexity Management** (Avoids unnecessary complexity, KISS principle - Evidence: `radon`/`xenon` if run, conceptual review)
-5.  **Modularity & Cohesion** (SRP, DRY, reusability, separation of concerns - Evidence: File structure, `codebase_search` for duplication, conceptual review)
-6.  **Test Coverage & Quality** (Presence, relevance, and thoroughness of unit tests - Evidence: `pytest --cov` results if available, conceptual review of test files)
-7.  **Performance & Efficiency** (No obvious bottlenecks, optimal data structures/algorithms - Evidence: Review of data-heavy code via `read_file`)
-8.  **Error Handling & Resilience** (Graceful failure, clear logging, robust exceptions - Evidence: Review of key functions via `read_file`)
-9.  **Dependency & Security Hygiene** (CVEs, deprecated libs, SBOM, basic secure coding practices like input validation if applicable, no hardcoded secrets in code - Evidence: `requirements-lock.txt`, `safety check` if run, `codebase_search` for secrets)
-10. **Scalability & Extensibility** (Architecture flexibility, OCP considerations - Evidence: Conceptual review of design)
-11. **Version‑Control Practices** (Commit messages, branching, tagging - evaluated conceptually based on recent history if observable)
-12. **Overall Maintainability** (Ease of onboarding & long-term upkeep - Holistic assessment based on other axes)
-
-Scoreboard Table (markdown)
-
-| #  | Axis                    | Score (0‑100) | Rationale (≤ 1 line) |
-| -- | ----------------------- | ------------: | -------------------- |
-| 1  | Clarity & Readability   |               |                      |
-| …  | …                       |             … | …                    |
-| 12 | Overall Maintainability |               |                      |
-
-After the table, include Strengths, Weaknesses, Detailed Recommendations, Top‑Priority Fixes, and Overall Quality Grade (mean score). If every axis scores 100, output the exact line:
-QUALITY PERFECT – all axes 100/100. Halting further tickets. and terminate the cycle.
-
-Requested Output Format:
-
-Please provide your feedback in a structured format. For each identified issue or suggestion, please include:
-
-File Path & Line Number(s): (If applicable)
-
-Issue/Suggestion Description: Clearly explain the point.
-
-Reasoning/Impact: Why is this an issue or why would the suggestion be an improvement (e.g., impacts readability, performance, maintainability)?
-
-Recommended Action: Concrete steps to address it.
-
-Priority/Severity: (Optional, e.g., High/Medium/Low, or Critical/Major/Minor)
-
-Code Citation Format: When pointing to code, cite using Cursor's format startLine:endLine:filepath (e.g., 42:60:src/ols_models.py) so we can jump directly to the snippet.
-
-Example:
-
-*   **File Path & Line Number(s)**: `src/data_processing.py:115-120`
-*   **Issue/Suggestion Description**: Redundant data loading.
-*   **Reasoning/Impact**: The file `some_data.csv` is loaded twice in the same function, impacting performance for large files.
-*   **Recommended Action**: Load the data once into a DataFrame and reuse the DataFrame.
-*   **Priority/Severity**: Medium
-
-Please focus on actionable and constructive feedback. Thank you!
+**Self-Check:** Before finalizing, verify that all listed checks have been performed and all findings are accounted for. Reflect on whether any important aspect of the repository was missed. If something important is uncovered late, incorporate it into the respective axis assessment and adjust the score if necessary. Only finalize the scores once confident that the review is thorough.

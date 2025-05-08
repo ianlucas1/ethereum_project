@@ -23,12 +23,36 @@ The primary execution script is `main.py`, which runs the complete end-to-end an
 
 *   **Language**: Python
 *   **Core Libraries**:
+    *   `pandas` (for data manipulation)# Ethereum Econometric Valuation Analysis
+
+## Overview
+
+This project conducts an econometric analysis of Ethereum (ETH) valuation, primarily exploring its relationship with network activity metrics, drawing inspiration from Metcalfe's Law. It aims to identify key drivers of ETH's value using various statistical models. The project fetches, processes, and analyzes on-chain and market data for Ethereum and benchmark assets like the NASDAQ index.
+
+The primary execution script is `main.py`, which runs the complete end-to-end analysis pipeline. For interactive data exploration, model development, and visualization, `research.py` provides a suitable environment.
+
+## Key Features
+
+*   **Data Fetching**: Retrieves on-chain data (e.g., active addresses, transaction counts) and market data (prices, volumes) from various APIs.
+*   **Data Processing**: Cleans, transforms, merges, and resamples raw data into daily and monthly frequencies suitable for analysis.
+*   **Exploratory Data Analysis (EDA)**: Includes outlier treatment (e.g., winsorization) and stationarity testing (e.g., ADF tests) on time series data.
+*   **Econometric Modeling**: Implements and evaluates several models:
+    *   Ordinary Least Squares (OLS) benchmarks.
+    *   Vector Error Correction Models (VECM).
+    *   Autoregressive Distributed Lag (ARDL) models.
+*   **Model Diagnostics**: Performs residual analysis and structural break tests.
+*   **Out-of-Sample Validation**: Conducts rolling window validation to assess model robustness.
+*   **Reporting**: Generates a structured JSON file (`final_results.json`) with all analysis results and prints a summary interpretation.
+
+## Technology Stack
+
+*   **Language**: Python
+*   **Core Libraries**:
     *   `pandas` (for data manipulation)
     *   `numpy` (for numerical operations)
     *   `statsmodels` (for statistical models, e.g., OLS, ARDL, VECM diagnostics)
-    *   `linearmodels` (for panel data models, though primary use here is for advanced time series models)
     *   `scikit-learn` (for utility functions like preprocessing)
-    *   `matplotlib` & `seaborn` (for data visualization)
+    *   `matplotlib` (for data visualization)
     *   `requests` (for API communication)
     *   `pydantic` (for configuration management)
     *   `pyarrow` (for efficient Parquet file handling)
@@ -49,7 +73,8 @@ ethereum_project/
 ├── data/                        # Raw and processed data files (e.g., .parquet)
 ├── docs/                        # Project documentation (e.g., type ignore guidelines)
 ├── htmlcov/                     # HTML code coverage reports
-├── scripts/                     # Utility scripts (if any)
+├── prompts/                     # Auxiliary files for AI-assisted development (optional, can be ignored for core analysis)
+├── scripts/                     # Utility scripts (e.g., qa_audit.py for dev checks; optional, can be ignored for core analysis)
 ├── src/                         # Core source code
 │   ├── utils/                   # Utility modules (caching, API helpers, file I/O)
 │   ├── __init__.py
@@ -59,7 +84,6 @@ ethereum_project/
 │   ├── diagnostics.py           # Model diagnostic tests
 │   ├── eda.py                   # Exploratory Data Analysis functions
 │   ├── main.py                  # Main pipeline script (moved to root in your project)
-│   ├── modeling.py              # (Currently minimal, core models in dedicated files)
 │   ├── ols_models.py            # OLS regression models
 │   ├── reporting.py             # Results summarization and output generation
 │   ├── ts_models.py             # Time series models (VECM, ARDL)
@@ -82,6 +106,7 @@ ethereum_project/
 ├── requirements-dev.txt         # Dependencies for development (linters, testers)
 └── requirements-lock.txt        # Pinned versions of all dependencies for reproducible environments
 ```
+*Note on `prompts/` and `scripts/` directories: These may contain auxiliary files used during development (e.g., LLM prompts, custom QA scripts). They are not required for running the core analysis pipeline and can generally be ignored by new contributors focused on the main application logic.*
 
 ## Modules (`src/` directory)
 
@@ -90,7 +115,6 @@ ethereum_project/
 *   `data_processing.py`: Cleans, transforms, merges, and resamples raw data into analysis-ready `daily_clean.parquet` and `monthly_clean.parquet` datasets.
 *   `diagnostics.py`: Implements model diagnostic tests, such as residual analysis and structural break tests.
 *   `eda.py`: Provides functions for exploratory data analysis, including data winsorization and stationarity tests (e.g., ADF).
-*   `modeling.py`: Currently a minimal file; core modeling logic is in `ols_models.py` and `ts_models.py`.
 *   `ols_models.py`: Implements Ordinary Least Squares (OLS) benchmark models.
 *   `reporting.py`: Generates summaries of analysis results, formats them into a structured dictionary, and handles JSON serialization.
 *   `ts_models.py`: Implements time series models like Vector Error Correction Models (VECM) and Autoregressive Distributed Lag (ARDL) models.
@@ -148,7 +172,7 @@ ethereum_project/
     ```dotenv
     RAPIDAPI_KEY=your_rapidapi_key_here
     CM_API_KEY=your_coinmetrics_key_here # Optional
-    ETHERSCAN_API_KEY=your_etherscan_key_here # Optional
+    ETHERSCAN_API_KEY=your_etherscan_key_here # Optional (currently not used by the core pipeline but reserved for potential future features)
     ```
     Ensure `.env` is listed in your `.gitignore` file.
 
@@ -217,10 +241,8 @@ For detailed contents of project configuration files (e.g., `.gitignore`, `.pre-
 *   `pandas` (e.g., 2.2.3)
 *   `numpy` (e.g., 1.26.4)
 *   `statsmodels` (e.g., 0.14.1)
-*   `linearmodels` (e.g., 6.1)
 *   `scikit-learn` (e.g., 1.5.2)
 *   `matplotlib` (e.g., 3.10.1)
-*   `seaborn` (e.g., 0.13.2)
 *   `requests` (e.g., 2.32.3)
 *   `pydantic` (e.g., 1.10.22)
 *   `pyarrow` (e.g., 20.0.0)
@@ -230,12 +252,12 @@ For detailed contents of project configuration files (e.g., `.gitignore`, `.pre-
 
 *   **Current Local Development:** Python 3.11 (see `.python-version`).
 *   **Current Docker Environment:** Python 3.12 (see `Dockerfile`).
-*   **Locked Dependencies (`requirements-lock.txt`):** Generated using `pip-compile` (header indicates Python 3.13 was used for compilation, likely for forward compatibility checks). These are the versions used for stable runs.
+*   **Locked Dependencies (`requirements-lock.txt`):** Generated using `pip-compile` (header indicates Python 3.11 was used for compilation). These are the versions used for stable runs.
 *   **Development Dependencies (`requirements-dev.txt`):** May specify broader ranges or newer versions for tools and future compatibility testing (e.g., targeting Python 3.13+). Compatibility with the main `src/` code is not guaranteed with these bleeding-edge versions without code updates.
 
 ## License
 
-This project is licensed under the terms of the [MIT License](LICENSE). (Assuming MIT, please verify `LICENSE` file content).
+This project is licensed under the terms of the [MIT License](LICENSE). (Please verify `LICENSE` file content and update placeholders if necessary).
 
 ## Collaboration & CI (For Human Contributors)
 

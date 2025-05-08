@@ -13,6 +13,11 @@ WORKDIR /app
 ENV RAPIDAPI_KEY=dummy
 
 # install Python dependencies first (leverages Docker layer caching)
+# This installs all dependencies from requirements-lock.txt, including
+# development tools. This is for convenience and to ensure the testing
+# environment within Docker matches the development setup closely.
+# For a smaller production image, consider a multi-stage build
+# or separate runtime-only requirements.
 COPY requirements*.txt ./
 RUN pip install --no-cache-dir --upgrade pip \
  && if [ -f requirements-lock.txt ]; then pip install --no-cache-dir -r requirements-lock.txt ; \
