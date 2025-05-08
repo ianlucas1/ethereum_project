@@ -1,5 +1,21 @@
 # Ethereum Econometric Valuation Analysis
 
+## 🤖 AI Agent Development Workflow
+
+This project utilizes an experimental, autonomous AI agent-driven workflow to assist with ongoing development, task management, and quality assurance. This system is orchestrated by a series of scripts (in `scripts/`) and guided by detailed instructional prompts (in `prompts/`).
+
+Key aspects of this workflow include:
+*   Automated task progression based on a structured roadmap (`prompts/roadmap.jsonl`).
+*   Dynamic updates to a central agent control prompt (`prompts/starter_prompt.txt`).
+*   Regular automated code quality audits (`scripts/qa_audit.py`) with results tracked in `prompts/quality_scoreboard.md`.
+*   Automated code implementation, testing, PR creation, and logging for defined roadmap tasks.
+
+While this system aims for a high degree of autonomy, human oversight is maintained, particularly for PR reviews and strategic roadmap planning. This workflow is an active component of how the `ethereum_project` evolves.
+
+**For a detailed explanation of this AI agent workflow, its components, and operational phases, please see [`docs/AI_AGENT_WORKFLOW.md`](docs/AI_AGENT_WORKFLOW.md).**
+
+Contributors working on the core econometric analysis can generally ignore the specifics of this agent system. However, those interested in the meta-development process or looking to modify the agent's behavior should consult the detailed documentation.
+
 ## Overview
 
 This project conducts an econometric analysis of Ethereum (ETH) valuation, primarily exploring its relationship with network activity metrics, drawing inspiration from Metcalfe's Law. It aims to identify key drivers of ETH's value using various statistical models. The project fetches, processes, and analyzes on-chain and market data for Ethereum and benchmark assets like the NASDAQ index.
