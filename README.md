@@ -1,21 +1,5 @@
 # Ethereum Econometric Valuation Analysis
 
-## 🤖 AI Agent Development Workflow
-
-This project utilizes an experimental, autonomous AI agent-driven workflow to assist with ongoing development, task management, and quality assurance. This system is orchestrated by a series of scripts (in `scripts/`) and guided by detailed instructional prompts (in `prompts/`).
-
-Key aspects of this workflow include:
-*   Automated task progression based on a structured roadmap (`prompts/roadmap.jsonl`).
-*   Dynamic updates to a central agent control prompt (`prompts/starter_prompt.txt`).
-*   Regular automated code quality audits (`scripts/qa_audit.py`) with results tracked in `prompts/quality_scoreboard.md`.
-*   Automated code implementation, testing, PR creation, and logging for defined roadmap tasks.
-
-While this system aims for a high degree of autonomy, human oversight is maintained, particularly for PR reviews and strategic roadmap planning. This workflow is an active component of how the `ethereum_project` evolves.
-
-**For a detailed explanation of this AI agent workflow, its components, and operational phases, please see [`docs/AI_AGENT_WORKFLOW.md`](docs/AI_AGENT_WORKFLOW.md).**
-
-Contributors working on the core econometric analysis can generally ignore the specifics of this agent system. However, those interested in the meta-development process or looking to modify the agent's behavior should consult the detailed documentation.
-
 ## Overview
 
 This project conducts an econometric analysis of Ethereum (ETH) valuation, primarily exploring its relationship with network activity metrics, drawing inspiration from Metcalfe's Law. It aims to identify key drivers of ETH's value using various statistical models. The project fetches, processes, and analyzes on-chain and market data for Ethereum and benchmark assets like the NASDAQ index.
@@ -62,9 +46,8 @@ ethereum_project/
 ├── .github/                     # GitHub Actions workflows (CI/CD)
 ├── .venv/                       # Python virtual environment (user-created)
 ├── data/                        # Raw and processed data files (e.g., .parquet)
-├── docs/                        # Project documentation (e.g., type ignore guidelines, AI_AGENT_WORKFLOW.md)
+├── docs/                        # Project documentation (e.g., type ignore guidelines)
 ├── htmlcov/                     # HTML code coverage reports
-├── prompts/                     # Auxiliary files for AI-assisted development
 ├── scripts/                     # Utility scripts (e.g., qa_audit.py for dev checks)
 ├── src/                         # Core source code
 │   ├── utils/                   # Utility modules (caching, API helpers, file I/O)
@@ -95,7 +78,6 @@ ethereum_project/
 ├── requirements-dev.txt         # Dependencies for development
 └── requirements-lock.txt        # Pinned versions of all dependencies
 ```
-*Note on `prompts/` and `scripts/` directories: These contain auxiliary files primarily used for the AI Agent Development Workflow. They are not required for running the core econometric analysis pipeline.*
 
 ## Modules (`src/` directory)
 
@@ -124,7 +106,7 @@ ethereum_project/
 
 2.  **Ensure Correct Python Version:**
     *   The project is configured to use **Python 3.12** for local development, as specified in the `.python-version` file.
-    *   The `Dockerfile` uses **Python 3.12-slim** for containerized execution. CI tests cover Python 3.10-3.12.
+    *   The `Dockerfile` uses **Python 3.12-slim** for containerized execution. CI tests cover Python 3.12.
     *   Ensure you have Python 3.12 accessible for local work.
 
 3.  **Create and Activate Virtual Environment (using Python 3.12):**
@@ -226,7 +208,7 @@ Development and testing tools such as `pytest`, `ruff`, `mypy`, and `pre-commit`
 
 *   **Local Development:** Python 3.12 (specified in `.python-version`).
 *   **Docker Environment:** Python 3.12 (specified in `Dockerfile`).
-*   **CI Testing:** Python 3.10, 3.11, 3.12.
+*   **CI Testing:** Primarily targets Python 3.12 across multiple operating systems.
 *   **Locked Dependencies (`requirements-lock.txt`):** Generated using `pip-compile` with Python 3.12. These are the exact versions for reproducible runs.
 
 ## License
@@ -236,5 +218,5 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 ## Collaboration & CI (For Human Contributors)
 
 *   **Branching**: Work on feature branches, submit Pull Requests to `main`.
-*   **CI**: GitHub Actions run linters, type checkers, and tests (see `.github/workflows/`).
+*   **CI**: GitHub Actions run linters, type checkers, and tests, primarily targeting Python 3.12 across multiple operating systems (see `.github/workflows/`).
 *   **Pre-commit**: Use `pre-commit run --all-files` locally before pushing.
