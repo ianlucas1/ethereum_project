@@ -43,21 +43,21 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: pip-${{ runner.os }}-${{ hashFiles('requirements-lock.txt') }}
+          key: pip-${{ runner.os }}-${{ hashFiles('''requirements-dev.txt''') }}
           restore-keys: pip-${{ runner.os }}-
 
       - name: Cache pip wheels
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip/wheels
-          key: wheels-${{ runner.os }}-${{ hashFiles('requirements-lock.txt') }}
+          key: wheels-${{ runner.os }}-${{ hashFiles('''requirements-dev.txt''') }}
           restore-keys: wheels-${{ runner.os }}-
 
       - name: Cache virtualenv
         uses: actions/cache@v4
         with:
           path: .venv
-          key: venv-${{ runner.os }}-${{ hashFiles('requirements-lock.txt') }}
+          key: venv-${{ runner.os }}-${{ hashFiles('''requirements-dev.txt''') }}
           restore-keys: venv-${{ runner.os }}-
 
       - name: Set up virtualenv & install deps (only on cache miss)
