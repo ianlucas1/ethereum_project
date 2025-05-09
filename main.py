@@ -171,7 +171,7 @@ def main() -> None:
     print(interpretation_text)
     print("=" * 80 + "\n")
 
-    results_path = settings.DATA_DIR.parent / RESULTS_JSON_FILENAME
+    results_path = settings.DATA_DIR / RESULTS_JSON_FILENAME
     try:
         with open(results_path, "w") as fp:
             json.dump(final_results, fp, indent=4, cls=NpEncoder)
