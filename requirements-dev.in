@@ -13,6 +13,6 @@ pip-tools==7.4.1
 pre-commit==3.7.0          # runs git hooks
 radon==5.1.0               # cyclomatic complexity
 xenon==0.9.1               # maintainability score
-safety==2.3.5              # CVE scanner (last 2.x; compatible with Pydantic v1)
+safety==3.2.2              # CVE scanner (last 2.x; compatible with Pydantic v1)
 
 cython==0.29.37            # needed to build PyYAML<6 wheel
