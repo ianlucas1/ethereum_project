@@ -123,13 +123,13 @@ ethereum_project/
     ```
 
 2.  **Ensure Correct Python Version:**
-    *   The project is configured to use **Python 3.11** for local development, as specified in the `.python-version` file.
+    *   The project is configured to use **Python 3.12** for local development, as specified in the `.python-version` file.
     *   The `Dockerfile` uses **Python 3.12-slim** for containerized execution. CI tests cover Python 3.10-3.12.
-    *   Ensure you have Python 3.11 accessible for local work.
+    *   Ensure you have Python 3.12 accessible for local work.
 
-3.  **Create and Activate Virtual Environment (using Python 3.11):**
+3.  **Create and Activate Virtual Environment (using Python 3.12):**
     ```bash
-    python3.11 -m venv .venv
+    python3.12 -m venv .venv
     source .venv/bin/activate # On macOS/Linux
     # .\.venv\Scripts\activate # On Windows PowerShell
     ```
@@ -223,10 +223,10 @@ Development and testing tools such as `pytest`, `ruff`, `mypy`, and `pre-commit`
 
 ## Notes on Python Versions & Dependencies
 
-*   **Local Development:** Python 3.11 (specified in `.python-version`).
+*   **Local Development:** Python 3.12 (specified in `.python-version`).
 *   **Docker Environment:** Python 3.12 (specified in `Dockerfile`).
 *   **CI Testing:** Python 3.10, 3.11, 3.12.
-*   **Locked Dependencies (`requirements-lock.txt`):** Generated using `pip-compile` with Python 3.11. These are the exact versions for reproducible runs.
+*   **Locked Dependencies (`requirements-lock.txt`):** Generated using `pip-compile` with Python 3.12. These are the exact versions for reproducible runs.
 
 ## License
 
