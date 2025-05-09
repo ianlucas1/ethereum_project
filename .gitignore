@@ -158,5 +158,10 @@ Thumbs.db
 
 type_ignore_occurrences.txt
 
+# Internal / Private Files
+PROJECT_CONFIG_DETAILS.md
+prompts/
+docs/AI_AGENT_WORKFLOW.md
+
 # ... other ignores ...
 cycle_summary_latest.md.ci-venv/
