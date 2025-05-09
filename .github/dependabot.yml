@@ -1,0 +1,27 @@
+# .github/dependabot.yml
+version: 2
+updates:
+  # Enable version updates for pip (Python packages)
+  - package-ecosystem: "pip"
+    directory: "/"  # Checks for requirements.txt, requirements-dev.txt, etc. in the root
+    schedule:
+      interval: "weekly" # How often to check for updates
+    # You can add reviewers, assignees, labels, commit message prefixes, etc.
+    # For example:
+    # reviewers:
+    #   - "ianlucas1"
+    # commit-message:
+    #   prefix: "chore(deps)"
+    #   include: "scope"
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/" # Checks for workflow files in .github/workflows
+    schedule:
+      interval: "weekly"
+    # For example:
+    # reviewers:
+    #   - "ianlucas1"
+    # commit-message:
+    #   prefix: "chore(actions)"
+    #   include: "scope"
