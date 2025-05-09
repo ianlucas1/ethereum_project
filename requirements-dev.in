@@ -1,3 +1,6 @@
+# requirements-dev.in
+-c requirements.txt
+
 pytest==8.2.2
 pytest-cov==4.1.0
 pytest-xdist==3.6.1
@@ -13,13 +16,3 @@ xenon==0.9.1               # maintainability score
 safety==2.3.5              # CVE scanner (last 2.x; compatible with Pydantic v1)
 
 cython==0.29.37            # needed to build PyYAML<6 wheel
-
-# ↓ runtime deps for src/tests
-pandas==2.2.2
-numpy==1.26.4
-pydantic==1.10.14          # pin v1
-statsmodels==0.14.2
-matplotlib==3.8.4
-scikit-learn==1.5.0
-pyarrow==15.0.2            # Parquet engine required by pandas
-python-dotenv==1.0.1
