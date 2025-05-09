@@ -50,7 +50,7 @@ joblib==1.5.0
     # via scikit-learn
 kiwisolver==1.4.8
     # via matplotlib
-mando==0.6.4
+mando==0.8.2
     # via radon
 matplotlib==3.8.4
     # via -r requirements-dev.txt
