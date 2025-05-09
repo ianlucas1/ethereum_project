@@ -294,13 +294,6 @@ ignore_errors = True
 ignore_missing_imports = True
 ```
 
-## `pip.conf`
-
-```ini
-[global]
-extra-index-url = https://pypi.fury.io/arrow-nightlies/
-```
-
 ## GitHub Actions Workflows
 
 This project utilizes several GitHub Actions workflows for CI, testing, and automation.
