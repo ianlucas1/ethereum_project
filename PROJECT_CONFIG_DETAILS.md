@@ -166,7 +166,8 @@ Thumbs.db
 type_ignore_occurrences.txt
 
 # ... other ignores ...
-cycle_summary_latest.md.ci-venv/
+cycle_summary_latest.md
+.ci-venv/
 ```
 
 ## `.pre-commit-config.yaml`
@@ -191,7 +192,7 @@ repos:
     hooks:
       - id: flake8
         additional_dependencies:
-          - flake8-bugbear>=23.9.16
+          - flake8-bugbear==23.9.16 # Pinning exact version
         args:
           - --max-line-length=88
           - --ignore=E203,E501,W503
@@ -300,7 +301,13 @@ ignore_missing_imports = True
 extra-index-url = https://pypi.fury.io/arrow-nightlies/
 ```
 
-## `.github/workflows/ci.yml` (General CI)
+## GitHub Actions Workflows
+
+This project utilizes several GitHub Actions workflows for CI, testing, and automation.
+
+### `.github/workflows/ci.yml` (General CI)
+
+This workflow runs on every push and pull request, testing across multiple operating systems and Python versions.
 
 ```yaml
 name: Python CI
@@ -331,7 +338,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-lock.txt
-          pip install pytest-cov
+          # pytest-cov is included in requirements-lock.txt via requirements-dev.txt
 
       # ---------- lint -----------------------------------------------------------------------
       - name: Lint with Ruff (optional, good practice)
@@ -366,7 +373,9 @@ jobs:
           fail_ci_if_error: true
 ```
 
-## `.github/workflows/python-ci.yml` (Main Branch Focused CI)
+### `.github/workflows/python-ci.yml` (Main Branch Focused CI)
+
+This workflow provides faster feedback for changes targeting the `main` branch, focusing on a primary environment and skipping doc-only changes.
 
 ```yaml
 name: Python CI
@@ -437,21 +446,23 @@ jobs:
             python -m venv .venv
             . .venv/bin/activate
             python -m pip install --upgrade pip
-            pip install -r requirements-dev.txt
+            pip install -r requirements-dev.txt # Installs pytest-xdist
           fi
 
       - name: Run tests in parallel
         run: .venv/bin/pytest -q -n auto
 ```
 
-## `.github/workflows/python-nightly-full-matrix.yml`
+### `.github/workflows/python-nightly-full-matrix.yml` (Nightly Full Matrix Tests)
+
+This workflow runs all tests across the full OS and Python version matrix on a nightly schedule.
 
 ```yaml
 name: Python CI Full Matrix Nightly
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 0 * * *' # Daily at midnight UTC
 
 concurrency:
   group: nightly-full-matrix
@@ -486,15 +497,17 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements-dev.txt
+          pip install -r requirements-dev.txt # Installs pytest-xdist
       - name: Run tests in parallel
         run: pytest -q -n auto
 ```
 
-## `.github/workflows/docker-build.yml`
+### `.github/workflows/docker-build.yml` (Docker Build CI)
+
+This workflow builds the Docker image on changes to relevant files to ensure the Docker setup remains valid.
 
 ```yaml
-name: Docker build (4.3.4)
+name: Docker build (CI) # Updated name for clarity
 
 on:
   pull_request:
@@ -516,11 +529,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # -- optional wheel-cache speeds up pip layer
+      # -- optional wheel-cache to speed up pip install layer
       - name: Set up Python for dependency caching
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.12" # Matches Dockerfile Python version
 
       - name: Cache pip wheels
         uses: actions/cache@v4
@@ -541,3 +554,77 @@ jobs:
           tags: ethereum_project:test
           load: false         # don't load into local Docker daemon
           push: false
+```
+
+### `.github/workflows/nightly_audit.yml` (Nightly Full Quality Audit)
+
+This workflow performs a comprehensive quality audit using `scripts/qa_audit.py` on a nightly basis and commits the results.
+
+```yaml
+name: Nightly Full Quality Audit
+on:
+  schedule:
+    - cron: '0 2 * * *'   # 02:00 UTC daily
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    # Add permissions if the bot needs to push to the repo
+    permissions:
+      contents: write # Allows ci-bot to push commits
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with: {python-version: '3.11'} # Matches local dev Python
+      - name: Install dev deps
+        run: |
+          python -m pip install -r requirements-dev.txt
+      - name: Full baseline audit
+        run: python scripts/qa_audit.py --mode=full
+      - name: Commit scoreboard row
+        run: |
+          git config user.name "ci-bot"
+          git config user.email "actions@github.com"
+          git add prompts/quality_scoreboard.md quality_scoreboard.json .qa_audit_cache
+          git commit -m "chore(ci): nightly full audit results" || echo "No changes to commit from audit"
+          git push || echo "Nothing to push or push failed"
+```
+
+## Security Features Configuration
+
+### CodeQL Static Analysis
+
+CodeQL static analysis has been enabled for this repository using GitHub's default setup. It automatically scans Python code and GitHub Actions workflows for potential vulnerabilities and coding errors on pushes to `main` and on pull requests. Findings are reported in the repository's "Security" tab under "Code scanning alerts." No separate `codeql.yml` workflow file is managed directly in the repository as the default integrated setup is used.
+
+The current CodeQL findings indicate that workflows are missing explicit `permissions` settings. This is a recommended security hardening practice to grant workflows only the minimum necessary permissions.
+
+### Dependabot
+
+Dependabot is configured via `.github/dependabot.yml` to provide weekly version updates for Python (`pip`) dependencies and GitHub Actions. Dependabot security alerts and security updates are also enabled in the repository settings, ensuring prompt notification and automated PRs for vulnerable dependencies.
+
+```yaml
+# .github/dependabot.yml
+version: 2
+updates:
+  # Enable version updates for pip (Python packages)
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    reviewers:
+      - "ianlucas1"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    reviewers:
+      - "ianlucas1"
+    commit-message:
+      prefix: "chore(actions)"
+      include: "scope"
+```
