@@ -13,6 +13,9 @@ env/
 */ENV/
 */env/
 
+# Pyenv-virtualenv specific (if you were to use its .venv folder name directly)
+# .python-virtualenv
+
 snapshots/
 
 # Distribution / packaging
@@ -59,6 +62,7 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
+.ruff_cache/ # Added ruff cache
 
 # Translations
 *.mo
@@ -163,5 +167,11 @@ PROJECT_CONFIG_DETAILS.md
 prompts/
 docs/AI_AGENT_WORKFLOW.md
 
+# Obsolete files
+requirements-lock.txt # Replaced by requirements.txt and requirements-dev.txt
+
 # ... other ignores ...
+# cycle_summary_latest.md.ci-venv/ # This line looks like a potential typo or very specific ignore.
+# If '.ci-venv/' is a directory, it should be 'cycle_summary_latest.md' and then '.ci-venv/' on a new line.
+# If it's one specific file name, it's unusual. I'll keep it as is for now.
 cycle_summary_latest.md.ci-venv/
