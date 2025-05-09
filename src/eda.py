@@ -98,6 +98,8 @@ def winsorize_data(
     for col, cap_val in caps.items():
         # Apply capping *only* within the masked window
         mask_to_cap = (df_out[col] > cap_val) & mask
+        if pd.api.types.is_integer_dtype(df_out[col]) and isinstance(cap_val, float):
+            df_out[col] = df_out[col].astype(float)
         df_out.loc[mask_to_cap, col] = cap_val
 
     return df_out
