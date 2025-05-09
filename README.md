@@ -128,8 +128,9 @@ ethereum_project/
     *   Ensure you have Python 3.12 accessible for local work.
 
 3.  **Create and Activate Virtual Environment (using Python 3.12):**
+    Since `pyenv` is configured and the `.python-version` file specifies Python 3.12, the `python` command within this project directory will automatically point to your pyenv-managed Python 3.12 installation.
     ```bash
-    python3.12 -m venv .venv
+    python -m venv .venv # pyenv uses Python 3.12 due to .python-version
     source .venv/bin/activate # On macOS/Linux
     # .\.venv\Scripts\activate # On Windows PowerShell
     ```
