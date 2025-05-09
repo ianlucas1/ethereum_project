@@ -7,7 +7,7 @@ repos:
     rev: v0.0.241            # ruff==0.0.241 in requirements-dev.txt
     hooks:
       - id: ruff             # does both linting & formatting
-        args: [--fix, --exit-non-zero-on-fix]   # auto-fix and fail if fixes made
+        args: [--fix]        # auto-fix and fail if fixes made
 
   # --------------------------------------------------------------------- #
   # Flake8 — extra opinionated linting (Ruff already covers most rules)    #

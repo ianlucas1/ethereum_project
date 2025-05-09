@@ -4,8 +4,6 @@
 #
 #    pip-compile --output-file=requirements-lock.txt requirements-dev.txt
 #
-attrs==25.3.0
-    # via pytest
 build==1.2.2.post1
     # via pip-tools
 certifi==2025.4.26
@@ -109,12 +107,12 @@ pyproject-hooks==1.2.0
     # via
     #   build
     #   pip-tools
-pytest==7.2.0
+pytest==8.2.2
     # via
     #   -r requirements-dev.txt
     #   pytest-cov
     #   pytest-xdist
-pytest-cov==4.0.0
+pytest-cov==4.1.0
     # via -r requirements-dev.txt
 pytest-xdist==3.6.1
     # via -r requirements-dev.txt
