@@ -219,7 +219,7 @@ repos:
 ## `.python-version`
 
 ```
-3.11
+3.12
 ```
 
 ## `.dockerignore`
@@ -259,7 +259,7 @@ snapshots/
 # * Every future  # type: ignore  must include a justification
 
 [mypy]
-python_version        = 3.11
+python_version        = 3.12
 strict                = True
 show_error_codes      = True
 pretty                = True
@@ -403,7 +403,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        python-version: ['3.11']
+        python-version: ['3.12']
 
     steps:
       - uses: actions/checkout@v4
@@ -568,7 +568,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Setup Python
         uses: actions/setup-python@v5
-        with: {python-version: '3.11'} # Matches local dev Python
+        with: {python-version: '3.12'} # Matches local dev Python
       - name: Install dev deps
         run: |
           python -m pip install -r requirements-dev.txt
