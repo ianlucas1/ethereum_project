@@ -182,7 +182,7 @@ repos:
     rev: v0.0.241            # ruff==0.0.241 in requirements-dev.txt
     hooks:
       - id: ruff             # does both linting & formatting
-        args: [--fix, --exit-non-zero-on-fix]   # auto-fix and fail if fixes made
+        args: [--fix, --exit-non-zero-on-fix]  
 
   # --------------------------------------------------------------------- #
   # Flake8 — extra opinionated linting (Ruff already covers most rules)    #
@@ -300,7 +300,7 @@ This project utilizes several GitHub Actions workflows for CI, testing, and auto
 
 ### `.github/workflows/ci.yml` (General CI)
 
-This workflow runs on every push and pull request, testing across multiple operating systems and Python versions.
+This workflow runs on every push and pull request, testing on Python 3.12 across multiple operating systems.
 
 ```yaml
 name: Python CI
@@ -314,7 +314,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.10", "3.11", "3.12"]  # test across supported versions
+        python-version: ["3.12"]
 
     steps:
       - uses: actions/checkout@v4
@@ -341,7 +341,7 @@ jobs:
 
       # ---------- tests ----------------------------------------------------------------------
       - name: Test with pytest and generate coverage report
-        if: matrix.os != 'macos-latest' || matrix.python-version == '3.10'
+        if: matrix.os != 'macos-latest'
         env:
           RAPIDAPI_KEY: dummy_key_for_ci
           CM_API_KEY: ""
@@ -349,7 +349,7 @@ jobs:
         run: pytest --cov=src --cov-report=xml
 
       - name: Test with pytest (no coverage)
-        if: matrix.os == 'macos-latest' && matrix.python-version != '3.10'
+        if: matrix.os == 'macos-latest'
         env:
           RAPIDAPI_KEY: dummy_key_for_ci
           CM_API_KEY: ""
@@ -358,7 +358,7 @@ jobs:
 
       # ---------- coverage upload ------------------------------------------------------------
       - name: Upload coverage reports to Codecov
-        if: matrix.os != 'macos-latest' || matrix.python-version == '3.10'
+        if: matrix.os != 'macos-latest'
         uses: codecov/codecov-action@v4.0.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -448,7 +448,7 @@ jobs:
 
 ### `.github/workflows/python-nightly-full-matrix.yml` (Nightly Full Matrix Tests)
 
-This workflow runs all tests across the full OS and Python version matrix on a nightly schedule.
+This workflow runs all tests on Python 3.12 across the full OS matrix (ubuntu-latest, windows-latest, macos-latest) on a nightly schedule.
 
 ```yaml
 name: Python CI Full Matrix Nightly
@@ -467,7 +467,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ['3.10', '3.11', '3.12']
+        python-version: ['3.12']
       fail-fast: false
 
     steps:
