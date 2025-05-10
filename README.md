@@ -1,5 +1,9 @@
 # Ethereum Econometric Valuation Analysis
 
+[![Build](https://github.com/ianlucas1/ethereum_project/actions/workflows/ci.yml/badge.svg)](https://github.com/ianlucas1/ethereum_project/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/ianlucas1/ethereum_project/actions/workflows/codeql.yml/badge.svg)](https://github.com/ianlucas1/ethereum_project/actions/workflows/codeql.yml)
+[![Bandit & Safety](https://github.com/ianlucas1/ethereum_project/actions/workflows/ci.yml/badge.svg?job=bandit_safety)](https://github.com/ianlucas1/ethereum_project/actions/workflows/ci.yml)
+
 ## Overview
 
 This project conducts an econometric analysis of Ethereum (ETH) valuation, primarily exploring its relationship with network activity metrics, drawing inspiration from Metcalfe's Law. It aims to identify key drivers of ETH's value using various statistical models. The project fetches, processes, and analyzes on-chain and market data for Ethereum and benchmark assets like the NASDAQ index.
