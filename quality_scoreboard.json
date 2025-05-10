@@ -1,1 +1,25 @@
-{}
+{
+  "timestamp": "2025-05-10T02:37:26Z",
+  "audit_type": "delta",
+  "code_sha": "7d839ef453e80f8108e93b0112fc8edaad84d2a5",
+  "base_sha": "7d839ef453e80f8108e93b0112fc8edaad84d2a5",
+  "mean_score": 86.66666666666667,
+  "axes": {
+    "Clarity & Readability": 90,
+    "Documentation Quality": 90,
+    "Coding-Style Consistency": 90,
+    "Complexity Management": 90,
+    "Modularity & Cohesion": 90,
+    "Test Coverage & Quality": 50,
+    "Performance & Efficiency": 90,
+    "Error Handling & Resilience": 90,
+    "Dependency & Security Hygiene": 90,
+    "Scalability & Extensibility": 90,
+    "Version-Control Practices": 90,
+    "Overall Maintainability": 90
+  },
+  "coverage_pct": 0.0,
+  "low_axes": [
+    "Test Coverage & Quality"
+  ]
+}
