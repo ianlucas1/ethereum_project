@@ -22,7 +22,7 @@ on:
 
 jobs:
   test:
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }} # This workflow currently only runs on ubuntu-latest
     env:
       RAPIDAPI_KEY: dummy
       ETHERSCAN_API_KEY: dummy
@@ -35,39 +35,44 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Cache pip
         uses: actions/cache@v4
         with:
-          path: ~/.cache/pip
-          key: pip-${{ runner.os }}-${{ hashFiles('requirements-lock.txt') }}
-          restore-keys: pip-${{ runner.os }}-
+          path: ~/.cache/pip # Cache pip's global cache directory
+          key: pip-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('requirements-lock.txt') }}
+          restore-keys: |
+            pip-${{ runner.os }}-${{ matrix.python-version }}-
 
+      # Note: Caching pip wheels is often redundant if ~/.cache/pip is cached,
+      # as wheels are stored there. Keeping it for now if it was intentional.
       - name: Cache pip wheels
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip/wheels
-          key: wheels-${{ runner.os }}-${{ hashFiles('requirements-lock.txt') }}
-          restore-keys: wheels-${{ runner.os }}-
+          key: wheels-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('requirements-lock.txt') }}
+          restore-keys: |
+            wheels-${{ runner.os }}-${{ matrix.python-version }}-
 
-      - name: Cache virtualenv
-        uses: actions/cache@v4
-        with:
-          path: .venv
-          key: venv-${{ runner.os }}-${{ hashFiles('requirements-lock.txt') }}
-          restore-keys: venv-${{ runner.os }}-
+      # Removed the direct .venv caching step
 
-      - name: Set up virtualenv & install deps (only on cache miss)
+      - name: Create virtualenv and Install dependencies
         run: |
-          if [ ! -d ".venv" ]; then
-            python -m venv .venv
-            . .venv/bin/activate
-            python -m pip install --upgrade pip
-            pip install -r requirements-dev.txt
-          fi
+          python -m venv .venv
+          source .venv/bin/activate # For Linux/macOS runners
+          # if you add windows to the matrix, you would need:
+          # if ($env:RUNNER_OS -eq "Windows") { .\.venv\Scripts\Activate.ps1 } else { source .venv/bin/activate }
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
 
       - name: Run tests in parallel
-        run: .venv/bin/pytest -q -n auto
+        run: |
+          source .venv/bin/activate # For Linux/macOS runners
+          # if you add windows to the matrix, you would need:
+          # if ($env:RUNNER_OS -eq "Windows") { .\.venv\Scripts\Activate.ps1 } else { source .venv/bin/activate }
+          pytest -q -n auto
+          
