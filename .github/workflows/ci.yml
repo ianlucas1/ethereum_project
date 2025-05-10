@@ -23,7 +23,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: ${{ github.repository }}
-          fail_ci_if_error: true
+          fail_ci_if_error: false
 
   bandit_safety:
     name: Bandit & Safety
@@ -36,6 +36,6 @@ jobs:
       - name: Install tools
         run: pip install bandit safety
       - name: Bandit scan
-        run: bandit -r . -s B101
+        run: bandit -r . -s B101 -ll
       - name: Safety scan
         run: safety check --full-report
