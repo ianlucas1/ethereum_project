@@ -51,7 +51,7 @@ patsy==1.0.1
     # via statsmodels
 pillow==11.2.1
     # via matplotlib
-pyarrow==15.0.2
+pyarrow==20.0.0
     # via -r requirements.txt
 pydantic==2.7.4
     # via
