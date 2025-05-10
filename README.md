@@ -215,6 +215,8 @@ Development and testing tools such as `pytest`, `ruff`, `mypy`, and `pre-commit`
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
+For information on third-party licenses, please see the [NOTICE.md](NOTICE.md) file.
+
 ## Collaboration & CI (For Human Contributors)
 
 *   **Branching**: Work on feature branches, submit Pull Requests to `main`.
