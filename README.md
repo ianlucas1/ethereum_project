@@ -222,3 +222,5 @@ For information on third-party licenses, please see the [NOTICE.md](NOTICE.md) f
 *   **Branching**: Work on feature branches, submit Pull Requests to `main`.
 *   **CI**: GitHub Actions run linters, type checkers, and tests, primarily targeting Python 3.12 across multiple operating systems (see `.github/workflows/`).
 *   **Pre-commit**: Use `pre-commit run --all-files` locally before pushing.
+
+For detailed config snippets see **docs/config-reference/**.
