@@ -29,10 +29,10 @@ The primary execution script is `main.py`, which runs the complete end-to-end an
     *   `scikit-learn` (for utility functions like preprocessing)
     *   `matplotlib` (for data visualization)
     *   `requests` (for API communication)
-    *   `pydantic` (for configuration management)
+    *   `pydantic` (with pydantic-settings for configuration management)
     *   `pyarrow` (for efficient Parquet file handling)
-*   **Containerization**: Docker
-*   **Development Tools**: (Detailed in `PROJECT_CONFIG_DETAILS.md`)
+    *   **Containerization**: Docker
+    *   **Development Tools**: (Detailed in `PROJECT_CONFIG_DETAILS.md`)
     *   `pre-commit` (for git hooks)
     *   `ruff` & `flake8` (for linting and formatting)
     *   `mypy` (for static type checking)
@@ -199,7 +199,7 @@ The project relies on several key libraries, with exact versions pinned in `requ
 *   `scikit-learn==1.5.0`
 *   `matplotlib==3.8.4`
 *   `requests==2.32.3`
-*   `pydantic==1.10.14`
+*   `pydantic==2.7.4` (and `pydantic-settings==2.2.1` for configuration)
 *   `pyarrow==15.0.2`
 
 Development and testing tools such as `pytest`, `ruff`, `mypy`, and `pre-commit` are also pinned. Please refer to `requirements-lock.txt` for the complete list of all direct and transitive dependencies.

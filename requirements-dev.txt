@@ -10,14 +10,15 @@ pip-tools==7.4.1
 pre-commit==3.7.0          # runs git hooks
 radon==5.1.0               # cyclomatic complexity
 xenon==0.9.1               # maintainability score
-safety==2.3.5              # CVE scanner (last 2.x; compatible with Pydantic v1)
+safety~=3.2.0              # CVE scanner, Pydantic v2 compatible
 
 cython==0.29.37            # needed to build PyYAML<6 wheel
 
-# ↓ runtime deps for src/tests
+# ↓ runtime deps for src/tests (and now also for dev environment consistency)
 pandas==2.2.2
 numpy==1.26.4
-pydantic==1.10.14          # pin v1
+pydantic~=2.7.1
+pydantic-settings~=2.2.1
 statsmodels==0.14.2
 matplotlib==3.8.4
 scikit-learn==1.5.0

@@ -7,7 +7,7 @@ Provides type-hinted access to configuration values like API keys and paths.
 from __future__ import annotations
 
 from pathlib import Path
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -24,11 +24,7 @@ class Settings(BaseSettings):
     # Directory for raw API response snapshots
     RAW_SNAPSHOT_DIR: Path = BASE_DIR / "snapshots"
 
-    class Config:
-        """Pydantic configuration settings."""
-
-        env_file = ".env"
-        extra = "ignore"  # Ignore extra fields from environment variables
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
 settings = Settings()

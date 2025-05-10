@@ -4,6 +4,8 @@
 #
 #    pip-compile --output-file=requirements-runtime-lock.txt requirements.txt
 #
+annotated-types==0.7.0
+    # via pydantic
 certifi==2025.4.26
     # via requests
 charset-normalizer==3.4.2
@@ -49,7 +51,13 @@ pillow==11.2.1
     # via matplotlib
 pyarrow==15.0.2
     # via -r requirements.txt
-pydantic==1.10.14
+pydantic==2.7.4
+    # via
+    #   -r requirements.txt
+    #   pydantic-settings
+pydantic-core==2.18.4
+    # via pydantic
+pydantic-settings==2.2.1
     # via -r requirements.txt
 pyparsing==3.2.3
     # via matplotlib
@@ -58,7 +66,9 @@ python-dateutil==2.9.0.post0
     #   matplotlib
     #   pandas
 python-dotenv==1.0.1
-    # via -r requirements.txt
+    # via
+    #   -r requirements.txt
+    #   pydantic-settings
 pytz==2025.2
     # via pandas
 requests==2.32.3
@@ -76,7 +86,9 @@ statsmodels==0.14.2
 threadpoolctl==3.6.0
     # via scikit-learn
 typing-extensions==4.13.2
-    # via pydantic
+    # via
+    #   pydantic
+    #   pydantic-core
 tzdata==2025.2
     # via pandas
 urllib3==2.4.0
