@@ -1,0 +1,36 @@
+name: Bandit & Safety
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 8 * * 1'   # Mon 08:00 UTC
+
+jobs:
+  static-security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install deps + security tools
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt bandit safety
+
+      - name: Bandit — fail on ≥ MEDIUM
+        run: bandit -r . --severity-level medium
+
+      - name: Safety — fail on any CVE
+        run: safety check --full-report

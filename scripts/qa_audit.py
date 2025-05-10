@@ -151,7 +151,7 @@ def run_tests(changed: list[str]) -> float:
         txt = cov_xml.read_text()
         try:
             # More robust parsing for coverage percentage
-            import xml.etree.ElementTree as ET
+            import defusedxml.ElementTree as ET
 
             tree = ET.parse(cov_xml)
             root_xml = tree.getroot()
