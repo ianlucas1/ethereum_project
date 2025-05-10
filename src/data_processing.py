@@ -45,7 +45,7 @@ def _plot_core_data(df: pd.DataFrame, filename: str) -> None:
         axes: np.ndarray
         fig, axes = plt.subplots(3, 1, figsize=(12, 9), sharex=True)
         # Save plot in project root using settings for consistency
-        plot_path = settings.BASE_DIR / filename
+        plot_path = settings.DATA_DIR / filename
 
         # Add checks for empty data before plotting
         if "price_usd" in df.columns and not df["price_usd"].dropna().empty:
