@@ -88,4 +88,4 @@ RUN mkdir -p /app/data /app/snapshots /app/matplotlib_cache \
 USER app
 
 # Define the command to run the application
-CMD ["python", "main.py"]
+CMD ["python", "main.py"]# trigger build
