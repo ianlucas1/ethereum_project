@@ -1,10 +1,8 @@
 name: lockfile‑consistency
 
 on:
+  push:
   pull_request:
-    paths:
-      - "requirements*.txt"
-      - ".github/workflows/lockfile-check.yml"
 
 jobs:
   lockfile:

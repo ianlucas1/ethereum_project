@@ -1,16 +1,8 @@
 name: Docker build (4.3.4)
 
 on:
-  pull_request:
-    branches: [ "**" ]
-    paths:
-      - "Dockerfile"
-      - ".dockerignore"
-      - "requirements*.txt"
-      - "src/**"
-      - "tests/**"
   push:
-    branches: [ main ]
+  pull_request:
 
 jobs:
   build:
