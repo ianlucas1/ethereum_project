@@ -1,0 +1,18 @@
+name: Push Frequency Guard
+on:
+  pull_request:
+  schedule:
+    - cron: '0 */6 * * *'   # every 6 h
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if branch too far ahead
+        run: |
+          git fetch origin main
+          COMMITS=$(git rev-list --count origin/main..HEAD)
+          if [ "$COMMITS" -gt 5 ]; then
+            echo "::error title=Push too large::Branch is $COMMITS commits ahead of main"
+            exit 1
+          fi 
