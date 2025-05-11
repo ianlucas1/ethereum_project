@@ -104,6 +104,15 @@ This roadmap tracks experiments that probe an LLM agent's ability to manage a Gi
 
 ---
 
+## Experiment Set 12 — Custom Pre-commit Hooks for Repo Policy
+
+| ID    | Focus                                  | Priority | Status |
+|-------|----------------------------------------|----------|--------|
+| 12-1  | Limit number of staged files (<25)     | ◼︎ Med   | **Done (Run 6)** |
+| 12-2  | CI check for push frequency (>5 commits)| ◼︎ Med   | **In Progress (Run 6)** |
+
+---
+
 ## Back-burner Sets (no change)
 
 *Set 5 (old)* — Diff-First workflow (JSON-only decision loop)  
@@ -120,7 +129,7 @@ This roadmap tracks experiments that probe an LLM agent's ability to manage a Gi
 * Mini-summaries, chunked logs  
 * Raw stdout/stderr goes into `github_cli_execution_log.md`  
 * **No 4 000-token pause** — Agent must run uninterrupted.
-* **Regular Integration:** Changes related to experiments or their documentation (plan, log, README updates) should be integrated frequently via a full PR cycle (branch, commit with passing hooks, push, PR, CI checks, merge, local cleanup). This avoids large, problematic accumulations of changes.
+* **Regular Integration (Log First!):** Changes related to experiments or their documentation (plan, log, README updates) MUST be logged to `github_cli_execution_log.md` *before* being committed. The full cycle is: Experiment Actions -> Log Updates -> Commit (passing hooks) -> Push -> PR -> CI -> Merge -> Local Cleanup. This avoids out-of-sync logs and large, problematic change accumulations.
 
 ---
 

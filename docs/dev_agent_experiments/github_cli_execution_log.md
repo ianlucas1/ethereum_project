@@ -1158,3 +1158,58 @@ The process of merging PR #122 highlighted several important lessons for an auto
 - Local file changes made by hooks must be managed (e.g., with `git stash`) to prevent interference with subsequent git operations like branch checkouts or merge cleanups.
 - Force deletion of local branches (`git branch -D`) is often necessary after squash merges on the remote.
 - A more detailed discussion of these learnings has been added to `docs/dev_agent_experiments/README.md` under "Agent Learnings: Navigating Pre-commit Hooks and CI Interactions".
+
+---
+
+### Experiment 12-1: Add Pre-commit Hook to Limit Staged Files
+
+**Agent's Pre-Action Reasoning (Chain of Thought - CoT):**
+The goal is to add a new local pre-commit hook to `.pre-commit-config.yaml` that prevents committing if more than 25 files are staged. This involves creating a new branch, editing the config file, installing/running hooks to verify, and then committing the change to create a PR.
+
+**Command(s) Executed:**
+```sh
+git checkout -b experiment/12-1-precommit-file-limit
+# Manual edit of .pre-commit-config.yaml to add the hook (see diff below or PR #124)
+pre-commit install
+pre-commit run --all-files
+git add .pre-commit-config.yaml
+git commit -m "feat: Add pre-commit hook to limit staged files to 25"
+git push origin experiment/12-1-precommit-file-limit
+gh pr create --title "feat: Add pre-commit hook to limit staged files" --body "This PR introduces a new local pre-commit hook that will cause a commit to fail if more than 25 files are staged. This is to encourage smaller, more atomic commits. Experiment 12-1." --base main --head experiment/12-1-precommit-file-limit
+```
+
+**Observed Result(s) (Key results):**
+- `.pre-commit-config.yaml` edited successfully.
+- `pre-commit install` output: `pre-commit installed at .git/hooks/pre-commit`
+- `pre-commit run --all-files` output showed the new hook "Too many staged files" as "Passed". Other hooks ran as usual, some failing due to unrelated existing issues in the codebase which were not staged for this commit.
+- `git commit` with only `.pre-commit-config.yaml` staged was successful, and the "Too many staged files" hook also passed during this commit attempt.
+- PR #124 created: `https://github.com/ianlucas1/ethereum_project/pull/124`
+
+**Agent's Post-Action Analysis (CoT & Interpretation):**
+The new pre-commit hook was successfully added and configured. The `pre-commit install` command ensured it was active. Running `pre-commit run --all-files` showed the hook as present and passing (since no files were staged at that exact moment of its self-test). The crucial test was the actual commit of `.pre-commit-config.yaml`: with only one file staged, the hook correctly evaluated `1 <= 25` and passed, allowing the commit to proceed. The hook is now in place to enforce the 25-file limit on future commits.
+
+**Learnings/Reflections:**
+- Adding local system hooks to `.pre-commit-config.yaml` is straightforward.
+- The `pre-commit run --all-files` command is useful for verifying hook installation and basic operation, but the hook's true behavior is tested during an actual `git commit`.
+
+**Mini-Summary (Experiment 12-1):**
+Added a new local pre-commit hook to `.pre-commit-config.yaml` to limit staged files to <= 25. Verified with `pre-commit install` and `pre-commit run --all-files`. The hook passed during a test commit of the configuration file itself. PR #124 created.
+
+---
+
+### Experiment 12-2: Add CI Push-Frequency Check Workflow
+
+**Agent's Pre-Action Reasoning (Chain of Thought - CoT):**
+The goal is to add a new GitHub Actions workflow that checks if a branch in a PR is more than 5 commits ahead of `origin/main`. This involves creating the workflow file, committing it, pushing, and creating a PR. The workflow should then run on the PR.
+
+**Actions Taken So Far (Pre-Commit):**
+1.  Created branch `experiment/12-2-push-frequency-ci`.
+2.  Created new file `.github/workflows/push-frequency.yml` with the specified content.
+
+**Next Steps (To be logged after execution):**
+- Commit the new workflow file.
+- Push the branch.
+- Create a Pull Request.
+- Verify the workflow appears and passes on the PR.
+- Merge the PR, delete the branch, and pull main.
+- Record the run-id of the push-frequency check in this log.
