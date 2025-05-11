@@ -68,3 +68,11 @@ repos:
 
 # TODO: Consider adding a Markdown link checker if a suitable pre-commit hook is found.
 # Many robust link checkers are full CI actions (e.g., lychee).
+
+  - repo: local
+    hooks:
+      - id: too-many-files
+        name: Too many staged files
+        entry: bash -c '[[ $(git diff --cached --name-only | wc -l) -le 25 ]]'
+        language: system
+        stages: [commit]
