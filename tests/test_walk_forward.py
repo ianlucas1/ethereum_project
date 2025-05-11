@@ -1,7 +1,7 @@
 # tests/test_walk_forward.py
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import pytest
 
 # Assuming src is importable via conftest.py
@@ -63,9 +63,9 @@ def test_run_oos_validation_splitting(sample_time_series_df):
     # --- Assertions ---
     # 1. Check number of predictions/splits
     expected_n_predictions = n_obs - test_window_size
-    assert len(results["predictions"]) == expected_n_predictions, (
-        f"Expected {expected_n_predictions} predictions, but got {len(results['predictions'])}"
-    )
+    assert (
+        len(results["predictions"]) == expected_n_predictions
+    ), f"Expected {expected_n_predictions} predictions, but got {len(results['predictions'])}"
     assert len(results["actuals"]) == expected_n_predictions
     assert len(results["residuals"]) == expected_n_predictions
     assert len(results["train_indices"]) == expected_n_predictions
@@ -77,14 +77,14 @@ def test_run_oos_validation_splitting(sample_time_series_df):
         test_idx = results["test_indices"][i]
 
         # a) Check training window size
-        assert len(train_idx) == test_window_size, (
-            f"Split {i}: Expected train size {test_window_size}, got {len(train_idx)}"
-        )
+        assert (
+            len(train_idx) == test_window_size
+        ), f"Split {i}: Expected train size {test_window_size}, got {len(train_idx)}"
 
         # b) Check test window size (should be 1)
-        assert len(test_idx) == 1, (
-            f"Split {i}: Expected test size 1, got {len(test_idx)}"
-        )
+        assert (
+            len(test_idx) == 1
+        ), f"Split {i}: Expected test size 1, got {len(test_idx)}"
 
         # c) Check non-overlap and correct progression
         # The test index should be the one immediately following the last training index
@@ -92,12 +92,12 @@ def test_run_oos_validation_splitting(sample_time_series_df):
         # Ensure the test date is aligned to month end if original index was month end
         expected_test_date = expected_test_date + pd.offsets.MonthEnd(0)
 
-        assert test_idx[0] == expected_test_date, (
-            f"Split {i}: Test index {test_idx[0]} doesn't immediately follow train index end {train_idx[-1]} + 1 month offset ({expected_test_date})"
-        )
+        assert (
+            test_idx[0] == expected_test_date
+        ), f"Split {i}: Test index {test_idx[0]} doesn't immediately follow train index end {train_idx[-1]} + 1 month offset ({expected_test_date})"
 
         # d) Check start of training window progression
         expected_train_start_index = i  # Corresponds to df.iloc[i]
-        assert train_idx[0] == df.index[expected_train_start_index], (
-            f"Split {i}: Expected train start index {expected_train_start_index} ({df.index[expected_train_start_index]}), got {train_idx[0]}"
-        )
+        assert (
+            train_idx[0] == df.index[expected_train_start_index]
+        ), f"Split {i}: Expected train start index {expected_train_start_index} ({df.index[expected_train_start_index]}), got {train_idx[0]}"

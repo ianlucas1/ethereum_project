@@ -57,9 +57,9 @@ def test_vecm_rank_detection(synthetic_coint_data):
 
     # Assert that the Johansen test suggested rank is 1
     assert "johansen_suggested_rank" in vecm_results, "Johansen rank result missing."
-    assert vecm_results["johansen_suggested_rank"] == 1, (
-        f"Expected Johansen rank 1, but got {vecm_results['johansen_suggested_rank']}"
-    )
+    assert (
+        vecm_results["johansen_suggested_rank"] == 1
+    ), f"Expected Johansen rank 1, but got {vecm_results['johansen_suggested_rank']}"
 
     # Optional: Check if trace stats and critical values seem reasonable
     assert "johansen_trace_stat" in vecm_results

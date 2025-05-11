@@ -1,15 +1,17 @@
 # tests/test_diagnostics.py
 
+from typing import Any, Dict
+from unittest.mock import MagicMock, patch
+
 import numpy as np
 import pandas as pd
 import pytest
 import statsmodels.api as sm
 from statsmodels.regression.linear_model import OLS, RegressionResultsWrapper
-from unittest.mock import MagicMock, patch
-from typing import Any, Dict
 
 # Assuming src is importable via conftest.py
-from src.diagnostics import run_residual_diagnostics, run_structural_break_tests
+from src.diagnostics import (run_residual_diagnostics,
+                             run_structural_break_tests)
 
 # --- Test Fixtures ---
 
@@ -105,9 +107,9 @@ def test_residual_diagnostics_happy_path(mock_ols_results_dict: Dict[str, Any]):
     assert isinstance(results, dict)
     expected_keys = ["DW", "BG_p", "BP_p", "White_p", "JB_p"]
     for key in expected_keys:
-        assert key in results, (
-            f"Expected key '{key}' not found in results: {results.keys()}"
-        )
+        assert (
+            key in results
+        ), f"Expected key '{key}' not found in results: {results.keys()}"
         # Check that values are floats or NaN (in case a test failed internally)
         assert isinstance(results[key], (float, np.floating)) or pd.isna(
             results[key]
@@ -162,17 +164,17 @@ def test_structural_break_tests_happy_path(
     expected_keys = ["CUSUM_p", "Chow_break1_p", "Chow_break2_p"]
     print(f"Structural Break Test Results: {results}")  # Debug print
     for key in expected_keys:
-        assert key in results, (
-            f"Expected key '{key}' not found in results: {results.keys()}"
-        )
+        assert (
+            key in results
+        ), f"Expected key '{key}' not found in results: {results.keys()}"
         # Check that values are floats or NaN (in case a test failed internally)
         assert isinstance(results[key], (float, np.floating)) or pd.isna(
             results[key]
         ), f"Value for '{key}' is not float or NaN: {results[key]}"
         # P-values should be between 0 and 1 or NaN
-        assert pd.isna(results[key]) or 0 <= results[key] <= 1, (
-            f"P-value for '{key}' out of range: {results[key]}"
-        )
+        assert (
+            pd.isna(results[key]) or 0 <= results[key] <= 1
+        ), f"P-value for '{key}' out of range: {results[key]}"
 
 
 def test_structural_break_tests_missing_model_obj(mock_break_dates: Dict[str, str]):

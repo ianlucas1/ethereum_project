@@ -1,8 +1,10 @@
 # %% Load Data and Libraries for Interactive Session
 
 import logging
-import pandas as pd
+
 import matplotlib.pyplot as plt
+import pandas as pd
+
 from src.config import settings  # Import settings object
 
 DATA_DIR = settings.DATA_DIR  # Get DATA_DIR from settings

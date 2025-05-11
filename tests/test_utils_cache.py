@@ -6,10 +6,9 @@ from unittest.mock import MagicMock
 import pandas as pd
 import pytest
 
-from src.utils import disk_cache
 from src.config import settings
+from src.utils import disk_cache
 from src.utils.cache import FileLock
-
 
 # -----------------------------------------------------------------------------
 # 1. Cache miss -> write -> hit

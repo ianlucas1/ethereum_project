@@ -3,22 +3,33 @@
 ────────────────────────────────────────────────────────
 ## Context-Hygiene Rules  (Agent MUST follow)
 
-1. **Progressive summarisation**   
-   • After each numbered experiment, write ≤ 5-line “Mini-Summary” at the end of your `github_cli_execution_log.md` entry.  
-   • Do **not** copy full CLI/stdout into chat; place it in the log only.
+1. **Progressive summarisation**  
+   • After each numbered experiment, write a ≤ 5-line “Mini-Summary” at the end of your `github_cli_execution_log.md` entry.  
+   • Do **not** copy full CLI/stdout into chat; save it in the log only.
 
-2. **Chunked logging**   
-   • For multi-screen outputs, store them under a fenced block in `github_cli_execution_log.md` and reference them by line-range if needed later.  
-   • In chat, write: *“see execution log §Exp 2-5b → Output block”*.
+2. **Chunked logging**  
+   • For multi-screen outputs, fence them in the log and reference them by section (“see log §Exp 3-11 → Bandit output”).  
+   • Chat should carry only high-level reasoning.
 
-3. **Critical reminders header**   
-   Before starting work append this one-liner to your private scratchpad (not the repo):  
-   > **Reminder**: `main` is protected → never push directly.
+3. **Critical reminder scratchpad**  
+   Before executing commands, append this to your private scratchpad (not the repo):  
+   > **Reminder**: `main` is protected → never push directly.  
 
-4. **Token guard**   
-   If chat output grows beyond ~4 000 lines, pause and add a new high-level recap paragraph to the log, then continue.
+4. **Token guard (no hard pause)**  
+   • If chat context nears overflow, write a 1-paragraph recap in the log and **continue**; do **not** halt at 4 000 tokens.  
+   • Aim to keep active chat ≤ 2 000 tokens by summarising old reasoning.
 
-Failure to apply these rules is considered an experiment failure.
+5. **Read-first contract**  
+   *Before taking any action*, you must read & absorb:  
+   1. `github_cli_plan.md` (roadmap & experiment IDs)  
+   2. `github_cli_execution_log.md` (latest history)  
+   3. `README.md` (this file)  
+
+6. **Time-boxing rule**  
+   Each experiment gets **≤ 20 minutes or ≤ 3 failed attempts**.  
+   Exceeding this means: log attempts, mark “Partially Complete”, move on.
+
+Failure to follow these rules counts as an experiment failure.
 ────────────────────────────────────────────────────────
 
 ## Purpose of these Experiments

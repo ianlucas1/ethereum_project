@@ -1,10 +1,11 @@
 # tests/test_validation.py
 
+from unittest.mock import MagicMock, patch
+
 import numpy as np
 import pandas as pd
 import pytest
 import statsmodels.api as sm  # Needed for mocking OLS
-from unittest.mock import patch, MagicMock
 
 # Assuming src is importable via conftest.py
 from src.validation import run_oos_validation
@@ -114,9 +115,9 @@ def test_run_oos_validation_happy_path(
     # Prediction mock returns NaN for step i=25 (predicting for index 25).
     # N_OOS counts non-NaN prediction/actual pairs. Actuals are never NaN here.
     # So N_OOS should be 6 - 1 = 5.
-    assert results["N_OOS"] == expected_oos_predictions - 1, (
-        f"Expected N_OOS={expected_oos_predictions - 1}, Got={results['N_OOS']}"
-    )
+    assert (
+        results["N_OOS"] == expected_oos_predictions - 1
+    ), f"Expected N_OOS={expected_oos_predictions - 1}, Got={results['N_OOS']}"
     assert len(results["predictions"]) == expected_oos_predictions
     assert len(results["actuals"]) == expected_oos_predictions
     assert len(results["residuals"]) == expected_oos_predictions

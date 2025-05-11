@@ -15,17 +15,13 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 from scipy.stats import f, jarque_bera
-from statsmodels.stats.diagnostic import (
-    acorr_breusch_godfrey,
-    breaks_cusumolsresid,
-    het_breuschpagan,
-    het_white,
-)
+from statsmodels.regression.linear_model import \
+    OLSResults  # For model fit types
+from statsmodels.stats.diagnostic import (acorr_breusch_godfrey,
+                                          breaks_cusumolsresid,
+                                          het_breuschpagan, het_white)
 from statsmodels.stats.stattools import durbin_watson
 from statsmodels.tools.sm_exceptions import SpecificationWarning
-from statsmodels.regression.linear_model import (
-    OLSResults,
-)  # For model fit types
 
 # --- Residual Diagnostics ---
 

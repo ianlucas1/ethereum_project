@@ -1,15 +1,12 @@
 # tests/test_snapshot_creation.py
 
 import json
-
+from pathlib import Path
 # Add MagicMock to imports
 from unittest.mock import MagicMock, patch
 
 # Add pytest and Path for type hints
 import pytest
-from pathlib import Path
-
-
 import requests
 
 # Assuming src is importable due to conftest.py or PYTHONPATH setup

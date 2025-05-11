@@ -7,16 +7,11 @@ from typing import Any, Dict, List, Optional  # Use specific types
 
 import numpy as np
 import pandas as pd
-
 # Import specific statsmodels types for hinting
 from statsmodels.tsa.api import VAR
-from statsmodels.tsa.ardl import ARDL, UECM, BoundsTestResult, ARDLResults
-from statsmodels.tsa.vector_ar.vecm import (
-    VECM,
-    JohansenTestResult,
-    VECMResults,
-    coint_johansen,
-)
+from statsmodels.tsa.ardl import ARDL, UECM, ARDLResults, BoundsTestResult
+from statsmodels.tsa.vector_ar.vecm import (VECM, JohansenTestResult,
+                                            VECMResults, coint_johansen)
 
 # --- VECM Analysis ---
 

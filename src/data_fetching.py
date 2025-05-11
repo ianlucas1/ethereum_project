@@ -10,16 +10,18 @@ and disk caching to avoid redundant downloads.
 
 from __future__ import annotations
 
-import logging
 import json
+import logging
 import random
 import time
 from datetime import datetime, timedelta, timezone
-import requests
+
 import pandas as pd
+import requests
 
 # Import settings and helpers
 from src.config import settings
+
 from .utils import disk_cache, robust_get  # Remove DATA_DIR import
 
 # --- Data Fetching Functions ---

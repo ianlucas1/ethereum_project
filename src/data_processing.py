@@ -21,6 +21,7 @@ import pandas as pd
 
 # Import settings, helpers from utils and data_fetching
 from src.config import settings
+
 from .data_fetching import cm_fetch, fetch_eth_price_rapidapi, fetch_nasdaq
 from .utils import load_parquet
 

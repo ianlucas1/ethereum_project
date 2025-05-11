@@ -11,9 +11,10 @@ Outputs JSON summary for the coding agent to consume.
 """
 
 from __future__ import annotations
+
+import datetime
 import json
 import pathlib
-import datetime
 import re
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]

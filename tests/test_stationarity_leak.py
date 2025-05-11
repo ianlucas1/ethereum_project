@@ -1,7 +1,7 @@
 # tests/test_stationarity_leak.py
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 # Assuming src is importable due to conftest.py or PYTHONPATH setup
 from src.eda import run_stationarity_tests
@@ -47,9 +47,9 @@ def test_stationarity_test_windowing():
     assert adf_p_first_half_str != "N/A", "ADF test failed for first half"
     adf_p_first_half = float(adf_p_first_half_str)
     print(f"\nADF p-value (First Half - Random Walk): {adf_p_first_half:.4f}")
-    assert adf_p_first_half > 0.05, (
-        f"First half (random walk) should be non-stationary (ADF p > 0.05), but got p={adf_p_first_half:.4f}"
-    )
+    assert (
+        adf_p_first_half > 0.05
+    ), f"First half (random walk) should be non-stationary (ADF p > 0.05), but got p={adf_p_first_half:.4f}"
 
     # 4. Test second half (expect stationary -> low ADF p-value)
     results_second_half_df = run_stationarity_tests(
@@ -61,9 +61,9 @@ def test_stationarity_test_windowing():
     assert adf_p_second_half_str != "N/A", "ADF test failed for second half"
     adf_p_second_half = float(adf_p_second_half_str)
     print(f"ADF p-value (Second Half - Stationary): {adf_p_second_half:.4f}")
-    assert adf_p_second_half < 0.05, (
-        f"Second half (stationary) should be stationary (ADF p < 0.05), but got p={adf_p_second_half:.4f}"
-    )
+    assert (
+        adf_p_second_half < 0.05
+    ), f"Second half (stationary) should be stationary (ADF p < 0.05), but got p={adf_p_second_half:.4f}"
 
     # 5. Test full series (expect non-stationary overall)
     results_full_df = run_stationarity_tests(
@@ -76,6 +76,6 @@ def test_stationarity_test_windowing():
     adf_p_full = float(adf_p_full_str)
     print(f"ADF p-value (Full Series): {adf_p_full:.4f}")
     # Depending on the mix, the full series is usually non-stationary
-    assert adf_p_full > 0.05, (
-        f"Full series should likely be non-stationary (ADF p > 0.05), but got p={adf_p_full:.4f}"
-    )
+    assert (
+        adf_p_full > 0.05
+    ), f"Full series should likely be non-stationary (ADF p > 0.05), but got p={adf_p_full:.4f}"

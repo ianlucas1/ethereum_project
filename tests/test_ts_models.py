@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 
 # Assuming src is importable via conftest.py
-from src.ts_models import run_vecm_analysis, run_ardl_analysis
+from src.ts_models import run_ardl_analysis, run_vecm_analysis
 
 # --- Fixtures ---
 

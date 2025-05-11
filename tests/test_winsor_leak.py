@@ -1,7 +1,7 @@
 # tests/test_winsor_leak.py
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 # Assuming src is importable due to conftest.py or PYTHONPATH setup
 from src.eda import winsorize_data
@@ -45,20 +45,20 @@ def test_winsorize_leakage_prevention():
 
     # 4. Assertions
     # a) The future outlier should NOT have been changed
-    assert df_winsorized.loc["2023-01-05", "value"] == original_future_value, (
-        "Future outlier value was incorrectly modified by winsorizing based on past window."
-    )
+    assert (
+        df_winsorized.loc["2023-01-05", "value"] == original_future_value
+    ), "Future outlier value was incorrectly modified by winsorizing based on past window."
 
     # b) Check that capping *did* happen based on the past window's quantile
     #    The cap value should be the 90th percentile of [10, 12, 11, 13] = 12.8
     expected_cap_value = np.percentile([10, 12, 11, 13], 90)
     # Find the max value in the past window in the *winsorized* data
     max_past_winsorized_value = df_winsorized.loc[past_window_mask, "value"].max()
-    assert max_past_winsorized_value <= expected_cap_value, (
-        f"Value in past window ({max_past_winsorized_value}) exceeds expected cap value ({expected_cap_value}) based on past data."
-    )
+    assert (
+        max_past_winsorized_value <= expected_cap_value
+    ), f"Value in past window ({max_past_winsorized_value}) exceeds expected cap value ({expected_cap_value}) based on past data."
 
     # c) Verify a specific past value *was* capped (e.g., the 13)
-    assert df_winsorized.loc["2023-01-04", "value"] == expected_cap_value, (
-        "Expected past value (13) was not capped to the calculated threshold."
-    )
+    assert (
+        df_winsorized.loc["2023-01-04", "value"] == expected_cap_value
+    ), "Expected past value (13) was not capped to the calculated threshold."

@@ -16,17 +16,16 @@ from __future__ import annotations
 
 import json
 import logging
-
 # Removed time import as retries are handled by the session adapter
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Final, Mapping, MutableMapping, Optional
 
 import requests
-
 # Imports for Session and Retry logic
 from requests.adapters import HTTPAdapter
-from requests.exceptions import RequestException  # Import base RequestException
+from requests.exceptions import \
+    RequestException  # Import base RequestException
 from urllib3.util.retry import Retry
 
 # ---------------------------------------------------------------------

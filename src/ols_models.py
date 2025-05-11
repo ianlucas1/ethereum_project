@@ -14,7 +14,6 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 from sklearn.metrics import mean_squared_error
-
 # Import specific statsmodels types for hinting
 from statsmodels.regression.linear_model import OLS, RegressionResultsWrapper
 
@@ -140,12 +139,16 @@ def fit_ols_hac(
                 "params": params_dict,
                 "pvals_hac": pvals_dict,
                 "se_hac": ses_dict,
-                "r2": float(hac_results.rsquared)
-                if pd.notna(hac_results.rsquared)
-                else np.nan,
-                "r2_adj": float(hac_results.rsquared_adj)
-                if pd.notna(hac_results.rsquared_adj)
-                else np.nan,
+                "r2": (
+                    float(hac_results.rsquared)
+                    if pd.notna(hac_results.rsquared)
+                    else np.nan
+                ),
+                "r2_adj": (
+                    float(hac_results.rsquared_adj)
+                    if pd.notna(hac_results.rsquared_adj)
+                    else np.nan
+                ),
                 "n_obs": int(hac_results.nobs),
                 # Convert potential numpy arrays to Series with correct index
                 "resid": pd.Series(
