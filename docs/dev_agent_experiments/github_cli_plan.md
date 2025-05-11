@@ -94,3 +94,21 @@ This document outlines a series of experiments designed to test and document the
    * **Phase A:** Single-model (GPT-4 / o3) end-to-end run.
    * **Phase B:** Planner = Gemini 2.5; Executor = GPT-4.
 3. **Metrics:** wall-clock time, token usage, number of human interventions, success rate. 
+
+---
+
+## Future Experiments (Post Run 2 / In-Progress Run 3)
+
+### Experiment 2-5b – PyTest failure path (✅ Done in Run 3)
+*   **Objective:** Confirm agent can create a PR with a test that is guaranteed to fail in CI (e.g., `assert False` in a new PyTest file), then correctly identify and log the name and URL of the failing check.
+*   **Status:** Completed in Run 3. PR #120 created with `tests/test_fail.py`. Failing check: Name: `Python CI`, URL: `https://github.com/ianlucas1/ethereum_project/actions/runs/14957856078`.
+
+### Experiment 3-10 – Investigate & align flake8/Bandit CI vs local configs (Future)
+*   **Objective:** Based on findings in Run 3 (Task 1), investigate discrepancies and align configurations for Flake8 (E501 handling) and Bandit (B101 handling, severity levels) between local pre-commit hooks and CI workflows (`ci.yml`, `static-security.yml`).
+*   **`gh` Command(s) / Actions:** File inspection, potentially modifying `.pre-commit-config.yaml` and `.github/workflows/*.yml` files, creating PRs to test changes.
+*   **Capability Questions:** Can the agent systematically diagnose configuration differences and propose/implement consistent linting rules across environments?
+
+### Experiment 3-11 – Fix Bandit pre-commit hook (Future)
+*   **Objective:** (Optional) Address the local Bandit pre-commit hook failure which seems to be caused by mixing the recursive `-r .` argument with specific filenames passed by the pre-commit tool.
+*   **Action:** Modify the `args` for the Bandit hook in `.pre-commit-config.yaml` (e.g., by removing `-r .` if filenames are always passed, or adjusting how Bandit is called).
+*   **Capability Questions:** Can the agent propose a targeted fix for a misbehaving pre-commit hook configuration based on error analysis? 

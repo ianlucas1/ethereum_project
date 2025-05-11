@@ -1,5 +1,26 @@
 # Autonomous Development Agent Experiments
 
+────────────────────────────────────────────────────────
+## Context-Hygiene Rules  (Agent MUST follow)
+
+1. **Progressive summarisation**   
+   • After each numbered experiment, write ≤ 5-line “Mini-Summary” at the end of your `github_cli_execution_log.md` entry.  
+   • Do **not** copy full CLI/stdout into chat; place it in the log only.
+
+2. **Chunked logging**   
+   • For multi-screen outputs, store them under a fenced block in `github_cli_execution_log.md` and reference them by line-range if needed later.  
+   • In chat, write: *“see execution log §Exp 2-5b → Output block”*.
+
+3. **Critical reminders header**   
+   Before starting work append this one-liner to your private scratchpad (not the repo):  
+   > **Reminder**: `main` is protected → never push directly.
+
+4. **Token guard**   
+   If chat output grows beyond ~4 000 lines, pause and add a new high-level recap paragraph to the log, then continue.
+
+Failure to apply these rules is considered an experiment failure.
+────────────────────────────────────────────────────────
+
 ## Purpose of these Experiments
 
 This directory houses records and plans related to the "side quest" of enabling a frontier-level reasoning Large Language Model (LLM), like the one currently interacting with you, to operate as an increasingly autonomous development agent. The primary goal is to allow the LLM to further the development and refinement of the `ethereum_project` codebase, operating within the Cursor IDE.
