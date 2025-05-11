@@ -1,0 +1,3 @@
+# `src.diagnostics`
+
+::: src.diagnostics 

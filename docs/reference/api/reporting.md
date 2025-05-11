@@ -1,0 +1,3 @@
+# `src.reporting`
+
+::: src.reporting 
