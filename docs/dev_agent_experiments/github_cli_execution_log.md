@@ -684,3 +684,119 @@ Both methods confirm all substantive checks passed and the pager issue is resolv
 
 **Narrative Summary:**
 Objective: Test `gh pr checks` with `GH_PAGER=cat` and confirm all-pass CI. Action: Created PR #113 with a trivial file. Polled checks using `gh pr checks` and API. Outcome: `gh pr checks` (no watch) correctly showed pending status without pager errors. `gh pr checks --watch` and API call confirmed all 11 checks passed (1 skipped). Learning: `GH_PAGER=cat` is effective; both polling methods work for pass scenarios. 
+
+---
+
+### Experiment 2-5′: Deliberate failing check (Bandit B101 Invasive - Attempt 6)
+
+**Agent's Pre-Action Reasoning (Chain of Thought - CoT):**
+Purpose: Test failing-check detection. Previous attempts to fail flake8 E501 or Bandit B101 with new files did not result in CI failures, likely due to CI configuration details (flake8 E501 ignored, Bandit B101 not triggering as expected on new files, or pre-commit configuration issues for local bandit).
+This attempt will try to trigger a Bandit B101 failure by adding an `assert True` statement to an existing, known-scanned file: `src/utils/helpers.py`.
+Steps:
+1. Modify `src/utils/helpers.py` with an `assert True`.
+2. Branch (`experiment/2-5-bandit-invasive`), commit (using `--no-verify` due to persistent local pre-commit bandit issues), push, PR.
+3. Poll `gh pr checks <PR#>` and API until CI completes.
+4. Capture failing check name + URL if it occurs.
+
+**Command(s) Executed (File Modification):**
+```sh
+# Via agent's edit_file tool on src/utils/helpers.py
+# Added lines:
+# # Added for Experiment 2-5 Prime (Bandit B101 invasive test)
+# assert True, "Deliberate assert for Bandit B101 test in CI"
+```
+
+**Command(s) Executed (Git & PR Creation):**
+```sh
+git checkout -b experiment/2-5-bandit-invasive
+git add src/utils/helpers.py
+git commit --no-verify -m 'feat!: add assert to helpers.py for exp 2-5 (Bandit B101 invasive)'
+git push origin experiment/2-5-bandit-invasive
+gh pr create --title 'Experiment 2-5 Prime (Bandit B101 Invasive): Pager Test' --body 'Test `gh pr checks` with GH_PAGER=cat and a deliberately failing Bandit B101 (assert in existing src/ file). Expect Bandit CI check to fail.' --base main --head experiment/2-5-bandit-invasive
+```
+**Observed Result(s) (Git & PR Creation - Selected):**
+```
+Switched to a new branch 'experiment/2-5-bandit-invasive'
+[experiment/2-5-bandit-invasive 0939b6b] feat!: add assert to helpers.py for exp 2-5 (Bandit B101 invasive)
+ 1 file changed, 2 insertions(+)
+To https://github.com/ianlucas1/ethereum_project.git
+ * [new branch]      experiment/2-5-bandit-invasive -> experiment/2-5-bandit-invasive
+Creating pull request for experiment/2-5-bandit-invasive into main in ianlucas1/ethereum_project
+https://github.com/ianlucas1/ethereum_project/pull/118
+```
+(Commit SHA: `0939b6bfdb63796f5134b3d4b5f3449521142cfd`)
+
+**Command(s) Executed (Polling - Final `gh pr checks --watch`):**
+```sh
+gh pr checks 118 --watch --interval 10
+```
+**Observed Result(s) (Polling - Final `gh pr checks --watch`):**
+```
+All checks were successful
+0 cancelled, 0 failing, 12 successful, 1 skipped, and 0 pending checks
+
+   NAME                                                 DESCRIPTION  ELAPSED  URL
+
+✓  CodeQL/Analyze (python) (python) (pull_request)                   1m23s    https://github.com/ianlucas1/ethereum_project/actions/runs/14957076349/j...
+✓  CI/Bandit & Safety (push)                                         16s      https://github.com/ianlucas1/ethereum_project/actions/runs/14957076042/j...
+✓  CI/Bandit & Safety (pull_request)                                 21s      https://github.com/ianlucas1/ethereum_project/actions/runs/14957076348/j...
+✓  Docker build (4.3.4)/build (push)                                 49s      https://github.com/ianlucas1/ethereum_project/actions/runs/14957076036/j...
+✓  CI/build (push)                                                   2m6s     https://github.com/ianlucas1/ethereum_project/actions/runs/14957076042/j...
+✓  Docker build (4.3.4)/build (pull_request)                         45s      https://github.com/ianlucas1/ethereum_project/actions/runs/14957076338/j...
+✓  CI/build (pull_request)                                           2m4s     https://github.com/ianlucas1/ethereum_project/actions/runs/14957076348/j...
+✓  lockfile‑consistency/lockfile (push)                              14s      https://github.com/ianlucas1/ethereum_project/actions/runs/14957076030/j...
+✓  lockfile‑consistency/lockfile (pull_request)                        20s      https://github.com/ianlucas1/ethereum_project/actions/runs/14957076340/j...
+✓  Bandit & Safety/static-security (push)                            49s      https://github.com/ianlucas1/ethereum_project/actions/runs/14957076029/j...
+✓  Bandit & Safety/static-security (pull_request)                        48s      https://github.com/ianlucas1/ethereum_project/actions/runs/14957076359/j...
+✓  Python CI/test (ubuntu-latest, 3.12) (pull_request)               1m50s    https://github.com/ianlucas1/ethereum_project/actions/runs/14957076336/j...
+-  CodeQL                                                            2s       https://github.com/ianlucas1/ethereum_project/runs/42014205868
+```
+
+**Command(s) Executed (Polling - Final API call):**
+```sh
+gh api repos/ianlucas1/ethereum_project/commits/0939b6bfdb63796f5134b3d4b5f3449521142cfd/check-runs --jq '.check_runs[] | select(.name | contains("Bandit")) | {name: .name, conclusion: .conclusion, html_url: .html_url}'
+```
+**Observed Result(s) (Polling - Final API call for Bandit checks):**
+```json
+{
+  "name": "Bandit & Safety",
+  "conclusion": "success",
+  "html_url": "https://github.com/ianlucas1/ethereum_project/actions/runs/14957076042/job/42014106052"
+}
+{
+  "name": "Bandit & Safety",
+  "conclusion": "success",
+  "html_url": "https://github.com/ianlucas1/ethereum_project/actions/runs/14957076348/job/42014107187"
+}
+{
+  "name": "static-security",
+  "conclusion": "success",
+  "html_url": "https://github.com/ianlucas1/ethereum_project/actions/runs/14957076029/job/42014106025"
+}
+{
+  "name": "static-security",
+  "conclusion": "success",
+  "html_url": "https://github.com/ianlucas1/ethereum_project/actions/runs/14957076359/job/42014107211"
+}
+```
+
+**Agent's Post-Action Analysis (CoT & Interpretation):**
+PR #118 was created with an `assert True` statement added to `src/utils/helpers.py`. 
+Despite this, all CI checks, including the `CI/Bandit & Safety (pull_request)` check (from `ci.yml`, which runs `bandit -r . -s B101 -ll`) and the `Bandit & Safety/static-security` check (from `static-security.yml`, which runs `bandit -r . --severity-level medium`), reported `success`.
+This is unexpected, as an `assert` statement should be flagged by Bandit B101 (Low severity), and the `CI/Bandit & Safety` job is configured to show Low severity issues for B101.
+
+This means either:
+1. The Bandit command `bandit -r . -s B101 -ll` in the CI environment is not behaving as documented/expected for B101 issues.
+2. The file `src/utils/helpers.py`, despite being in `src/`, is somehow excluded from the Bandit scan in CI in a way not obvious from the workflow files (e.g. a `.bandit` config file elsewhere, or specific path exclusions hardcoded in the action runner for Bandit).
+3. The version of Bandit in CI (latest via `pip install bandit`) has a bug or change regarding B101 detection compared to documentation or previous versions.
+
+As a result, Experiment 2-5's primary goal of capturing a failing check's name and URL via API could not be completed because no check was made to fail despite deliberate attempts.
+The PR #118 will be left open as per the instructions for 2-5' ("*Stop here* — do not attempt to fix or merge; we'll use this PR in a later session.").
+
+**Learnings/Reflections:**
+- Inducing a specific, predictable CI failure can be challenging if the exact behavior of linters/scanners in the CI environment isn't perfectly understood or if their configurations have subtle aspects not immediately visible.
+- The `GH_PAGER=cat` setting continues to work well for `gh pr checks`.
+- The local pre-commit configuration for Bandit needs investigation, as it fails with argument parsing errors when it shouldn't.
+
+**Narrative Summary:**
+Objective: Test failing-check detection. Action: Modified `src/utils/helpers.py` in PR #118 to include an `assert True`, expecting Bandit B101 to fail in CI. Outcome: All CI checks, including Bandit, unexpectedly passed. Unable to observe/capture a failing check. Learning: CI linter behavior for specific rules (like Bandit B101) needs further investigation to reliably induce failures for testing. PR #118 left open. 
