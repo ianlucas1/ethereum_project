@@ -1,4 +1,0 @@
-This is a temporary file for GitHub CLI experiments.
-It will be modified, committed, and used in a test PR workflow.
-
-A trivial line added for experiment 0.1. 
