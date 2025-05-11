@@ -173,16 +173,16 @@ def fetch_eth_price_rapidapi() -> pd.DataFrame:
                 valid_timestamps = [timestamps[i] for i in valid_indices]
                 valid_prices = [close_prices[i] for i in valid_indices]
 
-                ser = pd.Series(
+                series_data = pd.Series(
                     valid_prices,
                     index=pd.to_datetime(valid_timestamps, unit="s", utc=True)
                     .tz_convert(None)
                     .normalize(),
                     name="price_usd",
                 )
-                pieces.append(ser)
+                pieces.append(series_data)
                 logging.debug(
-                    f"Successfully processed YF ETH chunk {start} to {end}, got {len(ser)} data points."
+                    f"Successfully processed YF ETH chunk {start} to {end}, got {len(series_data)} data points."
                 )
 
         except (
@@ -503,16 +503,16 @@ def fetch_nasdaq() -> pd.Series:
             else:
                 valid_timestamps = [timestamps[i] for i in valid_indices]
                 valid_prices = [close_prices[i] for i in valid_indices]
-                ser = pd.Series(
+                series_data = pd.Series(
                     valid_prices,
                     index=pd.to_datetime(valid_timestamps, unit="s", utc=True)
                     .tz_convert(None)
                     .normalize(),
                     name="nasdaq",
                 )
-                pieces.append(ser)
+                pieces.append(series_data)
                 logging.debug(
-                    f"Successfully processed ^NDX chunk {start} to {end}, got {len(ser)} data points."
+                    f"Successfully processed ^NDX chunk {start} to {end}, got {len(series_data)} data points."
                 )
 
         except (

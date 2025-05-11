@@ -33,7 +33,9 @@ from urllib3.util.retry import Retry
 # ---------------------------------------------------------------------
 
 _DEFAULT_HEADERS: Final[Mapping[str, str]] = {
-    "User-Agent": "ethereum_project/1.0 (+https://github.com/ianlucas1/ethereum_project)"
+    "User-Agent": (
+        "ethereum_project/1.0 (+https://github.com/ianlucas1/ethereum_project)"
+    )
 }
 
 Json = Dict[str, Any]
@@ -48,7 +50,7 @@ retry_strategy = Retry(
     total=3,  # Total number of retries to allow (initial + 2 retries)
     status_forcelist=[429, 500, 502, 503, 504],  # Status codes to retry on
     allowed_methods=["HEAD", "GET", "OPTIONS"],  # Retry only on idempotent methods
-    backoff_factor=1,  # sleep for {backoff factor} * (2 ** ({number of total retries} - 1))
+    backoff_factor=1,  # sleep for {backoff factor} * (2 ** ({num_retries} - 1))
     # Note: urllib3 default includes handling of Retry-After header
 )
 
@@ -140,7 +142,7 @@ def robust_get(
         # Use the global session object
         resp = session.get(
             url,
-            params=None if params is None else dict(params),
+            params=dict(params) if params is not None else None,  # noqa: E501
             headers=merged_headers,
             timeout=timeout,
         )
@@ -185,6 +187,7 @@ def robust_get(
     except RequestException as exc:
         # This catches errors after retries are exhausted or non-retried errors
         logging.error(
-            f"robust_get failed for {url} after retries (if applicable): {exc}"
+            f"robust_get failed for {url} "
+            f"after retries (if applicable): {exc}"  # noqa: E501
         )
         raise  # Re-raise the final exception (e.g., HTTPError, ConnectionError, Timeout)

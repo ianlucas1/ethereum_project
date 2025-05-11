@@ -4,9 +4,10 @@ Single-source-of-truth Road-map synchroniser.
 
 • Reads prompts/roadmap.jsonl
 • If any task is IN PROGRESS → that's the active ticket.
-• Else finds the first NOT STARTED task (skipping Section headers) → sets need_rollover=True
-• If rollover required: rewrites roadmap.jsonl (set completedID->DONE, nextID->IN PROGRESS)
-  and rewrites §5 Current ticket in prompts/starter_prompt.txt
+• Else finds the first NOT STARTED task (skipping Section headers)
+  → sets need_rollover=True
+• If rollover required: rewrites roadmap.jsonl (set completedID->DONE,
+  nextID->IN PROGRESS) and rewrites §5 Current ticket in prompts/starter_prompt.txt
 Outputs JSON summary for the coding agent to consume.
 """
 
@@ -60,7 +61,8 @@ def rewrite_files(completed_id: str | None, next_task: dict):
         f"> *This block is rewritten automatically by `scripts/roadmap_sync.py`.*\n\n"
         f"**Ticket ID:** `{next_task['ID']}` — *{next_task['Task_Title']}*\n"
         f"**Branch:** `feature/{next_task['ID']}-"
-        f"{re.sub(r'[^a-z0-9-]+', '-', next_task['Task_Title'].lower())[:20].strip('-')}`\n\n"
+        f"{re.sub(r'[^a-z0-9-]+', '-', next_task['Task_Title'].lower())[:20].strip('-')}`"  # noqa: E501
+        f"`\n\n"
         f"### Tasks\n• TBD by agent\n"
     )
     STARTER.write_text(re.sub(r"## ❸[\s\S]*", new_block, txt))

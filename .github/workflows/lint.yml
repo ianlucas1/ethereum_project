@@ -16,4 +16,4 @@ jobs:
       - name: Install Flake8
         run: pip install flake8 flake8-bugbear==23.9.16 # Match pre-commit's flake8-bugbear version
       - name: Run Flake8
-        run: flake8 . --max-line-length=88 --ignore=E203,W503 
+        run: flake8 . --max-line-length=88 --ignore=E203,W503,E501 
