@@ -109,7 +109,7 @@ This roadmap tracks experiments that probe an LLM agent's ability to manage a Gi
 | ID    | Focus                                  | Priority | Status |
 |-------|----------------------------------------|----------|--------|
 | 12-1  | Limit number of staged files (<25)     | ◼︎ Med   | **Done (Run 6)** |
-| 12-2  | CI check for push frequency (>5 commits)| ◼︎ Med   | **In Progress (Run 6)** |
+| 12-2  | CI check for push frequency (>5 commits)| ◼︎ Med   | **Done (Run 6)** |
 
 ---
 
