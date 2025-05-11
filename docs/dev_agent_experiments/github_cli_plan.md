@@ -120,6 +120,7 @@ This roadmap tracks experiments that probe an LLM agent's ability to manage a Gi
 * Mini-summaries, chunked logs  
 * Raw stdout/stderr goes into `github_cli_execution_log.md`  
 * **No 4 000-token pause** — Agent must run uninterrupted.
+* **Regular Integration:** Changes related to experiments or their documentation (plan, log, README updates) should be integrated frequently via a full PR cycle (branch, commit with passing hooks, push, PR, CI checks, merge, local cleanup). This avoids large, problematic accumulations of changes.
 
 ---
 
