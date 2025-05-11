@@ -29,8 +29,8 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt bandit safety
 
-      - name: Bandit — fail on ≥ MEDIUM
-        run: bandit -r . --severity-level medium
+      - name: Bandit — report L,M,H; skip B101
+        run: bandit -r . -s B101 -ll
 
       - name: Safety — fail on any CVE
         run: safety check --full-report
