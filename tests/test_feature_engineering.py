@@ -1,12 +1,12 @@
 # tests/test_feature_engineering.py
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import pytest
 from pandas.testing import assert_series_equal
 
 # Assuming src is importable via conftest.py
-from src.data_processing import engineer_log_features, create_monthly_clean
+from src.data_processing import create_monthly_clean, engineer_log_features
 
 # --- Test Data ---
 

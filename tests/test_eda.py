@@ -4,9 +4,7 @@ import pandas as pd
 import pytest
 
 # Assuming src is importable via conftest.py
-from src.eda import (
-    winsorize_data,
-)  # Add stationarity later if needed
+from src.eda import winsorize_data  # Add stationarity later if needed
 
 # --- Fixtures ---
 

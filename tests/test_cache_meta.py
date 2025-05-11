@@ -6,8 +6,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from src.utils import settings
-from src.utils import disk_cache
+from src.utils import disk_cache, settings
 
 
 def _monkeypatch_data_dir(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:

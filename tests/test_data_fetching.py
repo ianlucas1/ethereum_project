@@ -12,11 +12,7 @@ from requests.exceptions import RequestException
 
 # Assuming src is importable via conftest.py
 from src.config import settings
-from src.data_fetching import (
-    cm_fetch,
-    fetch_eth_price_rapidapi,
-    fetch_nasdaq,
-)
+from src.data_fetching import cm_fetch, fetch_eth_price_rapidapi, fetch_nasdaq
 
 # --- Fixtures ---
 

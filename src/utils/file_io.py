@@ -1,8 +1,9 @@
 # src/utils/file_io.py
 
 import logging
-import pandas as pd
 from pathlib import Path
+
+import pandas as pd
 
 
 def load_parquet(path: Path, req_cols: list[str] | None = None) -> pd.DataFrame:

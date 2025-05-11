@@ -8,10 +8,9 @@ from typing import Any, Dict, List  # Use specific types
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
-
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 # Import specific statsmodels types for hinting
 from statsmodels.regression.linear_model import RegressionResultsWrapper
-from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 from src.eda import run_stationarity_tests, winsorize_data
 
@@ -339,9 +338,11 @@ def run_oos_validation(
             "OOS Validation Complete. RMSE: %.4f, MAE: %.4f, Dir Acc: %.2f%%",
             results["oos_rmse"],
             results["oos_mae"],
-            results["oos_directional_accuracy"] * 100
-            if pd.notna(results["oos_directional_accuracy"])
-            else float("nan"),  # Use float('nan') for consistency
+            (
+                results["oos_directional_accuracy"] * 100
+                if pd.notna(results["oos_directional_accuracy"])
+                else float("nan")
+            ),  # Use float('nan') for consistency
         )
     else:
         logging.warning(

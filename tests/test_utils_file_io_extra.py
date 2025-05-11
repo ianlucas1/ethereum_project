@@ -1,7 +1,7 @@
-import pandas as pd
-import pytest
 from pathlib import Path
 
+import pandas as pd
+import pytest
 
 # Import the loader under test
 from src.utils.file_io import load_parquet

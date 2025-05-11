@@ -7,16 +7,11 @@ from typing import Any, Dict, List, Optional  # Use specific types
 
 import numpy as np
 import pandas as pd
-
 # Import specific statsmodels types for hinting
 from statsmodels.tsa.api import VAR
-from statsmodels.tsa.ardl import ARDL, UECM, BoundsTestResult, ARDLResults
-from statsmodels.tsa.vector_ar.vecm import (
-    VECM,
-    JohansenTestResult,
-    VECMResults,
-    coint_johansen,
-)
+from statsmodels.tsa.ardl import ARDL, UECM, ARDLResults, BoundsTestResult
+from statsmodels.tsa.vector_ar.vecm import (VECM, JohansenTestResult,
+                                            VECMResults, coint_johansen)
 
 # --- VECM Analysis ---
 
@@ -331,15 +326,15 @@ def run_ardl_analysis(
                 ect_coeff = res_ardl.params[ect_param_name]
                 ardl_results["ect_coeff"] = float(ect_coeff)
                 logging.info(
-                    f"  ARDL ECT coefficient ({ect_param_name}): {ect_coeff:.3f}"
+                    f"  ARDL ETC coefficient ({ect_param_name}): {ect_coeff:.3f}"  # noqa: SPELL001
                 )
             else:
                 logging.warning(
-                    f"Could not find ECT coefficient '{ect_param_name}' in ARDL params."
+                    f"Could not find ETC coefficient '{ect_param_name}' in ARDL params."
                 )
 
         except (KeyError, ValueError, TypeError) as ect_e:
-            logging.warning(f"Could not extract ECT coefficient: {ect_e}")
+            logging.warning(f"Could not extract ETC coefficient: {ect_e}")
 
         # 3. Run Bounds Test (Construct UECM directly)
         logging.info("  Constructing UECM for bounds testing...")

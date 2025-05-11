@@ -7,6 +7,7 @@ Provides type-hinted access to configuration values like API keys and paths.
 from __future__ import annotations
 
 from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 

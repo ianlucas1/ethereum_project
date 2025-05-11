@@ -1,7 +1,7 @@
 # tests/test_utils_api_helpers_error.py
 
 # Add MagicMock to imports
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 import requests

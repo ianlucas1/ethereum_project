@@ -1,10 +1,11 @@
 # tests/test_ols_models.py
 
+from typing import Any, Dict
+
 import numpy as np
 import pandas as pd
 import pytest
 from statsmodels.regression.linear_model import OLSResults
-from typing import Any, Dict
 
 # Assuming src is importable via conftest.py
 from src.ols_models import fit_ols_hac, run_ols_benchmarks
@@ -120,9 +121,9 @@ def test_fit_ols_hac_perfect_collinearity(sample_ols_data: Dict[str, Any]):
         except Exception:
             pass  # Ignore errors trying to get condition number
 
-    assert error_occurred or condition_number_high, (
-        f"Expected an error or high condition number due to collinearity, but got error='{results.get('error')}' and cond_num='{cond_num}'"
-    )
+    assert (
+        error_occurred or condition_number_high
+    ), f"Expected an error or high condition number due to collinearity, but got error='{results.get('error')}' and cond_num='{cond_num}'"
 
     # If an error occurred, model_obj should be None and r2 NaN
     if error_occurred:

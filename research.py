@@ -1,8 +1,10 @@
 # %% Load Data and Libraries for Interactive Session
 
 import logging
-import pandas as pd
+
 import matplotlib.pyplot as plt
+import pandas as pd
+
 from src.config import settings  # Import settings object
 
 DATA_DIR = settings.DATA_DIR  # Get DATA_DIR from settings
@@ -58,7 +60,7 @@ if "monthly_clean" in locals() and isinstance(monthly_clean, pd.DataFrame):
             monthly_clean[plot_cols].plot(
                 figsize=(12, 6),
                 logy=True,
-                title="Monthly ETH Price vs Model Fair Values (Log Scale)",
+                title="Monthly ETH Price vs Model Fair Values (Log Scale)",  # noqa: E501
             )
             plt.ylabel("Price (USD Log Scale)")
             plt.xlabel("Date")
@@ -74,7 +76,9 @@ if "monthly_clean" in locals() and isinstance(monthly_clean, pd.DataFrame):
         )
         try:
             monthly_clean["price_usd"].plot(
-                figsize=(12, 6), logy=True, title="Monthly ETH Price (Log Scale)"
+                figsize=(12, 6),
+                logy=True,
+                title="Monthly ETH Price (Log Scale)",  # noqa: E501
             )
             plt.ylabel("Price (USD Log Scale)")
             plt.xlabel("Date")

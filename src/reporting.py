@@ -63,7 +63,9 @@ class NpEncoder(json.JSONEncoder):
             # Format Timestamp/Period to ISO 8601 string
             try:
                 return obj.isoformat()
-            except AttributeError:  # Handle cases where isoformat might not exist (though unlikely for Timestamp/Period)
+            except (
+                AttributeError
+            ):  # Handle cases where isoformat might not exist (though unlikely for Timestamp/Period)
                 return str(obj)
             except ValueError:  # Handle NaT
                 return None
@@ -470,7 +472,7 @@ def generate_summary(
 
 5.  **Out-of-Sample Performance:**
     *   Rolling OOS validation of the extended OLS model yielded **{_format_val(final_dict["oos_n_predictions"], precision=0)}** predictions.
-    *   The Mean Absolute Percentage Error (MAPE) was approx. **{oos_mape_str}**.
+    *   The Mean Absolute Percentage Error (MAP) was approx. **{oos_mape_str}**.
     *   The Root Mean Squared Error (RMSE) in price terms was approx. **{oos_rmse_str}**.
 
 **Valuation Snapshot (as of {last_date_str}):**

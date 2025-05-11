@@ -11,7 +11,8 @@ import numpy as np
 # --------------------------------------------------------------------------- #
 from src.config import settings  # configuration / secrets
 from src.data_processing import ensure_raw_data_exists, process_all_data
-from src.diagnostics import run_residual_diagnostics, run_structural_break_tests
+from src.diagnostics import (run_residual_diagnostics,
+                             run_structural_break_tests)
 from src.eda import run_stationarity_tests, winsorize_data
 from src.ols_models import run_ols_benchmarks
 from src.reporting import NpEncoder, generate_summary
