@@ -29,14 +29,14 @@
    Each experiment gets **≤ 20 minutes or ≤ 3 failed attempts**.  
    Exceeding this means: log attempts, mark "Partially Complete", move on.
 
-7. **Regular Integration of Changes (Full Cycle Workflow):**
-   • After completing an experiment or a significant set of related documentation updates (e.g., to this README, the plan, or the execution log), the agent MUST update the `github_cli_execution_log.md` with a comprehensive entry for the actions taken *before* proceeding to the commit and push steps.
-   • The ideal workflow is: Perform Actions -> Update Log -> Commit -> Push -> Create PR -> Monitor CI -> Merge -> Local Cleanup.
-   • This practice avoids large accumulations of unmerged changes and ensures logs are part of the PR, preventing an out-of-sync state post-merge. This was a key learning from PR #122 and PR #123 resolutions.
-   • For minor, purely documentation changes related to ongoing experiments, these can sometimes be batched, but the logging should still precede the commit of those batched changes.
+7. **Regular Integration – after every experiment or non-trivial doc edit:**
+   • Agent MUST update `github_cli_execution_log.md` with a comprehensive entry for the actions taken *before* committing.
+   • Workflow: `Perform Actions -> Update Log -> git add → commit → push → open PR → wait for CI → merge → pull main.`
+   • *Rationale*: This practice avoids large accumulations of unmerged changes and ensures logs are part of the PR, preventing an out-of-sync state post-merge. This was a key learning from PR #122 and PR #123 resolutions. For minor, purely documentation changes, these can sometimes be batched, but logging should still precede the commit of batched changes.
 
-8. **Final Action - Ensure Full Sync (Log First!):**
-   • Before concluding an experiment run or a significant interaction block with the user, the agent's *final actions* must be: 1) Update all relevant documentation (especially `github_cli_execution_log.md`). 2) Ensure these documentation changes AND any experimental code/config changes are committed, pushed, merged via PR (after passing CI). 3) Perform local repository cleanup (on `main`, updated, and feature branch deleted). This leaves the repository in a clean and synchronized state for future work or the next agent session.
+8. **Final Action – ensure local main is up-to-date and workspace clean:**
+   • *Log First!* Before concluding an experiment run or significant interaction, the agent's *final actions* must be: 1) Update all relevant documentation (especially `github_cli_execution_log.md`). 2) Ensure these documentation changes AND any experimental code/config changes are committed, pushed, merged via PR (after passing CI). 3) Perform local repository cleanup (on `main`, updated, and feature branch deleted).
+   • *Rationale*: This leaves the repository in a clean and synchronized state for future work or the next agent session.
 
 Failure to follow these rules counts as an experiment failure.
 ────────────────────────────────────────────────────────

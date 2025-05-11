@@ -1232,3 +1232,21 @@ The new "Push Frequency Guard" CI workflow was successfully implemented and test
 
 **Mini-Summary (Experiment 12-2):**
 Successfully added `.github/workflows/push-frequency.yml` to check if PR branches are >5 commits ahead of main. Logged actions before commit. PR #125 created, new `guard` CI check (run ID `14959797914`) passed. PR merged and branches cleaned up. Experiment completed.
+
+---
+
+### Docs: Refine Hygiene Rules for Integration Workflow (Experiment 12-3)
+
+**Agent's Pre-Action Reasoning (Chain of Thought - CoT):**
+Based on user feedback and learnings from previous PR merges, the hygiene rules regarding regular integration of changes and final synchronization steps need to be more precise and emphasize logging *before* commits.
+
+**Actions Taken:**
+1.  Created branch `experiment/12-3-readme-rule-refinement`.
+2.  Edited `docs/dev_agent_experiments/README.md` to refine Hygiene Rules #7 and #8 with more concise titles and action summaries, while retaining important rationale regarding logging first and preventing change accumulation.
+
+**Next Steps (To be logged after execution):**
+- Commit the `README.md` changes.
+- Push the branch.
+- Create a Pull Request.
+- Monitor CI checks.
+- Merge the PR and perform local cleanup.
