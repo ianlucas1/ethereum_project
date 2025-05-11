@@ -1,14 +1,17 @@
 # Ethereum Econometric Valuation Analysis
 
-[![Build](https://github.com/ianlucas1/ethereum_project/actions/workflows/ci.yml/badge.svg)](https://github.com/ianlucas1/ethereum_project/actions/workflows/ci.yml)
+[![Python CI](https://github.com/ianlucas1/ethereum_project/actions/workflows/python-ci.yml/badge.svg)](https://github.com/ianlucas1/ethereum_project/actions/workflows/python-ci.yml)
 [![CodeQL](https://github.com/ianlucas1/ethereum_project/actions/workflows/codeql.yml/badge.svg)](https://github.com/ianlucas1/ethereum_project/actions/workflows/codeql.yml)
-[![Bandit & Safety](https://github.com/ianlucas1/ethereum_project/actions/workflows/ci.yml/badge.svg?job=bandit_safety)](https://github.com/ianlucas1/ethereum_project/actions/workflows/ci.yml)
+[![Nightly Audit](https://github.com/ianlucas1/ethereum_project/actions/workflows/nightly_audit.yml/badge.svg)](https://github.com/ianlucas1/ethereum_project/actions/workflows/nightly_audit.yml)
+[![Security Scan](https://github.com/ianlucas1/ethereum_project/actions/workflows/static-security.yml/badge.svg)](https://github.com/ianlucas1/ethereum_project/actions/workflows/static-security.yml)
 
 ## Overview
 
 This project conducts an econometric analysis of Ethereum (ETH) valuation, primarily exploring its relationship with network activity metrics, drawing inspiration from Metcalfe's Law. It aims to identify key drivers of ETH's value using various statistical models. The project fetches, processes, and analyzes on-chain and market data for Ethereum and benchmark assets like the NASDAQ index.
 
-The primary execution script is `main.py`, which runs the complete end-to-end analysis pipeline. For interactive data exploration, model development, and visualization, `research.py` provides a suitable environment.
+The primary execution script is `main.py` (or `src/main.py`), which runs the complete end-to-end analysis pipeline. For interactive data exploration, model development, and visualization, `research.py` provides a suitable environment.
+
+**For comprehensive technical documentation, please refer to the [MkDocs site](docs/index.md) (build locally with `mkdocs serve` or view deployed version).**
 
 ## Key Features
 
@@ -22,6 +25,58 @@ The primary execution script is `main.py`, which runs the complete end-to-end an
 *   **Model Diagnostics**: Performs residual analysis and structural break tests.
 *   **Out-of-Sample Validation**: Conducts rolling window validation to assess model robustness.
 *   **Reporting**: Generates a structured JSON file (`final_results.json`) with all analysis results and prints a summary interpretation.
+
+## Quick-Start
+
+### Option 1: Using Docker (Recommended for isolated execution)
+
+1.  **Ensure Docker is installed and running.**
+2.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/ianlucas1/ethereum_project.git
+    cd ethereum_project
+    ```
+3.  **Build the Docker image:**
+    ```bash
+    docker build -t ethereum_project .
+    ```
+4.  **Run the analysis (replace with your actual API key):**
+    ```bash
+    docker run --rm -e RAPIDAPI_KEY="YOUR_RAPIDAPI_KEY" ethereum_project
+    ```
+    Output files (like `final_results.json` and plots) will be created inside the container. To access them, you can mount a local directory:
+    ```bash
+    mkdir -p ./data_output ./snapshots_output
+    docker run --rm \
+      -e RAPIDAPI_KEY="YOUR_RAPIDAPI_KEY" \
+      -v "$(pwd)/data_output:/app/data" \
+      -v "$(pwd)/snapshots_output:/app/snapshots" \
+      ethereum_project
+    ```
+    Check `data_output/final_results.json` after the run.
+
+### Option 2: Local Virtual Environment (for development or direct script execution)
+
+1.  **Prerequisites:** Python 3.12, Git.
+2.  **Clone the repository and navigate into it** (as above).
+3.  **Set up and activate a virtual environment:** (See `docs/how-to/install.md` for details)
+    ```bash
+    python3.12 -m venv .venv
+    source .venv/bin/activate # On macOS/Linux
+    # .\\\.venv\\Scripts\\activate # On Windows
+    ```
+4.  **Install dependencies:**
+    ```bash
+    pip install -r requirements-lock.txt
+    ```
+5.  **Set up environment variables:** Create a `.env` file in the root directory with your `RAPIDAPI_KEY`. (See `docs/reference/config.md`)
+    ```dotenv
+    RAPIDAPI_KEY=YOUR_RAPIDAPI_KEY
+    ```
+6.  **Run the main pipeline:**
+    ```bash
+    python src/main.py
+    ```
 
 ## Technology Stack
 
@@ -57,11 +112,11 @@ ethereum_project/
 │   ├── utils/                   # Utility modules (caching, API helpers, file I/O)
 │   ├── __init__.py
 │   ├── config.py                # Project configuration (loads .env)
-│   ├── data_fetching.py         # Data retrieval logic
+│   ├── data_fetching.py         # Data retrieval logic from APIs
 │   ├── data_processing.py       # Data cleaning, transformation, feature engineering
 │   ├── diagnostics.py           # Model diagnostic tests
 │   ├── eda.py                   # Exploratory Data Analysis functions
-│   ├── main.py                  # Main pipeline script (entry point for analysis)
+│   ├── main.py                  # Symlink or copy of src/main.py (entry point)
 │   ├── ols_models.py            # OLS regression models
 │   ├── reporting.py             # Results summarization and output generation
 │   ├── ts_models.py             # Time series models (VECM, ARDL)
@@ -69,11 +124,10 @@ ethereum_project/
 ├── tests/                       # Automated tests
 ├── .dockerignore                # Specifies files to exclude from Docker builds
 ├── .gitignore                   # Specifies intentionally untracked files for Git
-├── .pre-commit-config.yaml      # Configuration for pre-commit hooks
+├── .pre-commit-config.yaml      # Configuration for pre-commit hooks (linters, formatters)
 ├── .python-version              # Specifies the project's Python version (e.g., for pyenv)
 ├── Dockerfile                   # Defines the Docker image for the project
 ├── LICENSE                      # Project license information
-├── main.py                      # Main script to run the full analysis pipeline (symlink or copy of src/main.py)
 ├── mypy.ini                     # Configuration for mypy static type checker
 ├── pip.conf                     # pip configuration (e.g., extra index URLs)
 ├── PROJECT_CONFIG_DETAILS.md    # Detailed content of config files for reference
@@ -102,70 +156,13 @@ ethereum_project/
 
 ## Setup and Installation
 
-1.  **Clone the Repository:**
-    ```bash
-    git clone <your-repository-url>
-    cd ethereum_project
-    ```
-
-2.  **Ensure Correct Python Version:**
-    *   The project is configured to use **Python 3.12** for local development, as specified in the `.python-version` file.
-    *   The `Dockerfile` uses **Python 3.12-slim** for containerized execution. CI tests cover Python 3.12.
-    *   Ensure you have Python 3.12 accessible for local work.
-
-3.  **Create and Activate Virtual Environment (using Python 3.12):**
-    Since `pyenv` is configured and the `.python-version` file specifies Python 3.12, the `python` command within this project directory will automatically point to your pyenv-managed Python 3.12 installation.
-    ```bash
-    python -m venv .venv # pyenv uses Python 3.12 due to .python-version
-    source .venv/bin/activate # On macOS/Linux
-    # .\.venv\Scripts\activate # On Windows PowerShell
-    ```
-    Ensure `.venv/` is in your `.gitignore`.
-
-4.  **Install Dependencies:**
-    Install the exact dependencies from the lock file:
-    ```bash
-    pip install --upgrade pip
-    pip install -r requirements-lock.txt
-    ```
-
-5.  **Developer Dependencies (Optional):**
-    For development (running linters, type checkers, tests locally):
-    ```bash
-    pip install -r requirements-dev.txt
-    ```
-    It's recommended to set up `pre-commit` hooks:
-    ```bash
-    pre-commit install
-    ```
-
-6.  **Environment Variables (`.env` file):**
-    Create a `.env` file in the project root for API keys.
-    Example `.env` content:
-    ```dotenv
-    RAPIDAPI_KEY=your_rapidapi_key_here
-    CM_API_KEY=your_coinmetrics_key_here # Optional
-    ETHERSCAN_API_KEY=your_etherscan_key_here # Optional (currently not used by the core pipeline)
-    ```
-    Ensure `.env` is listed in your `.gitignore` file.
+For detailed setup and installation instructions, please see `docs/how-to/install.md`.
 
 ## Usage
 
-### Full Pipeline Execution
+For running the full pipeline either locally or via Docker, refer to the [Quick-Start](#quick-start) section above or the [tutorial on your first run](docs/tutorials/01-first-run.md).
 
-1.  Activate your virtual environment.
-2.  Ensure required environment variables (at least `RAPIDAPI_KEY`) are set.
-3.  Run `main.py` from the project root:
-    ```bash
-    python main.py
-    ```
-    This executes the entire pipeline and outputs results to `final_results.json` (which is gitignored) and a console summary.
-
-### Interactive Research
-
-1.  Open the project in an IDE supporting interactive Python.
-2.  Ensure the IDE's Python interpreter is set to the project's virtual environment.
-3.  Open `research.py` for interactive data exploration and model development.
+Open `research.py` in an IDE supporting interactive Python (like VS Code with Jupyter extension or a Jupyter Notebook environment). Ensure the IDE's Python interpreter is set to the project's virtual environment (`.venv`).
 
 ## Testing
 
@@ -177,21 +174,11 @@ pytest --cov=src --cov-report=xml # Run tests with coverage
 
 ## Running with Docker
 
-1.  **Build the Docker Image:**
-    ```bash
-    docker build -t ethereum_project .
-    ```
-2.  **Run the Main Application in the Container:**
-    ```bash
-    # Using the dummy RAPIDAPI_KEY set in the Dockerfile
-    docker run --rm ethereum_project
-    # To use a real API key:
-    # docker run --rm -e RAPIDAPI_KEY="your_actual_rapidapi_key" ethereum_project
-    ```
+Refer to the [Quick-Start](#quick-start) section for Docker commands.
 
 ## Configuration File Details
 
-For detailed contents of project configuration files (e.g., `.gitignore`, `.pre-commit-config.yaml`, `mypy.ini`, GitHub Actions workflows), please refer to **`PROJECT_CONFIG_DETAILS.md`**.
+For a reference on environment variables and other configurations, see `docs/reference/config.md`.
 
 ## Key Dependencies (from `requirements-lock.txt`)
 
@@ -223,8 +210,9 @@ For information on third-party licenses, please see the [NOTICE.md](NOTICE.md) f
 
 ## Collaboration & CI (For Human Contributors)
 
-*   **Branching**: Work on feature branches, submit Pull Requests to `main`.
-*   **CI**: GitHub Actions run linters, type checkers, and tests, primarily targeting Python 3.12 across multiple operating systems (see `.github/workflows/`).
-*   **Pre-commit**: Use `pre-commit run --all-files` locally before pushing.
+Please refer to `CONTRIBUTING.md` for guidelines. Key points:
+*   Work on feature branches and submit Pull Requests to `main`.
+*   GitHub Actions automate CI checks (linting, testing, security scans).
+*   Use `pre-commit` hooks locally before pushing.
 
-For detailed config snippets see **docs/config-reference/**.
+For more details on the CI pipeline, see `docs/ci/pipeline.md`.

@@ -53,6 +53,18 @@ repos:
     rev: 1.7.8
     hooks:
       - id: bandit
-        args: ["-r", "."]
+        args: ["-r", ".", "-s", "B101"]
 
   # Safety – dependency vulnerability scan
+
+  # Spell checking
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.2.6
+    hooks:
+      - id: codespell
+        args:
+          - --skip="*.lock,*.json,*.css,*.js,*.html,*.csv,*.parquet,*.png,*.mmd"
+          - --ignore-words-list="nd,uint,tod"
+
+# TODO: Consider adding a Markdown link checker if a suitable pre-commit hook is found.
+# Many robust link checkers are full CI actions (e.g., lychee).

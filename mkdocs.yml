@@ -1,0 +1,164 @@
+# Project information
+site_name: Ethereum Econometric Valuation Analysis
+site_url: https://ianlucas1.github.io/ethereum_project/ # TODO: Update if you deploy to a different URL
+site_author: Ian Lucas
+site_description: >-
+  Technical documentation for the Ethereum Econometric Valuation Analysis project.
+  This project conducts an econometric analysis of Ethereum (ETH) valuation,
+  exploring its relationship with network activity metrics and market data.
+
+# Repository
+repo_name: ianlucas1/ethereum_project
+repo_url: https://github.com/ianlucas1/ethereum_project
+edit_uri: edit/main/docs/
+
+# Copyright
+copyright: Copyright &copy; 2024 Ian Lucas
+
+# Configuration
+theme:
+  name: material
+  language: en
+  logo: assets/logo.png # TODO: Add a logo.png to docs/assets/
+  favicon: assets/favicon.png # TODO: Add a favicon.png to docs/assets/
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.annotate
+    - content.code.copy
+    # - content.code.select # New in v9.5, check compatibility
+    - content.tooltips
+    # - navigation.footer # If you want a footer
+  palette:
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+# Plugins
+plugins:
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          options:
+            show_root_heading: true
+            show_source: true
+            members_order: source # alphabetical, source
+            # Separate types for parameters and returns
+            # heading_level: 2 # Default is 2
+            # show_bases: true
+            # show_signature_annotations: true
+            # signature_crossrefs: true
+            # separate_signature: true
+            # line_length: 88
+  - pymdownx_superfences_fix # Ensure this is loaded if needed, or rely on superfences below
+  # - awesome-pages # If you want to manage navigation from .pages files
+
+# Extensions
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_style: tango # or another style
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - attr_list # for adding attributes to elements e.g. {: .class }
+  - md_in_html
+
+# Navigation
+nav:
+  - Home: index.md
+  - Tutorials:
+    - 'First End-to-End Run': 'tutorials/01-first-run.md'
+  - How-to Guides:
+    - 'Installation & Setup': 'how-to/install.md'
+    - 'Add a New Data Source': 'how-to/new-data-source.md'
+    # TODO: Add more how-to guides as needed (e.g., run specific model, update dependencies)
+  - Reference:
+    - 'Configuration': 'reference/config.md'
+    - 'API Documentation': 'reference/api/index.md' # Index for API docs
+    - '    src.config': 'reference/api/config.md'
+    - '    src.data_fetching': 'reference/api/data_fetching.md'
+    - '    src.data_processing': 'reference/api/data_processing.md'
+    - '    src.diagnostics': 'reference/api/diagnostics.md'
+    - '    src.eda': 'reference/api/eda.md'
+    - '    src.main': 'reference/api/main.md'
+    - '    src.modeling': 'reference/api/modeling.md'
+    - '    src.ols_models': 'reference/api/ols_models.md'
+    - '    src.reporting': 'reference/api/reporting.md'
+    - '    src.ts_models': 'reference/api/ts_models.md'
+    - '    src.validation': 'reference/api/validation.md'
+    - '    src.utils.api_helpers': 'reference/api/utils_api_helpers.md'
+    - '    src.utils.cache': 'reference/api/utils_cache.md'
+    - '    src.utils.file_io': 'reference/api/utils_file_io.md'
+    - 'Software Bill of Materials (SBOM)': 'reference/sbom.md'
+    - 'Glossary': 'glossary.md'
+  - Explanation & Architecture:
+    - 'System Architecture': 'architecture/system_overview.md'
+    - 'Data Flow': 'architecture/data_flow.md'
+    - 'CI/CD Pipeline Overview': 'architecture/ci_cd_overview.md' # Or move to CI section
+    - 'Architectural Decision Records (ADRs)':
+      - 'ADR Index': 'adr/index.md'
+      - '0000: Use Markdown ADRs': 'adr/0000-use-markdown-architectural-decision-records.md'
+      - '0001: Caching Decorator': 'adr/0001-caching-decorator.md'
+  - Quality & Testing:
+    - 'Testing Strategy': 'quality/testing.md'
+  - CI/CD:
+    - 'Pipeline Details': 'ci/pipeline.md'
+    - 'Release & Versioning': 'ci/release.md'
+  - Security:
+    - 'Secret Handling Policy': 'security/secret_policy.md'
+    - 'Threat Model': 'security/threat_model.md'
+    - 'Project Security Policy': 'SECURITY.md' # Link to existing root file
+  - Contributing: CONTRIBUTING.md # Link to existing root file
+  - License: LICENSE.md # Link to existing root file
+  - Notices: NOTICE.md # Link to existing root file
+
+# Custom directories
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/ianlucas1
+    # - icon: fontawesome/brands/python
+    #   link: https://www.python.org/
+
+# Needed for mkdocs-material to render mermaid diagrams
+extra_css:
+  - stylesheets/extra.css # For any custom CSS, if needed
+
+extra_javascript:
+  - https://unpkg.com/mermaid@9.4.0/dist/mermaid.min.js # Or use a newer version
+  # - javascripts/extra.js # For any custom JS
+
+# ensure `docs/assets` exists for logo/favicon
+# ensure `docs/stylesheets` exists for extra.css
+# ensure `docs/javascripts` exists for extra.js 

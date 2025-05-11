@@ -1,0 +1,7 @@
+/* Custom CSS for MkDocs Material Site */
+
+/* Ensure Mermaid diagrams render correctly if they overflow */
+.mermaid svg {
+  max-width: 100%;
+  height: auto;
+} 
