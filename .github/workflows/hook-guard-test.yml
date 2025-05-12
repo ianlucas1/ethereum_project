@@ -35,46 +35,4 @@ jobs:
           else
             echo "::error title=Unexpected Commit Failure::Commit failed with unexpected exit code $COMMIT_EXIT_CODE (expected 1 if hook blocked)."
             exit $COMMIT_EXIT_CODE # Fail CI with the unexpected code
-          fi
-  hook-guard-selftest:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        files: [1, 30]
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Install dependencies
-        run: pip install pre-commit
-      - name: Install git hooks
-        run: pre-commit install --install-hooks
-      - name: Create dummy files & test hook
-        run: |
-          git config --global user.email "test-runner@github.com"
-          git config --global user.name "Test Runner"
-          mkdir tmp_guard && cd tmp_guard
-          for i in $(seq 1 ${{ matrix.files }}); do touch f-$i.txt; done
-          git add .
-          echo "Attempting commit with ${{ matrix.files }} files..."
-          git commit -m "CI: Test commit for too-many-files hook"
-          COMMIT_EXIT_CODE=$?
-          if [ "${{ matrix.files }}" = "1" ]; then
-            if [ $COMMIT_EXIT_CODE -eq 0 ]; then
-              echo "Commit succeeded as expected with 1 file."
-              exit 0
-            else
-              echo "::error title=Unexpected Commit Failure::Commit failed with $COMMIT_EXIT_CODE for 1 file (should succeed)."
-              exit $COMMIT_EXIT_CODE
-            fi
-          else
-            if [ $COMMIT_EXIT_CODE -eq 1 ]; then
-              echo "Commit correctly blocked by hook for 30 files."
-              exit 0
-            else
-              echo "::error title=Hook Problem::Commit exit code $COMMIT_EXIT_CODE for 30 files (should be 1)."
-              exit 1
-            fi
           fi 
