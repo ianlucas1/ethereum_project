@@ -15,6 +15,8 @@ jobs:
         run: pre-commit install --install-hooks
       - name: Create 26 dummy files & test hook
         run: |
+          git config --global user.email "test-runner@github.com"
+          git config --global user.name "Test Runner"
           mkdir tmp_guard && cd tmp_guard
           seq 26 | xargs -I{} touch f-{}.txt
           git add .
