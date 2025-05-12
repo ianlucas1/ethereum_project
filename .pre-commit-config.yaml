@@ -73,6 +73,6 @@ repos:
     hooks:
       - id: too-many-files
         name: Too many staged files
-        entry: bash -c '[[ $(git diff --cached --name-only | wc -l) -le 25 ]]'
+        entry: bash -c 'COUNT=$(git diff --cached --name-only | wc -l); if [ "$COUNT" -gt 25 ]; then echo "🛑 Commit blocked — $COUNT files staged (max 25). Split your commit."; exit 1; fi;'
         language: system
         stages: [commit]
