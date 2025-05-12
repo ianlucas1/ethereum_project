@@ -1355,3 +1355,39 @@ The plan is:
 Initiating task to improve the 'too-many-files' pre-commit hook error message. Branch: `chore/hook-friendly-message`.
 
 ---
+
+### MAINT B: Add CI Test for 'too-many-files' Hook
+
+**Agent's Pre-Action Reasoning (Chain of Thought - CoT):**
+The user wants to add a CI workflow to test the `too-many-files` pre-commit hook. This workflow should intentionally try to commit more than 25 files. If the hook works correctly, it will block the commit, causing the `git commit` command in the CI script to fail. The CI job itself is designed to fail to indicate that the hook is functioning as expected.
+
+The plan is:
+1. Create branch: `ci/too-many-files-test`.
+2. Add the new workflow file `.github/workflows/hook-guard-test.yml`.
+3. This workflow will include steps to install pre-commit and the git hooks.
+4. The test step will create 26 dummy files, stage them, and attempt a commit.
+5. If `git commit` exits with 0 (commit succeeded, hook failed), the CI job will error.
+6. If `git commit` exits with 1 (commit blocked by hook, hook worked), the CI job will also be marked as failed (as per design, a failing test indicates the hook is protective).
+7. Commit the new workflow file and this log update.
+8. Push, PR, merge, and tidy. The merge might require admin privileges if the CI job failing blocks the PR.
+
+**Command(s) Executed:**
+```sh
+# Subsequent commands will be logged as they are executed.
+```
+
+**Observed Result(s) (Raw Output):**
+```
+# To be populated as commands are run.
+```
+
+**Agent's Post-Action Analysis (CoT & Interpretation):**
+# To be populated as the workflow progresses.
+
+**Learnings/Reflections:**
+# To be populated.
+
+**Mini-Summary:**
+Initiating task to add a CI test for the 'too-many-files' pre-commit hook. Branch: `ci/too-many-files-test`.
+
+---
