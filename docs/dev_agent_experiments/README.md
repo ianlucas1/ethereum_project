@@ -47,6 +47,7 @@ This document serves as a guide for the LLM Agent conducting autonomous developm
     • At the start of a new experimental run, a new, uniquely named log file will be designated (e.g., `github_cli_execution_log_RUN_X.md` or `github_cli_execution_log_YYYYMMDD_Topic.md`).
     • All logging for that run by the Agent will go into this new file. The specific name of the active log file will be confirmed at the beginning of the run.
     • *Rationale*: This keeps individual log files to a manageable size, preserving detail without creating unwieldy monolithic logs. An index or this README may point to the various log files.
+    • **Current active log file:** `github_cli_execution_log_RUN_6.md`
 
 Failure by the Agent to follow these rules counts as an experiment failure.
 ────────────────────────────────────────────────────────
