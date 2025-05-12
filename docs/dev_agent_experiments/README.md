@@ -26,6 +26,9 @@ This document serves as a guide for the LLM Agent conducting autonomous developm
     1. `github_cli_plan.md` (roadmap & experiment IDs)  
     2. The active `github_cli_execution_log_*.md` file for the current run (latest history)  
     3. `README.md` (this file)  
+    4. docs/dev_agent_experiments/prompts/RUN_<N>_kickoff.md (the active run's kickoff instructions).
+    
+    **Branch naming convention:** `experiment/run6-<task-id>-<slug>`
 
 6.  **Time-boxing rule**  
     Each experiment gets **≤ 20 minutes or ≤ 3 failed attempts** by the Agent.  
