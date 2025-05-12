@@ -11,15 +11,16 @@ This roadmap tracks experiments that probe an LLM Agent's ability to manage a Gi
 |-----|------------------------------------------------------|----------|--------|
 | 3   | Reacting to check status → re-run failed jobs (3-8)  | —        | **Done (Run 4)** |
 | 4   | Info-extraction from failed checks (4-10/4-11)       | 🔥 High  | Pending |
-| 5   | **Merge-queue & conflict handling** (5-1 ➜ 5-2)      | 🔥 High  | Pending |
-| 6   | **Automatic remediation loop** (6-1 ➜ 6-2b)         | 🔥 High  | Pending |
+| 5   | **Merge-queue & conflict handling** (5-1 ➜ 5-2)      | 🔥 High  | **Partially Complete (Run 6)** |
+| 6   | **Automatic remediation loop** (6-1 ➜ 6-2b)         | 🔥 High  | **Partially Complete (Run 6)** |
 | 9   | Context-window self-management (9-1)                 | ◼︎ Med+  | **Done (Run 5, Conceptual)** |
 | 8   | Dependabot autopilot (8-1 ➜ 8-2)                     | ◼︎ Med   | Pending |
-| 10  | CI artifact retrieval / log consumption (10-1 ➜ 10-3)| 🔥 High  | **Partially Done (Run 5: 10-1, 10-2)** |
+| 10  | CI artifact retrieval / log consumption (10-1 ➜ 10-3)| 🔥 High  | **Done (Run 6)** |
 | 11  | Multi-PR queue awareness (11-1 ➜ 11-2)               | ◼︎ Med   | Pending |
 | 7   | Secret-scanning push-protection (7-1 ➜ 7-2)          | ◻︎ Low   | Pending |
 | 1,2 | Baseline PR & `gh pr checks` mechanics               | —        | **Done (Run 1, Run 2/PR119 Logs)** |
-| 12  | Custom Pre-commit & CI Policies (12-1 ➜ 12-3)        | ◼︎ Med   | **Done (Run 6)** |
+| 12  | Custom Pre-commit & CI Policies (12-1 ➜ 12-5)        | ◼︎ Med   | **Done (Run 6)** |
+| 13  | Next-Gen Agent Skeleton (13-1/13-2)                  | ◼︎ Med   | Pending |
 | 5*  | Diff-first workflow (old)                            | —        | Back-burner |
 | 6*  | Model-swap efficiency study (old)                    | —        | Back-burner |
 
@@ -112,6 +113,8 @@ This roadmap tracks experiments that probe an LLM Agent's ability to manage a Gi
 | 12-1  | Add pre-commit hook to limit staged files (<25)      | ◼︎ Med   | **Done (Run 6)** |
 | 12-2  | Add CI check for push frequency (>5 commits)         | ◼︎ Med   | **Done (Run 6)** |
 | 12-3  | Refine README hygiene rules (log first, final sync)  | ◼︎ Med   | **Done (Run 6)** |
+| 12-4 | *Hook-Guard repair + self-test* | Agent fixes logic so a one-file PR passes, adds self-test job with matrix for 1 and 30 files. |
+| 12-5 | *Per-run logging switch* | Agent creates per-run log, archives legacy log, updates all references. |
 
 ---
 
@@ -151,3 +154,10 @@ To keep log files manageable, each distinct experimental "Run" by the Agent will
 
 ### Set 2 · Deep Dive into `gh pr checks`   ✅ *Finished Run 2 (via PR #119 log recovery)*
 *(baseline pass/fail/pending parsing now proven reliable; pager issues addressed with `GH_PAGER=cat`)*
+
+### Set 13 — Next-Gen Agent Skeleton
+
+| ID | Step | Goal |
+|----|------|------|
+| 13-1 | *Agent self-reflection skeleton* | Placeholder for next-gen agent self-reflection experiment. |
+| 13-2 | *Agent self-healing skeleton* | Placeholder for next-gen agent self-healing experiment. |
