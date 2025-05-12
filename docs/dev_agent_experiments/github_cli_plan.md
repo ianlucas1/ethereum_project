@@ -1,7 +1,7 @@
 # GitHub CLI Experimentation Plan
 *(updated 2025-05-11 after Run 4; Per-Run Log strategy note added)*
 
-This roadmap tracks experiments that probe an LLM Agent's ability to manage a GitHub repository autonomously via the **`gh` CLI** (and, where needed, raw GitHub API calls). The Agent's actions, outputs, and learnings are recorded in separate log files for each experimental run (e.g., `github_cli_execution_log_RUN_6.md`).
+This roadmap tracks experiments that probe an LLM Agent's ability to manage a GitHub repository autonomously via the **`gh` CLI** (and, where needed, raw GitHub API calls). The Agent's actions, outputs, and learnings are recorded in separate log files for each experimental run (e.g., `github_cli_execution_log_RUN_X.md`).
 
 ---
 
