@@ -1,0 +1,36 @@
+name: Hook Guard Test
+on: pull_request
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: pip install pre-commit
+      - name: Install git hooks
+        run: pre-commit install --install-hooks
+      - name: Create 26 dummy files & test hook
+        run: |
+          mkdir tmp_guard && cd tmp_guard
+          seq 26 | xargs -I{} touch f-{}.txt
+          git add .
+          echo "Attempting commit which should be blocked by the too-many-files hook..."
+          # The following git commit is expected to fail if the hook works.
+          git commit -m "CI: Test commit for too-many-files hook"
+          COMMIT_EXIT_CODE=$?
+          if [ $COMMIT_EXIT_CODE -eq 0 ]; then
+            echo "::error title=Hook Problem::Commit succeeded but should have been blocked by the too-many-files hook."
+            exit 1 # Fail CI because hook didn't block
+          elif [ $COMMIT_EXIT_CODE -eq 1 ]; then
+            # This is the expected failure from our hook.
+            # The hook should have printed its own error message to stdout/stderr.
+            echo "Commit correctly blocked by hook (git commit exited with 1). This CI job will now also exit with 1, failing as designed, to indicate the hook is working."
+            exit 1 # Explicitly fail the CI job to signal "test condition met"
+          else
+            echo "::error title=Unexpected Commit Failure::Commit failed with unexpected exit code $COMMIT_EXIT_CODE (expected 1 if hook blocked)."
+            exit $COMMIT_EXIT_CODE # Fail CI with the unexpected code
+          fi 
