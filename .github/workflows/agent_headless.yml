@@ -39,6 +39,7 @@ jobs:
           else
             echo "agent_main.py not found, skipping agent plan step"
           fi
-          # Run the full test-suite inside the freshly built container. This will
-          # fail the job if the tests fail (default GitHub Actions behaviour).
-          docker run --rm agent_test pytest -q 
+          # Run the full test-suite inside the freshly built container. Mount the
+          # workspace so that the ``tests`` package is visible inside the container.
+          # Running as ``root`` avoids permission issues with volume mounts.
+          docker run --rm -u root -v "$PWD":/app -w /app agent_test pytest -q 
