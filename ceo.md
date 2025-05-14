@@ -8,6 +8,7 @@ The Single-Repo Autonomous Coding Agent is a self-driven development assistant d
 ## Seeding Instructions
 To launch the agent, follow these steps to "seed" it using the provided `blueprint_suite.json` specification:
 1. **Prepare the Environment:** Ensure you have a suitable environment. Running on macOS within the Cursor IDE is recommended for full integration, but not strictly required. The agent can also operate in a headless command-line environment on macOS or Linux (for example, in CI). In all cases, have Python 3.x installed and any necessary development tools (e.g., compilers, linters) available. Also, provide any required access credentials (like LLM API keys) via environment variables. If the repository contains a Dockerfile or docker-compose setup, you *can* instruct the agent to run all tests inside the container by setting `prefer_docker` to **true** in `agent_config.json`, **or** export `PREFER_DOCKER=true` before running the agent. When neither is set (default), the agent only builds the Docker image on CI **or** when no cached image named `agent_test` exists, speeding up local runs after the first build.
+Ensure Docker Desktop (or the Docker CLI) is installed and running if you intend to use containerised tests.
 2. **Place the Blueprint:** Make sure `blueprint_suite.json` is present at the root of the repository in Cursor. This file contains the agent's entire design and will be used to generate the agent's codebase.
 3. **Initialize Bootstrapping:** In Cursor, use the LLM chat interface or run the bootstrap script to start the agent creation. For example, open the repository in Cursor and instruct the AI (in a system or user prompt) to act as a *Bootstrapper* and execute the plan in `blueprint_suite.json`. If the system has an automated bootstrap mode, run `bootstrap_agent.py` (which reads the blueprint) as the first step.
 4. **Generation of Agent Files:** The agent (in bootstrap mode) will read the blueprint and create all specified files and directories (scripts, config files, prompt templates, etc.). Monitor the process in Cursor to ensure files are being created as expected. No manual coding is needed—the blueprint guides the AI to write its own code.
@@ -26,6 +27,10 @@ python agent_main.py --plan
 
 See .github/workflows/agent_headless.yml for a working CI recipe.
 ```
+
+> **Note 🔧** On the first launch the agent automatically tries to build the Docker image **`agent_test`**.<br>
+If that build fails, it pauses in the `Blocked-EnvironmentConfig` state and logs details to `logs/environment.log`.<br>
+To skip container use entirely, set **`prefer_docker=false`** in `agent_config.json` (or export `PREFER_DOCKER=false`).
 
 ### Key Configuration Flags
 
