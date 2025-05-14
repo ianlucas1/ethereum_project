@@ -28,6 +28,7 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           CI: "true"
           PREFER_DOCKER: "true" # Ensures Docker build is attempted on CI
+          RAPIDAPI_KEY: "dummy" # Satisfy pydantic Settings validation
         run: |
           if [ -f bootstrap_agent.py ]; then
             python bootstrap_agent.py
@@ -42,4 +43,4 @@ jobs:
           # Run the full test-suite inside the freshly built container. Mount the
           # workspace so that the ``tests`` package is visible inside the container.
           # Running as ``root`` avoids permission issues with volume mounts.
-          docker run --rm -u root -v "$PWD":/app -w /app agent_test /bin/sh -c "pip install -q pytest && pytest -q" 
+          docker run --rm -u root -e RAPIDAPI_KEY=dummy -v "$PWD":/app -w /app agent_test /bin/sh -c "pip install -q pytest && pytest -q" 
