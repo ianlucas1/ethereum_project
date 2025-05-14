@@ -20,6 +20,9 @@ jobs:
             pip install -r requirements.txt
           fi
 
+      - name: Build Docker image for tests
+        run: docker build -t agent_test .
+
       - name: Bootstrap & dry-run plan (Option A - run inside container)
         # This step assumes your project has a Dockerfile and pytest is set up to run tests.
         # It will build the Docker image (if prefer_docker is true or on CI)
