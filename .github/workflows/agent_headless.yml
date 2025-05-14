@@ -1,6 +1,6 @@
 name: Agent headless smoke-test
 
-on:
+'on':
   pull_request:
 
 jobs:
