@@ -36,7 +36,11 @@ jobs:
             echo "bootstrap_agent.py not found, skipping bootstrap step"
           fi
           if [ -f agent_main.py ]; then
-            python agent_main.py --plan
+            if [ -n "$RAPIDAPI_KEY" ] && [ "$RAPIDAPI_KEY" != "dummy" ]; then
+              python agent_main.py --plan
+            else
+              echo "RAPIDAPI_KEY not set (or dummy), skipping agent plan step"
+            fi
           else
             echo "agent_main.py not found, skipping agent plan step"
           fi
