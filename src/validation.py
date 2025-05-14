@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 from sklearn.metrics import mean_absolute_error, mean_squared_error
+
 # Import specific statsmodels types for hinting
 from statsmodels.regression.linear_model import RegressionResultsWrapper
 

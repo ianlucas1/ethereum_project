@@ -1,0 +1,42 @@
+name: Agent headless smoke-test
+
+on:
+  pull_request:
+
+jobs:
+  agent-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x" # You can specify a more precise version like "3.10" or "3.11" if needed
+
+      - name: Install project requirements
+        run: |
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
+
+      - name: Bootstrap & dry-run plan (Option A - run inside container)
+        # This step assumes your project has a Dockerfile and pytest is set up to run tests.
+        # It will build the Docker image (if prefer_docker is true or on CI)
+        # then run the agent's plan, and finally try to run pytest inside the container.
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CI: "true"
+          PREFER_DOCKER: "true" # Ensures Docker build is attempted on CI
+        run: |
+          python bootstrap_agent.py
+          python agent_main.py --plan
+          # The following line assumes 'agent_test' is the image name built by your agent's Docker logic
+          # and that 'pytest -q' is how you run your tests. Adjust if necessary.
+          # If your project doesn't use pytest or has a different test command,
+          # you might want to comment out or change the docker run command.
+          if [ -f Dockerfile ]; then
+            docker run --rm agent_test pytest -q
+          else
+            echo "No Dockerfile found, skipping containerized test run."
+          fi 

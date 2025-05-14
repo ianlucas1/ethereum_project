@@ -63,9 +63,7 @@ class NpEncoder(json.JSONEncoder):
             # Format Timestamp/Period to ISO 8601 string
             try:
                 return obj.isoformat()
-            except (
-                AttributeError
-            ):  # Handle cases where isoformat might not exist (though unlikely for Timestamp/Period)
+            except AttributeError:  # Handle cases where isoformat might not exist (though unlikely for Timestamp/Period)
                 return str(obj)
             except ValueError:  # Handle NaT
                 return None

@@ -9,8 +9,14 @@ Exploratory-data-analysis helpers
 from __future__ import annotations
 
 import logging
-from typing import Iterable  # Added Callable
-from typing import TYPE_CHECKING, Any, Callable, Sequence, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Iterable,  # Added Callable
+    Sequence,
+    cast,
+)
 
 import numpy as np
 import pandas as pd
@@ -195,11 +201,12 @@ if TYPE_CHECKING:  # for static analysers
 
 try:
     # Try importing the IPython display function
-    from IPython.display import \
-        display as display  # type: ignore[no-redef] # Allow redefinition
+    from IPython.display import (
+        display as display,  # type: ignore[no-redef] # Allow redefinition
+    )
 except ModuleNotFoundError:  # pragma: no cover
     # Fallback function if IPython is not available
-    def display(obj: Any) -> None:  # noqa: F811 # Allow redefinition for linters
+    def display(obj: Any) -> None:  # Allow redefinition for linters
         """Fallback plain print when IPython is unavailable.
 
         Args:

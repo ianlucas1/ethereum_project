@@ -1,0 +1,410 @@
+{
+  "phased_self_implementation_plan": [
+    {
+      "phase": 1,
+      "name": "Bootstrap Initialization",
+      "description": "Initial bootstrap by reading the blueprint and repository context. The agent ensures environment prerequisites are met (i.e., that it is running either in the Cursor IDE on macOS or in a suitable headless CLI environment, with required credentials and tools) and loads the primary configuration. This stage also initializes the agent's context (e.g., repository metadata, core instructions). If any critical environment issues are found that cannot be resolved via an alternate mode, the agent will pause here and request human intervention.",
+      "key_actions": [
+        "Load agent configuration (including PRIMARY_LLM_MODEL_IDENTIFIER and any API keys)",
+        "Verify environment (detect OS and IDE context: if running inside Cursor on macOS, ensure all IDE-specific prerequisites are present; if not, proceed in headless CLI mode using agent_config.json and environment variables. Ensure Python 3.x and required CLI tools are installed)",
+        "Populate initial Context Vault with repository info (files, README) and core instructions (prompt templates, blueprint)",
+        "Perform initial audit of codebase and environment settings",
+        "Scan for any pre-existing 'relic' files (e.g., leftover agent artifacts or extraneous code) during the audit and isolate them to prevent interference (flag them for review and temporarily move or ignore them)"
+      ],
+      "outcome": "If environment prerequisites are satisfied (via IDE or headless mode), move to Phase 2. If a critical requirement is missing with no fallback, log the issue and enter Blocked-EnvironmentConfig until resolved."
+    },
+    {
+      "phase": 2,
+      "name": "Core System Generation",
+      "description": "Using the blueprint specification, the agent generates its core codebase within the repository. This includes creating the directory structure, writing all necessary Python scripts, configuration files, prompt templates, and logging setup. The agent uses the primary LLM model to assist coding each component as specified.",
+      "key_actions": [
+        "Create specified directories (e.g., 'prompts/', 'logs/', etc.)",
+        "Create an initial `.agent_workspace/session_bootstrap.json` file with default fields conforming to the session_bootstrap_schema.",
+        "Create the internal knowledge base directory ('.agent_workspace/experiential_knowledge_base/lessons/') for storing lessons learned (with an optional 'lessons_index.json' for indexing).",
+        "Generate core Python scripts (agent main loop, token estimator, config parser, context management, etc.) as specified in blueprint",
+        "Implement per-action context request logic to minimize loaded context (the agent determines specific file content needed for each action and requests it via a context-request file before proceeding)",
+        "Generate JSON config and state files according to schema definitions",
+        "Generate prompt template files or embed prompts within a prompt library module as specified",
+        "Create the `prompts/coding_philosophy_guidance.md` file and populate it with initial content defining core best practices. This content should include principles such as: 'Prioritize code clarity and maintainability. Follow DRY and SOLID principles where applicable. Ensure new code is adequately covered by tests. Write secure code, considering potential vulnerabilities. Adhere to project-specific style guides if detected.'.",
+        "Ensure logging capability (to file and/or console) is set up for debugging and monitoring"
+      ],
+      "outcome": "All initial agent files are created and ready. The repository now contains the autonomous agent's code and resources. Proceed to initialization of agent runtime."
+    },
+    {
+      "phase": 3,
+      "name": "Agent Activation & Iteration",
+      "description": "The agent begins active operation using the generated code. It enters its task loop: planning tasks, implementing code changes, testing, code reviewing, and creating pull requests. The agent continuously monitors for new tasks or improvements, operating autonomously while adhering to safety and review protocols.",
+      "key_actions": [
+        "Start the agent's main loop (state machine starts at INIT-AUDIT or next appropriate state)",
+        "Agent autonomously plans next tasks (features, bugfixes, etc.) using LLM and repository context",
+        "Execute tasks: edit or create code, run tests, perform self-review on changes",
+        "Open pull requests for changes instead of direct merging (ensuring review)",
+        "If PR requires human approval (for core changes or high-risk updates), enter Blocked-AwaitingHumanPRApproval state",
+        "On approval, merge changes and continue with next task (triggering an automatic debrief to capture lessons learned from the completed task before planning the subsequent task)."
+      ],
+      "outcome": "The agent runs continuously, making improvements and fixes in the repository. It uses the state machine to handle various conditions (errors, needed reviews, environment issues, or self-revisions). Human intervention is minimal, only needed for approvals or environment adjustments."
+    },
+    {
+      "phase": 4,
+      "name": "Self-Evolution and Maintenance",
+      "description": "Over time, the agent refines its own operation. It monitors its performance and the repository health. If it identifies issues in its own instructions or configurations, it initiates the self-revision workflow to update its core instructions with human oversight. The agent also ensures the environment remains optimal, prompting for any needed updates or fixes.",
+      "key_actions": [
+        "Continuously monitor agent's performance (e.g., recurring failures, inefficiencies)",
+        "Trigger Core Instruction Self-Revision if needed (per criteria) and follow self-improvement workflow",
+        "Perform periodic environment audits to catch any drift or new issues (like dependency changes, new tools needed)",
+        "Log significant decisions and changes for human transparency",
+        "Allow human operator to step in for major directional changes or to perform emergency stops if needed"
+      ],
+      "outcome": "The agent remains adaptive and robust. It can improve itself within defined safety boundaries, and the system stays maintainable over the long term with minimal manual intervention."
+    }
+  ],
+  "directory_structure": {
+    "root": "Repository root directory",
+    "directories": [
+      {
+        "name": "prompts",
+        "contents": [
+          "Templates and scripts for various prompts (planning, coding, critique, etc.) if stored as separate files. Includes prompt files like 'planning_prompt.txt', 'coding_prompt.txt', etc., as well as new templates 'debrief_prompt.txt' and 'knowledge_retrieval_prompt.txt', and 'major_initiative_planning_prompt.txt' for debriefing, knowledge lookup, and major initiative planning functions. Additionally, it includes a 'coding_philosophy_guidance.md' document outlining coding best practices (clarity, security, SOLID, DRY principles) for the agent to follow."
+        ]
+      },
+      {
+        "name": "logs",
+        "contents": [
+          "Log files for agent operations (e.g., runtime logs, error logs)."
+        ]
+      },
+      {
+        "name": ".agent_workspace",
+        "contents": [
+          "Persistent agent working data directory (hidden folder). Contains an 'experiential_knowledge_base' directory for accumulated knowledge.",
+          "Under 'experiential_knowledge_base', a 'lessons' subdirectory stores individual JSON files of lessons learned (each file named with a timestamp and task identifier). Optionally, a 'lessons_index.json' file in this folder provides an index of lesson metadata for quick lookup.",
+          "The comprehensive persisted state file `session_bootstrap.json` lives directly in this folder and is updated after each action.",
+          "A 'quality_reports/' subdirectory stores codebase quality assessment reports (e.g., `CODEBASE_QUALITY_REPORT-YYYYMMDD-HHMMSS.md`)."
+        ]
+      }
+    ]
+  },
+  "python_scripts": {
+    "agent_main.py": "Implements the main agent loop and state machine. Uses the prompt manager and context vault to orchestrate the Planning, Coding, Testing, Reviewing, and PR creation states (including special workflows like self-revision sequences and RF major initiative phases). Handles transitions between states and invokes LLM calls via the configured model. Ensures that blocked states (e.g., awaiting human input) are respected. It also includes advanced error-handling routines: if a problem persists across multiple attempts (e.g., three consecutive failures), the agent can enter a debugging mode (using a dedicated debugging prompt) to deeply analyze the issue. Should the issue remain unresolved after debugging, the agent formulates an escalation request using a special prompt and enters a 'Blocked-AwaitingMetaIntervention' state, logging a detailed call for human or meta-level assistance in the `human_requests.md` file. It also ensures minimal context usage by checking the Context Vault before each action and requesting only the required files (entering Blocked-AwaitingFileContext if needed). It persists the agent's state to `.agent_workspace/session_bootstrap.json` after each granular action. At startup, it loads the last session state from `.agent_workspace/session_bootstrap.json` (allowing the agent to resume in-progress work) and retrieves relevant past lessons from the experiential knowledge base to inform current plans. After completing a significant task (e.g., merging a PR), it triggers an automatic debrief: using a dedicated prompt to summarize what was learned, the agent formats the result as a new 'Lesson Learned' entry (per the schema) and saves it in `.agent_workspace/experiential_knowledge_base/lessons/` (updating `lessons_index.json` if present). It also recognizes a standard kick-off prompt on launch, which cues it to restore state and knowledge before proceeding with normal operations. As a final step after merging any PR, it synchronizes with the remote repository (pulling new changes and pushing the merge commit if required), verifies the working directory is clean (using git status), and cleans up any temporary artifacts. Any failure during this wrap-up process is logged in `human_requests.md` and will halt the agent if it cannot be auto-resolved. In all cases, at the end of a session the agent appends a standardized final status message to `human_requests.md` indicating whether it finished successfully, halted due to an issue, or is idling awaiting further instructions. It also tracks merged pull requests and initiates a 'QUALITY_ASSESSMENT' state after every 50 merges (or prolonged inactivity) to perform a North Star codebase quality review. Additionally, it manages the RF (Refactor & Toolchain Renovation) workflow. If a major initiative is triggered, the agent will enter RF_PLANNING to draft the proposal, then pause in a blocked state awaiting human approval. Only after the proposal PR is merged does the agent proceed with RF_EXECUTION_PHASED, carrying out the approved plan in multiple phases. The agent handles each phase with standard development cycles (planning, coding, testing), and provides debrief updates at key phase milestones. Upon completing all planned phases, the agent enters RF_VALIDATION for thorough testing and quality checks, and then transitions to RF_COMPLETED to finalize the initiative and return to normal operation.",
+    "bootstrap_agent.py": "Entry point for first-time setup. Reads blueprint_suite.json, creates directories and files (including an initial `.agent_workspace/session_bootstrap.json` with default fields) and uses the LLM to generate code for each component as specified. This script essentially bootstraps the agent's codebase from the blueprint. It also creates the agent's persistent knowledge base directory structure (such as `.agent_workspace/experiential_knowledge_base/lessons/`) and initializes any necessary files (for example, an empty `lessons_index.json` if using an index) so the learning system is ready. It is also responsible for creating the `prompts/coding_philosophy_guidance.md` file with predefined initial content outlining coding best practices.",
+    "token_estimator.py": "Utility to estimate token counts for prompts and responses to ensure the agent stays within context length limits of the primary model.",
+    "config_parser.py": "Loads agent_config.json and merges it with any environment variables or defaults. Provides easy access to configuration values like primary_model_identifier. Also handles any secrets or API keys (which might be provided via environment for security).",
+    "context_vault.py": "Defines a structure (in memory or on disk) for storing key context knowledge. Provides functions to load repository info, store important context (like summaries of files, recent commit messages, known issues), and retrieve them for prompts.",
+    "prompt_manager.py": "Houses all prompt templates and related logic. Provides an interface to fetch and fill in the templates with context as needed for each state (planning, coding, critique, etc.). Ensures prompts are up-to-date and reflect any self-revisions the agent has incorporated.",
+    "state_machine.py": "Defines the finite state machine controlling the agent's high-level behavior. It enumerates all states (like PLANNING, CODING, TESTING, etc., including blocked states) and allowed transitions. Used by agent_main to enforce the allowed flow of operations.",
+    "context_request.py": "Optional helper script for managing context requests. May define structures for the agent to specify which files or info it needs when entering Blocked-AwaitingFileContext.",
+    "error_handler.py": "Contains logic for interpreting errors during execution (e.g., test failures, exceptions). It might invoke the error_analysis_prompt or debugging_prompt to assist in diagnosing issues and deciding next steps."
+  },
+  "json_schemas": {
+    "session_bootstrap_schema": {
+      "type": "object",
+      "properties": {
+        "current_state": {
+          "type": "string",
+          "description": "Current state of the agent in the state machine (e.g., INIT-AUDIT, PLANNING, CODING, TESTING, REVIEWING, PR_CREATION, Blocked-EnvironmentConfig, Blocked-AwaitingHumanPRApproval)."
+        },
+        "last_action": {
+          "type": "string",
+          "description": "Description of the last action the agent performed or attempted."
+        },
+        "pending_human_input": {
+          "type": "string",
+          "description": "If in a blocked state, this describes what is needed from human (e.g., 'Awaiting environment fix: install X', 'Awaiting PR approval', or 'Awaiting file context: provide required file(s)')."
+        },
+        "task_plan": {
+          "type": "string",
+          "description": "A short description of the current or next task the agent is working on."
+        },
+        "context_snapshot": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Optional list of key context elements or file identifiers relevant to the current task (for potential debugging or resumption)."
+        },
+        "current_action_sequence": {
+          "type": "number",
+          "description": "Index of the current granular action sequence in progress."
+        },
+        "files_required_for_current_action": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of file paths required for the current action's context (files the agent has determined it needs)."
+        },
+        "files_provided_for_current_action": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of file paths that have been provided by the human for the current action (ensuring required context is fulfilled)."
+        },
+        "consecutive_failed_attempts": {
+          "type": "number",
+          "description": "Number of consecutive unsuccessful attempts at the current task. Used to determine if escalation (e.g., requesting meta-level intervention) is needed after a threshold."
+        },
+        "merged_pr_count": {
+          "type": "number",
+          "description": "Cumulative number of pull requests the agent has merged. Used to trigger periodic quality assessments (every 50 merges)."
+        },
+        "last_quality_assessment_timestamp": {
+          "type": "string",
+          "description": "Timestamp of the most recent codebase quality assessment performed."
+        },
+        "module_last_quality_review_timestamp": {
+          "type": "object",
+          "description": "For large codebases, a mapping of module/component identifiers to the timestamp of their last quality assessment."
+        },
+        "current_RF_initiative_id": {
+          "type": "string",
+          "description": "Identifier for the current major refactor/toolchain initiative (RF) if one is in progress, following format 'RF-ID-YYYYMMDD-NNN'."
+        },
+        "current_RF_initiative_phase": {
+          "type": "number",
+          "description": "The current phase number of an ongoing RF initiative (if applicable). For instance, 1 for the first execution phase, 2 for the second, etc."
+        },
+        "RF_plan_approved": {
+          "type": "boolean",
+          "description": "Flag indicating whether the proposal for the current RF initiative has been approved by a human (true once the proposal PR is merged, false or undefined otherwise)."
+        },
+        "path_to_RF_proposal_doc": {
+          "type": "string",
+          "description": "File path to the markdown document containing the Major Initiative Proposal for the current RF (e.g., 'PROPOSAL-RF-something-YYYYMMDD.md'), if one exists."
+        }
+      },
+      "required": [
+        "current_state",
+        "current_action_sequence"
+      ]
+    },
+    "lesson_entry_schema": {
+      "type": "object",
+      "properties": {
+        "lesson_type": {
+          "type": "string",
+          "enum": [
+            "general_heuristic",
+            "task_specific_insight",
+            "technical_tip",
+            "other"
+          ],
+          "description": "Category of the lesson learned (e.g., a general heuristic, a task-specific insight, etc.)."
+        },
+        "scope_tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Tags indicating the context/scope of the lesson (e.g., related modules, topics, or task identifiers)."
+        },
+        "content": {
+          "type": "string",
+          "description": "Detailed description of the lesson learned."
+        }
+      },
+      "required": [
+        "lesson_type",
+        "content"
+      ]
+    }
+  },
+  "config_fields": {
+    "primary_model_identifier": "A string specifying the primary LLM model to use (example: 'gpt-4'). This is the central configuration controlling all LLM interactions. It should be defined in agent_config.json and used consistently by the agent. Note: This setting is primarily used by the bootstrap process; the runtime model selection may be managed by the Cursor IDE environment.",
+    "repo_default_branch": "The default branch name (so the agent knows where to open PRs).",
+    "enable_commit_pushing": "Toggle to enable the agent to push commits and create PRs (for safety, this can be off in a dry-run mode).",
+    "prefer_docker": "Boolean. When true, the agent will always try to build & run tests inside the project's Docker image (if present). When false, the agent builds a Docker image only on CI *or* when no cached image named 'agent_test' exists. Default is false."
+  },
+  "prompt_templates": {
+    "planning_prompt": "You are an autonomous coding agent. Plan the next action for the repository based on the current context. Consider open issues, failing tests, and project goals. Output a clear plan description, including which files to change and why, and how to implement the solution. Additionally, anticipate if any external tools or dependency changes are required and incorporate steps to address them in your plan. Additionally, consult the latest `CODEBASE_QUALITY_REPORT.md`. Prioritize tasks that address identified 'Quality Gaps' and improve alignment with the project's 'North Star' coding philosophy, alongside other new feature requests or bug fixes.",
+    "coding_prompt": "Implement the plan described. Modify or create code in the repository accordingly. Provide the updated code for each file that needs changes. Ensure your changes align with project style and requirements, and adhere to the coding philosophy guidelines (clarity, security, SOLID, DRY principles) outlined in the `coding_philosophy_guidance.md` document.",
+    "critique_prompt": "Review the proposed code changes carefully. Identify any errors, potential improvements, or missing elements. If issues are found, adjust the code or plan accordingly before finalizing. Also verify that the code adheres to the coding philosophy guidelines (e.g., clarity, security, good design practices) from the `coding_philosophy_guidance.md` and highlight any deviations or improvements related to those principles.",
+    "error_analysis_prompt": "Analyze the errors or test failures that occurred. Identify the root cause and propose a solution or next step to fix the issue. Provide a brief explanation of what went wrong and how to correct it. If the errors suggest missing tools or dependencies, include steps to install or configure them as part of the solution.",
+    "self_revision_prompt": "Reflect on the agent's own instructions and performance. Identify if any core instructions (prompts, rules, or strategies) might be causing repeated issues or suboptimal behavior. Propose specific changes to these instructions to improve future performance (this may include updating internal guidance documents like the coding philosophy guidance if relevant).",
+    "human_request_prompt": "Formulate a request for human assistance. Clearly and concisely explain what the agent needs (e.g., environment setup, credentials, manual code review or approval) and why it is needed. Use a polite and factual tone.",
+    "debrief_prompt": "Reflect on the recently completed task and articulate any lessons learned, in a structured format that includes relevant tags and a concise summary of the insight.",
+    "knowledge_retrieval_prompt": "Recall any past lessons relevant to the current context or task, and summarize how those insights could inform the current plan.",
+    "debugging_prompt": "You have encountered difficulties resolving a problem. Enter a debugging mode: carefully inspect and step through relevant code, consider adding logs or print statements to gather insights, or use any debugging tool available. Identify the precise cause of the issue and formulate a strategy to fix it. Summarize your findings and propose the next steps to resolve the problem.",
+    "escalation_prompt": "The agent has encountered a persistent issue that remains unresolved after multiple attempts. Summarize the context of the problem, including what has been tried and the suspected root causes. Formulate a clear request for deeper research or meta-level intervention to help overcome this challenge. The request should specify what kind of help or analysis is needed from a human or external system. Be detailed and actionable, as this message will be logged for a human operator to review.",
+    "codebase_quality_assessment_prompt": "You are performing a 'North Star' Codebase Quality Assessment. Systematically review the specified codebase sections. Evaluate against the coding philosophy guidelines in `prompts/coding_philosophy_guidance.md`, identify deviations, anti\u2011patterns, maintainability concerns (complexity, clarity), potential security vulnerabilities, and areas with insufficient test coverage. Structure your findings into a comprehensive markdown report. Name the file `CODEBASE_QUALITY_REPORT-{{TIMESTAMP}}.md` and save it to `.agent_workspace/quality_reports/`.",
+    "major_initiative_planning_prompt": "You have identified the need for a significant overhaul in the repository. Clearly state whether this is a **Major Refactor** (improving internal code structure/architecture) or a **Toolchain Change** (upgrading or replacing critical dependencies/tools), or both. Draft a comprehensive **Major Initiative Proposal** (in Markdown format) to plan this initiative. Your proposal should be structured with the following sections: **Justification & Goals**, **Scope Definition**, **Proposed Technical Solution**, **Impact Analysis**, **Risk Assessment & Mitigation**, **Phased Execution Plan**, **Testing & Validation Strategy**, **Estimated Effort**, and **Rollback Plan**. Provide detailed information under each section. Explain why the initiative is necessary, what will be done (and what won't), how it will be executed in phases, and how you will verify success and handle potential issues or reversals. Aim for clarity and thoroughness, as this document will be reviewed by the human (CEO) for approval before execution."
+  },
+  "state_machine": {
+    "states": [
+      {
+        "name": "INIT-AUDIT",
+        "description": "Initial auditing of codebase and environment configuration, including automatic fixes for simple environment issues (e.g., installing missing dependencies) when possible.",
+        "transitions": [
+          "PLANNING",
+          "Blocked-EnvironmentConfig"
+        ]
+      },
+      {
+        "name": "PLANNING",
+        "description": "Determine next task or goal and formulate a plan to achieve it.",
+        "transitions": [
+          "CODING",
+          "ANALYSIS",
+          "RF_PLANNING"
+        ]
+      },
+      {
+        "name": "ANALYSIS",
+        "description": "Meta-analysis state used for self-diagnosis (in self-revision workflows) to articulate issues with agent's strategy or instructions.",
+        "transitions": [
+          "PLANNING"
+        ]
+      },
+      {
+        "name": "CODING",
+        "description": "Write code according to the plan. Modify files or create new ones as needed.",
+        "transitions": [
+          "TESTING",
+          "REVIEWING"
+        ]
+      },
+      {
+        "name": "TESTING",
+        "description": "Run tests or perform checks on the new code. Evaluate results to ensure changes work as intended.",
+        "transitions": [
+          "REVIEWING",
+          "PLANNING",
+          "DEBUGGING"
+        ]
+      },
+      {
+        "name": "DEBUGGING",
+        "description": "In-depth debugging of an issue. The agent systematically investigates the problem, examining code and context to pinpoint the root cause of persistent failures or errors.",
+        "transitions": [
+          "PLANNING",
+          "CODING"
+        ]
+      },
+      {
+        "name": "REVIEWING",
+        "description": "Self-review of the code changes using a critique prompt. Ensure code quality and completeness.",
+        "transitions": [
+          "PR_CREATION",
+          "CODING"
+        ]
+      },
+      {
+        "name": "PR_CREATION",
+        "description": "Create a pull request for the changes on a new branch. Include a summary of changes and any analysis of risk.",
+        "transitions": [
+          "Blocked-AwaitingHumanPRApproval",
+          "MERGE"
+        ]
+      },
+      {
+        "name": "Blocked-EnvironmentConfig",
+        "description": "Blocked state indicating environment or configuration issues that need human resolution (e.g., missing API key, missing critical tool, container build failure).",
+        "transitions": [
+          "INIT-AUDIT"
+        ]
+      },
+      {
+        "name": "Blocked-AwaitingFileContext",
+        "description": "Blocked state waiting for the human to provide specific file content required for the current action.",
+        "transitions": [
+          "PLANNING",
+          "CODING"
+        ]
+      },
+      {
+        "name": "Blocked-AwaitingHumanPRApproval",
+        "description": "Blocked state waiting for human review/approval of a pull request before proceeding.",
+        "transitions": [
+          "MERGE"
+        ]
+      },
+      {
+        "name": "Blocked-AwaitingMetaIntervention",
+        "description": "Blocked state indicating the agent has escalated a problem to require meta-level intervention or human deep research. The agent has logged a detailed prompt in human_requests.md describing the issue and what assistance is needed.",
+        "transitions": [
+          "PLANNING"
+        ]
+      },
+      {
+        "name": "MERGE",
+        "description": "State where the PR is approved and merged into the main branch. The agent then can loop back to planning new tasks.",
+        "transitions": [
+          "PLANNING",
+          "QUALITY_ASSESSMENT"
+        ]
+      },
+      {
+        "name": "QUALITY_ASSESSMENT",
+        "description": "The agent performs a comprehensive codebase quality review in this state, using the codebase_quality_assessment_prompt to analyze the repository and generate a markdown report saved to `.agent_workspace/quality_reports/`.",
+        "transitions": [
+          "PLANNING"
+        ]
+      },
+      {
+        "name": "RF_PLANNING",
+        "description": "Planning a major refactor or toolchain renovation initiative. The agent compiles a comprehensive proposal (Major Initiative Proposal) outlining goals, scope, technical approach, impact, risks, and execution plan for a broad change.",
+        "transitions": [
+          "Blocked-AwaitingRFPlanApproval"
+        ]
+      },
+      {
+        "name": "Blocked-AwaitingRFPlanApproval",
+        "description": "Blocked state waiting for human (CEO) review and approval of the Major Initiative Proposal (via PR merge) before proceeding.",
+        "transitions": [
+          "RF_EXECUTION_PHASED"
+        ]
+      },
+      {
+        "name": "RF_EXECUTION_PHASED",
+        "description": "Executing an approved major initiative in phases. The agent carries out the refactor or toolchain changes step-by-step according to the approved plan, creating separate tasks/PRs for each phase as needed.",
+        "transitions": [
+          "RF_VALIDATION"
+        ]
+      },
+      {
+        "name": "RF_VALIDATION",
+        "description": "Validating the outcomes of the major initiative. The agent runs thorough tests and possibly an extra codebase quality assessment to ensure the refactor/toolchain update succeeded without regressions.",
+        "transitions": [
+          "RF_COMPLETED",
+          "RF_EXECUTION_PHASED"
+        ]
+      },
+      {
+        "name": "RF_COMPLETED",
+        "description": "The major initiative has been completed successfully. The agent finalizes the process (e.g., merging final changes, summarizing lessons learned) and returns to normal operation (planning new tasks).",
+        "transitions": [
+          "PLANNING"
+        ]
+      }
+    ],
+    "initial_state": "INIT-AUDIT",
+    "blocked_states": [
+      "Blocked-EnvironmentConfig",
+      "Blocked-AwaitingFileContext",
+      "Blocked-AwaitingHumanPRApproval",
+      "Blocked-AwaitingMetaIntervention",
+      "Blocked-AwaitingRFPlanApproval"
+    ],
+    "self_revision_branching": "During the PLANNING state, the agent can decide to enter a self-revision workflow if it identifies issues in its core instructions. In this case, it transitions to an ANALYSIS state (for diagnosing instructions issues) and then through PLANNING and CODING states focused on updating its own instruction files. The PR created for self-revision must be reviewed by a human before merging (entering Blocked-AwaitingHumanPRApproval even if auto-merge is allowed for normal tasks).",
+    "major_initiative_branching": "The agent can initiate a Major Refactor or Toolchain Change workflow (referred to as an RF initiative) upon detecting certain conditions. Triggers include persistent unresolved 'Quality Gaps' identified across multiple `CODEBASE_QUALITY_REPORT.md` assessments, recurring issues or themes in the Lessons Learned that indicate deep architectural debt, discovery of critical dependencies or tools that have become obsolete or deprecated, or a direct human directive (e.g., an open issue labeled `#MAJOR_INITIATIVE_PROPOSAL`). When such a trigger is recognized (typically during the PLANNING state or immediately after a quality assessment), the agent transitions to an RF_PLANNING state to formulate a comprehensive Major Initiative Proposal. This proposal outlines whether the initiative is a broad codebase refactor or a toolchain upgrade (or both), and details the justification, plan, and safeguards. Execution of the RF initiative is gated: the agent will enter a blocked approval state until the human (CEO) approves the proposal via a PR merge. Once approved, the agent proceeds with RF_EXECUTION_PHASED, breaking the work into multiple phases as laid out in the plan. Each phase is executed with the usual rigor (planning, coding, testing, reviewing) but within the RF context, and the agent provides enhanced debriefs or progress updates at phase milestones. After all phases are completed, the agent enters RF_VALIDATION to ensure the changes meet the intended goals and that no regressions are present (often running a full test suite and possibly a new quality assessment). Finally, in RF_COMPLETED, the initiative is considered finished; the agent logs the outcome (including any major lessons learned) and returns to normal task planning. Major initiatives allow the agent to address foundational issues or major upgrades systematically, with human oversight at the planning approval stage to ensure alignment with project goals."
+  },
+  "environment_self_audit": {
+    "benchmarks": [
+      "Operating System: Confirm the OS is macOS when using the Cursor IDE. If not, issue a warning and proceed in headless mode.",
+      "IDE: Check for Cursor IDE context. If not present, ensure headless mode is properly configured (using agent_config.json and environment variables).",
+      "Python Environment: Ensure Python 3.x is available and that required Python packages (if any) are installed. If dependency manifests (e.g., requirements.txt) exist and dependencies are missing, attempt an automatic installation (e.g., using pip). If installation fails or requires credentials, log a request for human assistance and enter Blocked-EnvironmentConfig.",
+      "Git Config: Check repository settings (like whether the default branch is protected from direct pushes, which is recommended to enforce PRs). If not set, recommend enabling branch protection.",
+      "Testing Tools: Check if test frameworks or linters referenced by the project are available (e.g., `pytest` for Python, or relevant language-specific tools). If tests cannot run due to environment issues, request fixes.",
+      "Containerization: If a Dockerfile or docker-compose configuration is present in the repository, attempt to build a Docker image for the project. If the build fails, log the error and treat it as a critical issue (enter Blocked-EnvironmentConfig); if it succeeds, proceed normally (the agent can utilize the container for testing when appropriate).",
+      "Containerization flag: Honour `prefer_docker` in agent_config.json. When false, skip rebuild if image 'agent_test' already exists and running outside CI.",
+      "LLM API Access: Ensure the LLM API credentials are set (e.g., environment variable for API key). If not, the agent cannot function, so log an error and request the key."
+    ],
+    "self_configuration": "The agent cannot directly change the OS or external environment via code, but it can adjust certain repository settings or config files if needed. For example, if it detects a missing config file or default setting in the repo, it can create or update it through its normal code change process. For issues outside its control (like a missing system tool or credential), the agent logs a detailed request in human_requests.md and enters Blocked-EnvironmentConfig. Once the human addresses the issue (e.g., installing a tool, providing a key, adjusting IDE settings) and signals resolution (perhaps by adding a note or commit), the agent will re-run the audit and proceed."
+  },
+  "pr_guidelines": {
+    "branch_naming": "The agent should create a new branch for each task or fix (e.g., 'agent-task-123-feature-x' or 'selfrev-adjust-prompt'). Branch names should be descriptive and unique.",
+    "pull_request": "Pull requests must include a clear description of the changes, the reason for the change, and any potential impacts. The agent auto-populates this using the planning context and critique results. If the PR is a self-revision, it should clearly label it as an agent instruction update.",
+    "risk_analysis": "Before finalizing a PR, the agent analyzes the change for risk. This could involve running all tests, checking for modifications in critical files, or using an LLM prompt to estimate risk level. If the changes are high-risk or affect core systems, the agent will require human review before merging even if auto_merge_threshold is 'low-risk'.",
+    "major_initiative": "Major refactor or toolchain renovation initiatives (RF) should follow a special naming convention. Assign each initiative a unique identifier (format 'RF-ID-YYYYMMDD-NNN') for tracking. Name the proposal document as `PROPOSAL-RF-<slug>-YYYYMMDD.md` (where `<slug>` is a brief descriptor of the initiative). Use this RF ID in branch names and commit messages during execution (e.g., branches like `RF-20250101-001-phase1` for phase 1 of initiative RF-ID-20250101-001). This ensures all work related to the major initiative is clearly linked and traceable."
+  }
+}

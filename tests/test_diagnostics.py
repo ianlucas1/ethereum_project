@@ -10,8 +10,7 @@ import statsmodels.api as sm
 from statsmodels.regression.linear_model import OLS, RegressionResultsWrapper
 
 # Assuming src is importable via conftest.py
-from src.diagnostics import (run_residual_diagnostics,
-                             run_structural_break_tests)
+from src.diagnostics import run_residual_diagnostics, run_structural_break_tests
 
 # --- Test Fixtures ---
 

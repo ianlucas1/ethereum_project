@@ -14,7 +14,7 @@ def test_load_parquet_index_fallback(tmp_path: Path):
     p = tmp_path / "weird.parquet"
 
     # Create a DataFrame whose *index* already holds the timestamps, but the index
-    # is *named* something other than "time" – this exercises the fallback branch
+    # is *named* something other than "time" - this exercises the fallback branch
     # inside ``load_parquet`` where it must reset the index and rename the first
     # column to the canonical ``time`` label before setting it back as the index.
     df = pd.DataFrame({"value": [10, 20, 30]})
@@ -34,7 +34,7 @@ def test_load_parquet_index_fallback(tmp_path: Path):
     assert out.index.name == "time"
 
     # Build an *expected* DataFrame that mirrors the format that the loader
-    # should output – namely, the *same* values but with the index correctly
+    # should output - namely, the *same* values but with the index correctly
     # labelled as ``time``.
     expected = df.rename_axis("time")
 

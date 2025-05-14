@@ -16,16 +16,17 @@ from __future__ import annotations
 
 import json
 import logging
+
 # Removed time import as retries are handled by the session adapter
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Final, Mapping, MutableMapping, Optional
 
 import requests
+
 # Imports for Session and Retry logic
 from requests.adapters import HTTPAdapter
-from requests.exceptions import \
-    RequestException  # Import base RequestException
+from requests.exceptions import RequestException  # Import base RequestException
 from urllib3.util.retry import Retry
 
 # ---------------------------------------------------------------------
@@ -142,7 +143,7 @@ def robust_get(
         # Use the global session object
         resp = session.get(
             url,
-            params=dict(params) if params is not None else None,  # noqa: E501
+            params=dict(params) if params is not None else None,
             headers=merged_headers,
             timeout=timeout,
         )
@@ -187,7 +188,6 @@ def robust_get(
     except RequestException as exc:
         # This catches errors after retries are exhausted or non-retried errors
         logging.error(
-            f"robust_get failed for {url} "
-            f"after retries (if applicable): {exc}"  # noqa: E501
+            f"robust_get failed for {url} " f"after retries (if applicable): {exc}"
         )
         raise  # Re-raise the final exception (e.g., HTTPError, ConnectionError, Timeout)
