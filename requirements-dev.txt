@@ -8,7 +8,7 @@ mypy==1.15.0
 pip-tools==7.4.1
 
 pre-commit==3.7.0          # runs git hooks
-radon==5.1.0               # cyclomatic complexity
+radon==6.0.1               # cyclomatic complexity
 xenon==0.9.1               # maintainability score
 safety~=3.2.0              # CVE scanner, Pydantic v2 compatible
 
