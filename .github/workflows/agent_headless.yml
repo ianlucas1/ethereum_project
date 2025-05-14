@@ -39,8 +39,6 @@ jobs:
           else
             echo "agent_main.py not found, skipping agent plan step"
           fi
-          # The following line assumes 'agent_test' is the image name built by your agent's Docker logic
-          # and that 'pytest -q' is how you run your tests. Adjust if necessary.
-          # If your project doesn't use pytest or has a different test command,
-          # you might want to comment out or change the docker run command.
-          echo "Skipping containerized test run."  # Removed docker run for now 
+          # Run the full test-suite inside the freshly built container. This will
+          # fail the job if the tests fail (default GitHub Actions behaviour).
+          docker run --rm agent_test pytest -q 
