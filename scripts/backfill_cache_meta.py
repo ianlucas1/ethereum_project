@@ -32,7 +32,7 @@ import pandas as pd
 
 # Attempt to import project settings for default cache location
 try:
-    # settings.py is dynamically generated and untyped – ignore no longer needed
+    # settings.py is dynamically generated and untyped - ignore no longer needed
     from settings import DATA_DIR
 except ImportError:  # Fallback when running outside project root
     DATA_DIR = Path.cwd()
@@ -78,11 +78,11 @@ def backfill(directory: Path, overwrite: bool = False) -> None:
     for pq in parquet_files(directory):
         try:
             write_meta(pq, overwrite=overwrite)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logging.error("Failed on %s: %s", pq, exc)
 
 
-def parse_args() -> argparse.Namespace:  # noqa: D401
+def parse_args() -> argparse.Namespace:
     """Parse CLI arguments."""
     parser = argparse.ArgumentParser(
         description="Back-fill .meta.json files for cached Parquet files."
@@ -102,7 +102,7 @@ def parse_args() -> argparse.Namespace:  # noqa: D401
     return parser.parse_args()
 
 
-def main() -> None:  # noqa: D401
+def main() -> None:
     """CLI entry-point."""
     args = parse_args()
     backfill(args.cache_directory, overwrite=args.overwrite)

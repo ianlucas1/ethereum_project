@@ -204,7 +204,7 @@ def fetch_eth_price_rapidapi() -> pd.DataFrame:
             # Ensure 'start' is always incremented
             start = end + timedelta(days=1)
             # Add a small delay to avoid hitting rate limits
-            time.sleep(random.uniform(0.2, 0.5))
+            time.sleep(random.uniform(0.2, 0.5))  # nosec B311
 
     if not pieces:
         logging.error("No ETH price data pieces were collected from Yahoo Finance API.")
@@ -299,7 +299,7 @@ def cm_fetch(
             url = j.get("next_page_url")
             # Add a small delay to be polite to the API
             if url:
-                time.sleep(random.uniform(0.5, 1.5))
+                time.sleep(random.uniform(0.5, 1.5))  # nosec B311
         except (
             RuntimeError,
             requests.exceptions.RequestException,
@@ -533,7 +533,7 @@ def fetch_nasdaq() -> pd.Series:
             # Ensure 'start' is always incremented
             start = end + timedelta(days=1)
             # Add a small delay to avoid hitting rate limits
-            time.sleep(random.uniform(0.2, 0.5))
+            time.sleep(random.uniform(0.2, 0.5))  # nosec B311
 
     if not pieces:
         logging.error(
