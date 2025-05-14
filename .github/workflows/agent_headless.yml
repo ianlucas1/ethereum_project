@@ -12,7 +12,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.x" # You can specify a more precise version like "3.10" or "3.11" if needed
+          python-version: "3.12" # Pin to 3.12 for better pandas compatibility
 
       - name: Install project requirements
         run: |
