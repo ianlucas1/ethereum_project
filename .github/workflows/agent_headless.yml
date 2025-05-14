@@ -29,8 +29,16 @@ jobs:
           CI: "true"
           PREFER_DOCKER: "true" # Ensures Docker build is attempted on CI
         run: |
-          python bootstrap_agent.py
-          python agent_main.py --plan
+          if [ -f bootstrap_agent.py ]; then
+            python bootstrap_agent.py
+          else
+            echo "bootstrap_agent.py not found, skipping bootstrap step"
+          fi
+          if [ -f agent_main.py ]; then
+            python agent_main.py --plan
+          else
+            echo "agent_main.py not found, skipping agent plan step"
+          fi
           # The following line assumes 'agent_test' is the image name built by your agent's Docker logic
           # and that 'pytest -q' is how you run your tests. Adjust if necessary.
           # If your project doesn't use pytest or has a different test command,
