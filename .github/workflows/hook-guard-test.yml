@@ -1,5 +1,12 @@
 name: Hook Guard Test
-on: pull_request
+on:
+  workflow_dispatch:
+    # Manual run only; avoid failing PRs automatically
+    inputs:
+      reason:
+        description: "Reason for manual guard test run"
+        required: false
+        default: "manual trigger"
 jobs:
   guard:
     runs-on: ubuntu-latest

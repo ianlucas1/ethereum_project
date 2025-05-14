@@ -22,7 +22,7 @@ def test_series_roundtrip(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> No
     calls = {"n": 0}
 
     @disk_cache("series.parquet", max_age_hr=24)
-    def produce_series() -> pd.Series:  # noqa: D401
+    def produce_series() -> pd.Series:
         """Return a simple Series."""
         calls["n"] += 1
         return pd.Series([1, 2, 3], name="x")
@@ -49,7 +49,7 @@ def test_missing_meta_fallback(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) 
     _monkeypatch_data_dir(monkeypatch, tmp_path)
 
     @disk_cache("df.parquet", max_age_hr=24)
-    def produce_df() -> pd.DataFrame:  # noqa: D401
+    def produce_df() -> pd.DataFrame:
         return pd.DataFrame({"a": [1, 2], "b": [3, 4]})
 
     # create cache + meta

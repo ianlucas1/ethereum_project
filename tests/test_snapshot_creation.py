@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+
 # Add MagicMock to imports
 from unittest.mock import MagicMock, patch
 

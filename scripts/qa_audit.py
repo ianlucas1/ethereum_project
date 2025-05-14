@@ -15,7 +15,7 @@ import datetime
 import json
 import logging  # Added import
 import pathlib
-import subprocess
+import subprocess  # nosec B404
 
 # Configure basic logging for error messages from shell commands
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
@@ -48,7 +48,7 @@ def shell(cmd_list: list[str]) -> str:
     # text=True decodes stdout/stderr as text (utf-8 by default).
     try:
         # Using check=True makes subprocess.run raise CalledProcessError on non-zero exit.
-        result = subprocess.run(cmd_list, capture_output=True, text=True, check=True)
+        result = subprocess.run(cmd_list, capture_output=True, text=True, check=True)  # nosec B603
         return result.stdout.strip()
     except subprocess.CalledProcessError as e:
         # Log the error details from CalledProcessError
@@ -69,7 +69,7 @@ def ruff_lint(files: list[str]) -> int:
     if not files:
         return 0
     try:
-        shell(["ruff", "check"] + files)  # Pass files as a list
+        shell(["ruff", "check", *files])  # Pass files as a list
         return 0
     except subprocess.CalledProcessError:
         return 10  # simple penalty
@@ -81,7 +81,7 @@ def mypy_check(
     if not files:
         return 0
     try:
-        shell(["mypy", "--strict"] + files)  # Pass files as a list
+        shell(["mypy", "--strict", *files])  # Pass files as a list
         return 0
     except subprocess.CalledProcessError:
         return 10
@@ -91,7 +91,7 @@ def radon_complexity(files: list[str]) -> int:
     if not files:
         return 0
     try:
-        out = shell(["radon", "cc", "-s"] + files)  # Pass files as a list
+        out = shell(["radon", "cc", "-s", *files])  # Pass files as a list
         # Ensure there's output to process
         if not out.strip():  # Check if output is empty or just whitespace
             logging.warning(
@@ -120,9 +120,7 @@ def radon_complexity(files: list[str]) -> int:
         return penalty
     except subprocess.CalledProcessError:
         return 5  # Return a default penalty on error
-    except (
-        ValueError
-    ):  # Catch potential errors if max() gets an empty sequence (though default handles this)
+    except ValueError:  # Catch potential errors if max() gets an empty sequence (though default handles this)
         logging.warning(
             f"Radon complexity calculation encountered an issue for files: {files}. Assuming good complexity."
         )
@@ -245,7 +243,6 @@ def main():
     # 1. --mode=full is specified
     # 2. There was no last_sha (first run)
     # 3. In delta mode, but no python files were changed (or diff failed and changed_py is empty)
-    #    and we have a last_sha (meaning it's not the first run).
     #    This ensures that if only non-Python files changed, we don't skip the audit summary update.
     #    The tools (ruff, radon) will run on 'src' if changed_py is empty for `compute_axes`.
     full_audit_needed = args.mode == "full" or not last_sha

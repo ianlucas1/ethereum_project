@@ -23,7 +23,7 @@ def test_disk_cache_write_and_hit(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     calls = {"count": 0}
 
     @disk_cache("dummy.parquet", max_age_hr=24)
-    def expensive():  # noqa: D401 – simple test helper
+    def expensive():  # - simple test helper
         calls["count"] += 1
         return pd.Series([1, 2, 3])
 
@@ -32,7 +32,7 @@ def test_disk_cache_write_and_hit(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     assert calls["count"] == 1
     assert (tmp_path / "dummy.parquet").exists(), "Cache file not written on miss."
 
-    # Second invocation – within max_age – should hit cache (no new call)
+    # Second invocation - within max_age - should hit cache (no new call)
     s2 = expensive()
     assert calls["count"] == 1, "Function re-executed despite fresh cache."
     pd.testing.assert_series_equal(s1, s2, check_names=False)
@@ -48,7 +48,7 @@ def test_disk_cache_expiry(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(settings, "DATA_DIR", tmp_path)
 
     @disk_cache("expire.parquet", max_age_hr=0)  # 0 hr => always stale
-    def make():  # noqa: D401 – simple test helper
+    def make():  # - simple test helper
         return pd.Series([42])
 
     # First call writes the cache file
@@ -81,14 +81,14 @@ def test_disk_cache_lock(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     acquired = {"count": 0}
     real_acquire = FileLock.acquire
 
-    def fake_acquire(self, *args, **kwargs):  # noqa: D401  – wrapper
+    def fake_acquire(self, *args, **kwargs):  # - wrapper
         acquired["count"] += 1
         return real_acquire(self, *args, **kwargs)
 
     monkeypatch.setattr(FileLock, "acquire", fake_acquire)
 
     @disk_cache("lock.parquet", max_age_hr=24)
-    def func():  # noqa: D401 – simple test helper
+    def func():  # - simple test helper
         return pd.Series([99])
 
     func()

@@ -9,10 +9,15 @@ import pytest
 
 # Assuming src is importable via conftest.py
 from src.config import settings
-from src.data_processing import (align_nasdaq_data, create_daily_clean,
-                                 create_monthly_clean, engineer_log_features,
-                                 load_raw_data, merge_eth_data,
-                                 process_all_data)
+from src.data_processing import (
+    align_nasdaq_data,
+    create_daily_clean,
+    create_monthly_clean,
+    engineer_log_features,
+    load_raw_data,
+    merge_eth_data,
+    process_all_data,
+)
 
 # --- Fixtures ---
 
@@ -169,7 +174,7 @@ def test_merge_eth_data_happy_path(
     # Check shape
     assert merged_df.shape[0] == 3  # Based on sample data length
     # Check columns: original core + burn + tx_count + market_cap
-    expected_cols = list(core_df.columns) + ["burn", "tx_count", "market_cap"]
+    expected_cols = [*list(core_df.columns), "burn", "tx_count", "market_cap"]
     assert sorted(merged_df.columns) == sorted(expected_cols)
 
     # Check market_cap calculation

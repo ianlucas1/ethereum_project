@@ -11,8 +11,7 @@ import numpy as np
 # --------------------------------------------------------------------------- #
 from src.config import settings  # configuration / secrets
 from src.data_processing import ensure_raw_data_exists, process_all_data
-from src.diagnostics import (run_residual_diagnostics,
-                             run_structural_break_tests)
+from src.diagnostics import run_residual_diagnostics, run_structural_break_tests
 from src.eda import run_stationarity_tests, winsorize_data
 from src.ols_models import run_ols_benchmarks
 from src.reporting import NpEncoder, generate_summary
@@ -99,7 +98,7 @@ def main() -> None:
     # 3 ─ Modelling & diagnostics
     logging.info("--- Running Models ---")
     model_df = monthly_winsorized.dropna(
-        subset=[ARDL_ENDOG_COL] + ARDL_EXOG_COLS
+        subset=[ARDL_ENDOG_COL, *ARDL_EXOG_COLS]
     ).copy()
     if model_df.empty:
         logging.error("No data left after NaN drop. Exiting.")
@@ -131,7 +130,7 @@ def main() -> None:
         analysis_results["vecm"] = {"error": f"Missing columns: {missing}"}
 
     # 3c ARDL
-    ardl_req = [ARDL_ENDOG_COL] + ARDL_EXOG_COLS
+    ardl_req = [ARDL_ENDOG_COL, *ARDL_EXOG_COLS]
     if all(c in model_df.columns for c in ardl_req):
         analysis_results["ardl"] = run_ardl_analysis(
             model_df, ARDL_ENDOG_COL, ARDL_EXOG_COLS
@@ -141,7 +140,7 @@ def main() -> None:
         analysis_results["ardl"] = {"error": f"Missing columns: {missing}"}
 
     # 3d OOS validation
-    oos_req = [OOS_ENDOG_COL] + OOS_EXOG_COLS + ["price_usd", "supply"]
+    oos_req = [OOS_ENDOG_COL, *OOS_EXOG_COLS, "price_usd", "supply"]
     if all(c in monthly_winsorized.columns for c in oos_req):
         oos_results = run_oos_validation(
             df_monthly=monthly_winsorized,

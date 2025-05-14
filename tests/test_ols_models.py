@@ -118,7 +118,7 @@ def test_fit_ols_hac_perfect_collinearity(sample_ols_data: Dict[str, Any]):
             cond_num = getattr(results["model_obj"], "condition_number", None)
             if cond_num is not None and cond_num > 1e8:  # Use a large threshold
                 condition_number_high = True
-        except Exception:
+        except Exception:  # nosec B110
             pass  # Ignore errors trying to get condition number
 
     assert (
@@ -254,7 +254,7 @@ def test_run_ols_benchmarks_structure_and_keys(
     assert "fair_price_constr" in monthly_df.columns
     # Ensure no other columns were unexpectedly added/removed
     assert set(monthly_df.columns) == set(
-        original_cols + ["fair_price_base", "fair_price_ext", "fair_price_constr"]
+        [*original_cols, "fair_price_base", "fair_price_ext", "fair_price_constr"]
     )
 
 

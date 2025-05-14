@@ -7,11 +7,16 @@ from typing import Any, Dict, List, Optional  # Use specific types
 
 import numpy as np
 import pandas as pd
+
 # Import specific statsmodels types for hinting
 from statsmodels.tsa.api import VAR
 from statsmodels.tsa.ardl import ARDL, UECM, ARDLResults, BoundsTestResult
-from statsmodels.tsa.vector_ar.vecm import (VECM, JohansenTestResult,
-                                            VECMResults, coint_johansen)
+from statsmodels.tsa.vector_ar.vecm import (
+    VECM,
+    JohansenTestResult,
+    VECMResults,
+    coint_johansen,
+)
 
 # --- VECM Analysis ---
 
@@ -186,7 +191,7 @@ def run_vecm_analysis(
                 beta_matrix = vecm_fit.beta
                 if beta_matrix.shape[0] > 0 and abs(beta_matrix[0, 0]) > 1e-6:
                     beta_norm = -beta_matrix[1:, 0] / beta_matrix[0, 0]
-                    vecm_results["coint_vector_norm"] = [1.0] + beta_norm.tolist()
+                    vecm_results["coint_vector_norm"] = [1.0, *beta_norm.tolist()]
                     if len(endog_cols) > 1 and endog_cols[1] == "log_active":
                         vecm_results["beta_active_coint"] = beta_norm[0]
                 else:
@@ -267,7 +272,7 @@ def run_ardl_analysis(
     logging.info("Running ARDL Analysis...")
     ardl_results: Dict[str, Any] = {"error": None}  # Initialize
 
-    required_cols = [endog_col] + exog_cols
+    required_cols = [endog_col, *exog_cols]
     if not all(col in df_monthly.columns for col in required_cols):
         missing = set(required_cols) - set(df_monthly.columns)
         msg = f"Monthly DataFrame missing required columns for ARDL: {missing}"
@@ -318,7 +323,7 @@ def run_ardl_analysis(
         )
         ardl_results["summary"] = summary_text
 
-        # Extract ECT coefficient (coefficient of endog.L1)
+        # Extract ETC coefficient (coefficient of endog.L1)
         ardl_results["ect_coeff"] = np.nan  # Default
         try:
             ect_param_name = f"{endog_col}.L1"
@@ -326,7 +331,7 @@ def run_ardl_analysis(
                 ect_coeff = res_ardl.params[ect_param_name]
                 ardl_results["ect_coeff"] = float(ect_coeff)
                 logging.info(
-                    f"  ARDL ETC coefficient ({ect_param_name}): {ect_coeff:.3f}"  # noqa: SPELL001
+                    f"  ARDL ETC coefficient ({ect_param_name}): {ect_coeff:.3f}"
                 )
             else:
                 logging.warning(

@@ -61,7 +61,7 @@ def rewrite_files(completed_id: str | None, next_task: dict):
         f"> *This block is rewritten automatically by `scripts/roadmap_sync.py`.*\n\n"
         f"**Ticket ID:** `{next_task['ID']}` — *{next_task['Task_Title']}*\n"
         f"**Branch:** `feature/{next_task['ID']}-"
-        f"{re.sub(r'[^a-z0-9-]+', '-', next_task['Task_Title'].lower())[:20].strip('-')}`"  # noqa: E501
+        f"{re.sub(r'[^a-z0-9-]+', '-', next_task['Task_Title'].lower())[:20].strip('-')}`"
         f"`\n\n"
         f"### Tasks\n• TBD by agent\n"
     )

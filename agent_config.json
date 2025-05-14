@@ -1,0 +1,7 @@
+{
+  "primary_model_identifier": "gpt-4",
+  "OPENAI_API_KEY": "YOUR_API_KEY_HERE",
+  "prefer_docker": false,
+  "repo_default_branch": "main",
+  "enable_commit_pushing": false
+} 

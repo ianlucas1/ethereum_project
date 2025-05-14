@@ -33,9 +33,7 @@ except FileNotFoundError as e:
     )
     print("ERROR: Could not load data files. Please run 'python main.py' first.")
 except Exception as e:
-    logging.error(
-        f"An unexpected error occurred during data loading: {e}", exc_info=True
-    )
+    logging.error(f"Unexpected error during data loading: {e}", exc_info=True)
     print(f"ERROR: An unexpected error occurred: {e}")
 
 # Add a blank line after this cell's code
@@ -57,10 +55,11 @@ if "monthly_clean" in locals() and isinstance(monthly_clean, pd.DataFrame):
     if len(plot_cols) > 1:
         logging.info(f"Plotting columns: {plot_cols}")
         try:
+            plot_title = "Monthly ETH Price vs Model Fair Values (Log Scale)"
             monthly_clean[plot_cols].plot(
                 figsize=(12, 6),
                 logy=True,
-                title="Monthly ETH Price vs Model Fair Values (Log Scale)",  # noqa: E501
+                title=plot_title,
             )
             plt.ylabel("Price (USD Log Scale)")
             plt.xlabel("Date")
@@ -75,10 +74,11 @@ if "monthly_clean" in locals() and isinstance(monthly_clean, pd.DataFrame):
             "Fair value columns not found in monthly_clean DataFrame. Plotting only actual price."
         )
         try:
+            price_plot_title = "Monthly ETH Price (Log Scale)"
             monthly_clean["price_usd"].plot(
                 figsize=(12, 6),
                 logy=True,
-                title="Monthly ETH Price (Log Scale)",  # noqa: E501
+                title=price_plot_title,
             )
             plt.ylabel("Price (USD Log Scale)")
             plt.xlabel("Date")
