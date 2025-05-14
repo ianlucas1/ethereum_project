@@ -53,7 +53,7 @@ pillow==11.2.1
     # via matplotlib
 pyarrow==15.0.2
     # via -r requirements.txt
-pydantic==2.7.4
+pydantic==2.11.4
     # via
     #   -r requirements.txt
     #   pydantic-settings
